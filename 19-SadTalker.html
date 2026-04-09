@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <style>
 :root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
@@ -347,6 +350,19 @@ window.addEventListener('resize',function(){resizeTdmm();resizeAudio();resizePip
 resizeTdmm();resizeAudio();resizePipe();
 drawAudio();drawPipe();
 })();
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof renderMathInElement === 'function') {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$',  right: '$',  display: false }
+        ],
+        throwOnError: false
+      });
+    }
+  });
 </script>
 </body>
 </html>

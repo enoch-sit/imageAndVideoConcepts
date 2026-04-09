@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <style>
 :root {
   --bg: #FAF6EE; --bg-alt: #F3EDE2; --surface: #FFFFFF;
@@ -159,11 +162,11 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
     <p>During training, the text conditioning is randomly dropped 10–20% of the time. This teaches the U-Net to denoise <em>without</em> a prompt as well as with one — so at inference we get two useful score estimates from a single model with no extra training.</p>
     <div class="eq-box eq-box--teal">
       <span class="eq-label">Run 1 — Conditioned (with text prompt)</span>
-      <span class="mono">ε_cond&nbsp;&nbsp; = ε_θ(x_t, c)</span>
+      <span class="mono">$\epsilon_{\text{cond}} = \epsilon_\theta(x_t, c)$</span>
     </div>
     <div class="eq-box">
       <span class="eq-label">Run 2 — Unconditioned (empty prompt)</span>
-      <span class="mono">ε_uncond = ε_θ(x_t, ∅)</span>
+      <span class="mono">$\epsilon_{\text{uncond}} = \epsilon_\theta(x_t, \emptyset)$</span>
     </div>
   </div>
 
@@ -173,7 +176,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
     <p>The two estimates are combined so that the unconditioned direction is the baseline and the conditioned–unconditioned difference points "toward the prompt". Scaling that difference by w amplifies prompt adherence.</p>
     <div class="eq-box">
       <span class="eq-label">CFG Guided Score (used for the actual denoising step)</span>
-      <span class="mono">ε̃ = ε_uncond + w · (ε_cond − ε_uncond)</span>
+      <span class="mono">$\tilde{\epsilon} = \epsilon_{\text{uncond}} + w \cdot (\epsilon_{\text{cond}} - \epsilon_{\text{uncond}})$</span>
     </div>
     <ul>
       <li><span class="mono">w = 0</span>: purely unconditioned — ignores prompt entirely</li>
@@ -544,6 +547,19 @@ updateNav();
 })();
 
 })();
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof renderMathInElement === 'function') {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$',  right: '$',  display: false }
+        ],
+        throwOnError: false
+      });
+    }
+  });
 </script>
 </body>
 </html>

@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <style>
 :root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
@@ -107,10 +110,10 @@ input[type=range]{flex:1;min-width:80px;accent-color:var(--purple)}
     <p>SMPL-X adds 30 joints for hands (15 per hand). Each finger has 3 knuckle joints (MCP, PIP, DIP) plus the fingertip. The thumb has 4 joints. These 15 joints × 3 axis-angle values = 45 values per hand, but SMPL-X compresses this via PCA — just 10 components per hand capture 98% of natural hand pose variation.</p>
     <div class="eq-box">
       <span class="eq-label">Hand pose compression</span>
-      <span class="mono">θ_hand_raw ∈ ℝ⁴⁵  (15 joints × 3 = 45 rot values)</span><br>
-      <span class="mono">θ_hand_pca ∈ ℝ¹⁰  (10 PCA components per hand)</span><br>
-      <span class="mono">θ_hand_raw = V_hand · θ_hand_pca + μ_hand</span><br>
-      <span class="mono">V_hand ∈ ℝ^(45×10)  — PCA basis vectors from hand scans</span>
+      <span class="mono">$\theta_{\text{hand,raw}} \in \mathbb{R}^{45}$ (15 joints × 3 = 45 rot values)</span><br>
+      <span class="mono">$\theta_{\text{hand,pca}} \in \mathbb{R}^{10}$ (10 PCA components per hand)</span><br>
+      <span class="mono">$\theta_{\text{hand,raw}} = V_{\text{hand}} \cdot \theta_{\text{hand,pca}} + \mu_{\text{hand}}$</span><br>
+      <span class="mono">$V_{\text{hand}} \in \mathbb{R}^{45 \times 10}$ — PCA basis vectors from hand scans</span>
     </div>
   </div>
 
@@ -149,9 +152,9 @@ input[type=range]{flex:1;min-width:80px;accent-color:var(--purple)}
     <p>ARKit (and Metahuman) uses 52 named blendshapes (jawOpen, eyeBlinkLeft, etc.) specifically designed for face rendering pipelines. SMPL-X's ψ is a lower-level statistical representation from 3D scan PCA and is not named semantically. In this course's pipeline, we convert SMPL-X ψ → ARKit blendshapes via a learned regression (App 25: Viseme→Blendshapes).</p>
     <div class="eq-box eq-box--accent">
       <span class="eq-label">Expression blend shapes</span>
-      <span class="mono">face_vertices_expr = face_vertices + Σᵢ ψᵢ · Eᵢ</span><br>
-      <span class="mono">Eᵢ ∈ ℝ^(5023×3)  — i-th expression basis (per face vertex)</span><br>
-      <span class="mono">ψ ∈ ℝ¹⁰⁰  — expression PCA coefficients</span>
+      <span class="mono">$\text{face\_verts\_expr} = \text{face\_verts} + \sum_i \psi_i \cdot E_i$</span><br>
+      <span class="mono">$E_i \in \mathbb{R}^{5023 \times 3}$ — i-th expression basis (per face vertex)</span><br>
+      <span class="mono">$\psi \in \mathbb{R}^{100}$ — expression PCA coefficients</span>
     </div>
   </div>
 </div>
@@ -300,6 +303,19 @@ function drawExpr(){
 window.addEventListener('resize',function(){resizeMap();resizeExpr();});
 resizeMap();resizeExpr();
 })();
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof renderMathInElement === 'function') {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$',  right: '$',  display: false }
+        ],
+        throwOnError: false
+      });
+    }
+  });
 </script>
 </body>
 </html>

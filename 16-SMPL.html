@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <style>
 :root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
@@ -115,11 +118,11 @@ input[type=range]{flex:1;min-width:80px;accent-color:var(--accent)}
     <p>SMPL's shape blend shapes are a set of 10 orthonormal basis vectors (each 6890×3 dimensional — one displacement vector per vertex). The β coefficients weight these bases:</p>
     <div class="eq-box">
       <span class="eq-label">Shape blend shape formula</span>
-      <span class="mono">T_shaped = T_mean + Σᵢ βᵢ · Sᵢ</span><br>
+      <span class="mono">$T_{\text{shaped}} = T_{\text{mean}} + \sum_i \beta_i \cdot S_i$</span><br>
       <br>
-      <span class="mono">T_mean ∈ ℝ^(6890×3)  — mean body template</span><br>
-      <span class="mono">Sᵢ ∈ ℝ^(6890×3)  — i-th shape basis vector</span><br>
-      <span class="mono">β ∈ ℝ¹⁰  — shape coefficients</span>
+      <span class="mono">$T_{\text{mean}} \in \mathbb{R}^{6890 \times 3}$ — mean body template</span><br>
+      <span class="mono">$S_i \in \mathbb{R}^{6890 \times 3}$ — i-th shape basis vector</span><br>
+      <span class="mono">$\beta \in \mathbb{R}^{10}$ — shape coefficients</span>
     </div>
   </div>
 </div>
@@ -171,8 +174,8 @@ input[type=range]{flex:1;min-width:80px;accent-color:var(--accent)}
     <p>Every vertex v is transformed by a weighted average of joint transformation matrices, where the weights W ∈ ℝ^(6890×24) are fixed (learned from data). High weight near a joint = that joint dominates the vertex position.</p>
     <div class="eq-box eq-box--purple">
       <span class="eq-label">Full SMPL forward pass</span>
-      <span class="mono">T(β) = T_mean + Σ βᵢ Sᵢ + Σ B_p(θ)  (pose blends)</span><br>
-      <span class="mono">vᵢ' = (Σⱼ wᵢⱼ · Gⱼ(θ,J(β))) · vᵢ</span><br>
+      <span class="mono">$T(\beta) = T_{\text{mean}} + \sum_i \beta_i S_i + \sum B_p(\theta) \quad \text{(pose blends)}$</span><br>
+      <span class="mono">$v_i' = \Bigl(\sum_j w_{ij} \cdot G_j\bigl(\theta,\,J(\beta)\bigr)\Bigr) \cdot v_i$</span><br>
       <br>
       <span class="mono">wᵢⱼ = skinning weight of vertex i for joint j</span><br>
       <span class="mono">Gⱼ = world transformation matrix of joint j</span><br>
@@ -393,6 +396,19 @@ function drawLBS(){
 window.addEventListener('resize',function(){resizeShape();resizeSkel();resizeLBS();});
 resizeShape();resizeSkel();resizeLBS();
 })();
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof renderMathInElement === 'function') {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$',  right: '$',  display: false }
+        ],
+        throwOnError: false
+      });
+    }
+  });
 </script>
 </body>
 </html>

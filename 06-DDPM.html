@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <style>
 :root {
   --bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;
@@ -129,12 +132,12 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <p>Each step adds a small amount of Gaussian noise proportional to a variance parameter β_t. The key mathematical convenience is that we can skip straight to any step t using the "reparameterised" closed-form equation.</p>
     <div class="eq-box eq-box--teal">
       <span class="eq-label">Single-step forward kernel</span>
-      <span class="mono">q(x_t | x_{t-1}) = N(x_t; √(1−β_t)·x_{t-1}, β_t·I)</span>
+      <span class="mono">$q(x_t \mid x_{t-1}) = \mathcal{N}(x_t;\; \sqrt{1-\beta_t}\cdot x_{t-1},\; \beta_t I)$</span>
     </div>
     <div class="eq-box">
       <span class="eq-label">Jump directly to step t (ᾱ_t = ∏from s=1 to t of (1−β_s))</span>
-      <span class="mono">q(x_t | x₀) = N(x_t; √ᾱ_t·x₀, (1−ᾱ_t)·I)</span><br>
-      <span class="mono">x_t = √ᾱ_t · x₀ + √(1−ᾱ_t) · ε,   ε ∼ N(0, I)</span>
+      <span class="mono">$q(x_t \mid x_0) = \mathcal{N}(x_t;\; \sqrt{\bar{\alpha}_t}\cdot x_0,\; (1-\bar{\alpha}_t) I)$</span><br>
+      <span class="mono">$x_t = \sqrt{\bar{\alpha}_t} \cdot x_0 + \sqrt{1-\bar{\alpha}_t} \cdot \varepsilon,\quad \varepsilon \sim \mathcal{N}(0, I)$</span>
     </div>
   </div>
 
@@ -162,7 +165,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <p>The network ε_θ is trained to predict the noise ε given the noisy sample x_t and the step index t. This is called the "simple objective" by Ho et al. — it outperforms the full ELBO in practice.</p>
     <div class="eq-box eq-box--purple">
       <span class="eq-label">DDPM Training Objective</span>
-      <span class="mono">L = E_{x₀, ε, t} [ ‖ε − ε_θ(x_t, t)‖² ]</span>
+      <span class="mono">$\mathcal{L} = \mathbb{E}_{x_0, \varepsilon, t}\!\left[\|\varepsilon - \epsilon_\theta(x_t, t)\|^2\right]$</span>
     </div>
     <p>During sampling, we run the learned reverse step repeatedly:<br>
        x_{t-1} = (1/√α_t) · (x_t − β_t/√(1−ᾱ_t) · ε_θ(x_t, t)) + σ_t · z</p>
@@ -230,7 +233,7 @@ Input (x_t, t) → [Encoder Block ×4] ─────────────�
     <p>β_t increases linearly from β_1 = 0.0001 to β_T = 0.02 over T = 1000 steps. This works well for 256×256 images but destroys signal too fast at higher resolutions — at high resolution, the image becomes unrecognisable too early in the diffusion chain.</p>
     <div class="eq-box eq-box--teal">
       <span class="eq-label">Linear Schedule</span>
-      <span class="mono">β_t = 0.0001 + (t−1) × (0.02−0.0001) / (T−1)</span>
+      <span class="mono">$\beta_t = 0.0001 + (t-1) \times \dfrac{0.02 - 0.0001}{T-1}$</span>
     </div>
   </div>
 
@@ -240,7 +243,7 @@ Input (x_t, t) → [Encoder Block ×4] ─────────────�
     <p>The cosine schedule is defined via the cumulative product ᾱ_t directly, ensuring the signal is preserved more gently in middle steps where structural information is richest. This schedule is now standard in SD 1.5, SDXL, and most production models.</p>
     <div class="eq-box">
       <span class="eq-label">Cosine Schedule</span>
-      <span class="mono">ᾱ_t = cos²( (t/T + s) / (1+s) · π/2 )  (s = 0.008)</span>
+      <span class="mono">$\bar{\alpha}_t = \cos^2\!\left(\dfrac{t/T + s}{1+s} \cdot \dfrac{\pi}{2}\right) \quad (s = 0.008)$</span>
     </div>
   </div>
 </div>
@@ -545,6 +548,19 @@ window.addEventListener('resize',drawSchedule);
 drawSchedule();
 
 })();
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof renderMathInElement === 'function') {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$',  right: '$',  display: false }
+        ],
+        throwOnError: false
+      });
+    }
+  });
 </script>
 </body>
 </html>

@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <style>
 :root {
   --bg: #FAF6EE; --bg-alt: #F3EDE2; --surface: #FFFFFF;
@@ -185,7 +188,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
     <p>Four successive stride-2 convolutional layers each halve the spatial dimensions: 512 → 256 → 128 → 64. The channel dimension simultaneously expands from 3 (RGB) to 4 latent channels, giving the model more expressive capacity at the compact resolution.</p>
     <div class="eq-box">
       <span class="eq-label">Dimension flow through VAE encoder</span>
-      <span class="mono">(3, 512, 512) → (4, 64, 64)</span><br>
+      <span class="mono">$(3, 512, 512) \to (4, 64, 64)$</span><br>
       <span class="mono">786,432 values  →  16,384 values  (48× reduction)</span>
     </div>
   </div>
@@ -207,7 +210,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
     <p>For each input image x, the encoder produces two vectors of equal size: the mean μ and the log-variance log σ². These define a Gaussian distribution over possible latent codes — not a single deterministic point.</p>
     <div class="eq-box">
       <span class="eq-label">Encoder output</span>
-      <span class="mono">E(x)  →  μ,  log σ²   (each of shape 4×64×64)</span>
+      <span class="mono">$E(x) \to \mu,\; \log \sigma^2 \quad (\text{each of shape } 4 \times 64 \times 64)$</span>
     </div>
   </div>
 
@@ -217,7 +220,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
     <p>Sampling from a distribution is non-differentiable — gradients cannot flow through a random sample. The reparameterisation trick moves the randomness outside the computation graph, making the sample differentiable with respect to μ and σ.</p>
     <div class="eq-box">
       <span class="eq-label">Reparameterisation (ε ∼ N(0,1) is fixed noise)</span>
-      <span class="mono">z = μ + ε · σ</span>
+      <span class="mono">$z = \mu + \varepsilon \cdot \sigma$</span>
     </div>
     <p>Now gradients flow through μ and σ during backpropagation because ε is just a constant noise vector — not a learnable parameter.</p>
   </div>
@@ -228,7 +231,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
     <p>A second term in the VAE loss function penalises the encoder's distribution for drifting too far from a standard Gaussian N(0, I). This KL divergence term prevents the latent space from collapsing into isolated islands and ensures that every point in latent space decodes to a plausible image.</p>
     <div class="eq-box eq-box--accent">
       <span class="eq-label">VAE Training Objective (ELBO)</span>
-      <span class="mono">L = E[log p(x|z)]  −  β · KL(q(z|x) ∥ N(0,I))</span>
+      <span class="mono">$\mathcal{L} = \mathbb{E}[\log p(x|z)] - \beta \cdot \mathrm{KL}(q(z|x) \| \mathcal{N}(0,I))$</span>
     </div>
     <div class="callout callout--teal">
       <div class="callout-title">Why this matters for diffusion</div>
@@ -270,7 +273,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
     <p>The decoder is a mirror image of the encoder — four stride-2 transposed convolution layers expand 64×64 back to 512×512. Crucially, it is called only once at the very end of sampling, after all diffusion denoising steps are complete in latent space.</p>
     <div class="eq-box">
       <span class="eq-label">Decoder dimension flow</span>
-      <span class="mono">(4, 64, 64) → (3, 512, 512)</span><br>
+      <span class="mono">$(4, 64, 64) \to (3, 512, 512)$</span><br>
       <span class="mono">Called once after T denoising steps (not T times!)</span>
     </div>
     <div class="callout callout--accent">
@@ -703,6 +706,19 @@ updateNav();
 })();
 
 })();
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof renderMathInElement === 'function') {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$',  right: '$',  display: false }
+        ],
+        throwOnError: false
+      });
+    }
+  });
 </script>
 </body>
 </html>
