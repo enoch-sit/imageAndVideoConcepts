@@ -459,6 +459,69 @@
     text-align: center;
   }
 
+  /* ── Comparison Table ── */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin: 16px 0;
+  }
+  .compare-table th {
+    background: var(--bg-warm);
+    color: var(--text-primary);
+    font-weight: 700;
+    padding: 10px 14px;
+    text-align: left;
+    border: 1px solid var(--border);
+  }
+  .compare-table td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    vertical-align: top;
+  }
+  .compare-table tr:nth-child(even) td { background: var(--bg-warm); }
+  .compare-table .highlight { color: var(--accent); font-weight: 700; }
+
+  /* ── Step Grid (interactive demo) ── */
+  .step-grid-panel { flex: 1; min-width: 160px; }
+  .step-grid-panel h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .step-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    max-width: 200px;
+    margin: 0 auto;
+  }
+  .step-cell {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.4s;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  .step-cell .cell-val { font-size: 10px; font-weight: 700; }
+  .step-cell .cell-noise {
+    font-size: 9px;
+    margin-top: 2px;
+    opacity: 0;
+    transition: opacity 0.4s;
+    font-weight: 600;
+  }
+  .step-cell.show-noise .cell-noise { opacity: 1; }
+  #stepGridContainer { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin: 24px 0; align-items: center; }
+  #stepStatus { font-size: 13px; color: var(--text-muted); font-style: italic; margin-top: 8px; }
+
   /* footer */
   footer {
     text-align: center;
@@ -478,6 +541,7 @@
     <a href="#score"><span class="step-num">1</span>Score Function</a>
     <a href="#denoising"><span class="step-num">2</span>Denoising</a>
     <a href="#compass"><span class="step-num">3</span>Neural Compass</a>
+    <a href="#nn-output"><span class="step-num">4</span>NN Output</a>
   </div>
 </nav>
 
@@ -672,6 +736,91 @@
   </div>
 </section>
 
+<div class="divider"></div>
+
+<!-- ═══════════════════════ SECTION 4: WHAT THE NN OUTPUTS ═══════════════════════ -->
+<section id="nn-output">
+  <div class="section-label"><span class="dot"></span>Concept 4</div>
+  <h2>What the Neural Network <em>Actually</em> Outputs</h2>
+  <p class="subtitle">The network outputs the high-dimensional vector field — not gradient descent. Here's exactly what that means, step by step.</p>
+
+  <div class="card">
+    <h3>Step by Step: One Forward Pass</h3>
+    <div class="steps-row">
+      <div class="step-badge s1"><span class="num">1</span>Input: noisy image x</div>
+      <div class="step-badge s2"><span class="num">2</span>Network outputs ε̂ (same shape)</div>
+      <div class="step-badge s3"><span class="num">3</span>ε̂ ≈ the score direction</div>
+    </div>
+    <p>Consider a greyscale image of H × W pixels. The neural network (U-Net) takes the noisy image as input and outputs a tensor of the <em>exact same shape</em>:</p>
+    <div class="math-block">Input:   x_noisy  ∈ ℝ^(H×W×C)    e.g. 512×512×3 = 786,432 values
+Output:  ε̂_θ     ∈ ℝ^(H×W×C)    same shape — one number per pixel-channel</div>
+    <p>That output tensor, evaluated at every possible noisy image, <strong>defines a vector field</strong> across the entire image space. The network <em>is</em> the compass — it tells every point in noise-space which direction to move toward real data.</p>
+    <div class="math-block">Key identity:  ε̂_θ(x, t)  ≈  −σ_t · ∇_x log p_σ(x)
+                 predicted noise  ∝  negative score</div>
+    <p>So subtracting the predicted noise from the noisy image is exactly following the score — climbing toward higher probability (real data).</p>
+  </div>
+
+  <div class="card">
+    <h3>The Three Roles — What Does What</h3>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Concept</th>
+          <th>What it is</th>
+          <th>When it's used</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Score ∇ log p(x)</strong></td>
+          <td>The true mathematical vector field — points from any noisy state toward real data. Intractable to compute directly.</td>
+          <td>Theoretical target during training. Never computed directly for images.</td>
+        </tr>
+        <tr>
+          <td class="highlight"><strong>Neural Network output ε̂</strong></td>
+          <td>The learned approximation of the vector field. Same dimensionality as the image. <em>This is the vector field in practice.</em></td>
+          <td>At generation (inference) time — just a single forward pass. No gradient descent involved.</td>
+        </tr>
+        <tr>
+          <td><strong>Gradient Descent</strong></td>
+          <td>The optimizer that updates the network's weights by minimising ||ε̂ − ε_true||²</td>
+          <td>Only during <em>training</em>. It shapes the network so its output approximates the score. Never runs at generation time.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="analogy">
+      <div class="analogy-icon">🗺️</div>
+      <div>
+        <p><strong>Analogy:</strong> The score is the <em>perfect map</em> of the terrain (unknown). Gradient descent is the <em>surveying process</em> used to draw the map during training. The neural network's output at inference time <em>is</em> the finished map — it tells you which direction to walk at every location, with no further surveying needed.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Worked Example: A 4×4 Greyscale Image</h3>
+    <p>Let's make this concrete. A 4×4 pixel greyscale image is just <strong>16 numbers</strong>. The network takes 16 numbers in and outputs 16 numbers — one predicted-noise value per pixel.</p>
+    <p><strong>Step 1 — Noisy image x_noisy (input to the network):</strong></p>
+    <div class="math-block" id="exNoisyGrid" style="white-space:pre;"></div>
+    <p><strong>Step 2 — Network outputs ε̂ (same shape — 16 numbers):</strong></p>
+    <div class="math-block" id="exNoiseOutput" style="white-space:pre;"></div>
+    <p><strong>Step 3 — Apply one denoising step: x_new = x_noisy − 0.8 · ε̂</strong></p>
+    <div class="math-block" id="exDenoisedGrid" style="white-space:pre;"></div>
+    <p>For a real 512×512 RGB image: <strong>786,432 numbers in → 786,432 numbers out</strong>. Every single value gets its own denoising direction — that's the high-dimensional vector field.</p>
+  </div>
+
+  <div class="card">
+    <h3>Interactive: Single Denoising Step Walkthrough</h3>
+    <p>Step through one denoising iteration on a 4×4 pixel grid. The network "predicts" the noise in each cell; subtracting it moves each pixel toward the clean image.</p>
+    <div id="stepGridContainer"></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+      <button class="btn btn-secondary" id="stepReset">↺ New Noisy Image</button>
+      <button class="btn btn-primary" id="stepShowNN">① Show NN Output ε̂</button>
+      <button class="btn btn-primary" id="stepApply" disabled>② Apply Denoising Step</button>
+    </div>
+    <div id="stepStatus">Press "Show NN Output" to see what the network predicts for each pixel.</div>
+  </div>
+</section>
+
 <footer>
   Interactive Guide to Diffusion Models — Score Functions, Denoising &amp; the Neural Compass
 </footer>
@@ -716,7 +865,7 @@ function resizeCanvas(canvas) {
    NAV HIGHLIGHT
    ═══════════════════════════════════════════════════════ */
 const navLinks = document.querySelectorAll('nav a');
-const sections = ['hero', 'score', 'denoising', 'compass'].map(id => document.getElementById(id));
+const sections = ['hero', 'score', 'denoising', 'compass', 'nn-output'].map(id => document.getElementById(id));
 
 function updateNav() {
   let current = 0;
@@ -1585,6 +1734,231 @@ updateNav();
   initNoise();
   draw();
   window.addEventListener('resize', () => { needsRedraw = true; draw(); });
+})();
+
+/* ═══════════════════════════════════════════════════════
+   SECTION 4: NN OUTPUT STEP-THROUGH
+   ═══════════════════════════════════════════════════════ */
+(function () {
+  // Target pattern: X shape (bright corners + dark centre cross pattern)
+  const target = [
+    [0.90, 0.10, 0.10, 0.90],
+    [0.10, 0.90, 0.90, 0.10],
+    [0.10, 0.90, 0.90, 0.10],
+    [0.90, 0.10, 0.10, 0.90]
+  ];
+
+  let noisy = [];
+  let phase = 'init'; // 'init' | 'shown' | 'applied'
+
+  function genNoisy() {
+    noisy = target.map(row => row.map(v => clamp(v + gaussianRandom() * 0.22, 0, 1)));
+  }
+
+  /* ── Worked static example ── */
+  function fillWorkedExample() {
+    const wNoisy = [
+      [0.74, 0.31, 0.22, 0.83],
+      [0.28, 0.68, 0.81, 0.19],
+      [0.19, 0.78, 0.72, 0.25],
+      [0.81, 0.22, 0.28, 0.76]
+    ];
+    const wTarget = target;
+    const wNoise = wNoisy.map((row, r) => row.map((v, c) => v - wTarget[r][c]));
+    const eta = 0.8;
+    const wDenoised = wNoisy.map((row, r) =>
+      row.map((v, c) => clamp(v - eta * wNoise[r][c], 0, 1))
+    );
+
+    function fmt(grid, label) {
+      return label + '\n' + grid.map(row =>
+        '  [ ' + row.map(v => (v >= 0 ? ' ' : '') + v.toFixed(2)).join('  ') + ' ]'
+      ).join('\n');
+    }
+    function fmtNoise(grid, label) {
+      return label + '\n' + grid.map(row =>
+        '  [ ' + row.map(v => (v >= 0 ? '+' : '') + v.toFixed(2)).join('  ') + ' ]'
+      ).join('\n');
+    }
+
+    const noisyEl = document.getElementById('exNoisyGrid');
+    const noiseEl = document.getElementById('exNoiseOutput');
+    const denoisedEl = document.getElementById('exDenoisedGrid');
+    if (noisyEl) noisyEl.textContent = fmt(wNoisy, 'x_noisy  (4×4 = 16 values):');
+    if (noiseEl) noiseEl.textContent = fmtNoise(wNoise,
+      'ε̂  (4×4 = 16 values — same shape as input):\n  (positive = too bright, should dim; negative = too dark, should brighten)');
+    if (denoisedEl) {
+      denoisedEl.textContent = fmt(wDenoised,
+        'x_denoised  =  x_noisy − 0.8·ε̂  (4×4 = 16 values):') +
+        '\n\n  → Compare to target: 0.90 or 0.10 per cell. Each pixel moved closer!';
+    }
+  }
+
+  /* ── Build a visual grid of div cells ── */
+  function buildCellGrid(data, showNoise, noiseData) {
+    const grid = document.createElement('div');
+    grid.className = 'step-grid';
+    data.forEach((row, r) => {
+      row.forEach((v, c) => {
+        const cell = document.createElement('div');
+        cell.className = 'step-cell' + (showNoise ? ' show-noise' : '');
+        const brightness = Math.round(v * 255);
+        cell.style.background = `rgb(${brightness},${brightness},${brightness})`;
+        cell.style.color = brightness > 128 ? '#2C2416' : '#FFFFFF';
+
+        const valSpan = document.createElement('span');
+        valSpan.className = 'cell-val';
+        valSpan.textContent = v.toFixed(2);
+        cell.appendChild(valSpan);
+
+        if (noiseData) {
+          const n = noiseData[r][c];
+          const noiseSpan = document.createElement('span');
+          noiseSpan.className = 'cell-noise';
+          noiseSpan.textContent = (n >= 0 ? '▼' : '▲') + Math.abs(n).toFixed(2);
+          noiseSpan.style.color = n > 0.04 ? '#C25B28' : n < -0.04 ? '#3A6EA5' : '#9E8E7C';
+          cell.appendChild(noiseSpan);
+        }
+        grid.appendChild(cell);
+      });
+    });
+    return grid;
+  }
+
+  function buildNoiseDisplayGrid(noiseData) {
+    const grid = document.createElement('div');
+    grid.className = 'step-grid';
+    noiseData.forEach(row => {
+      row.forEach(v => {
+        const cell = document.createElement('div');
+        cell.className = 'step-cell';
+        const isPos = v >= 0;
+        const intensity = Math.min(Math.abs(v) * 2.5, 0.9);
+        cell.style.background = isPos
+          ? `rgba(194,91,40,${intensity})`
+          : `rgba(58,110,165,${intensity})`;
+        cell.style.color = intensity > 0.4 ? '#fff' : '#2C2416';
+        const valSpan = document.createElement('span');
+        valSpan.className = 'cell-val';
+        valSpan.textContent = (v >= 0 ? '+' : '') + v.toFixed(2);
+        cell.appendChild(valSpan);
+        grid.appendChild(cell);
+      });
+    });
+    return grid;
+  }
+
+  function mkArrow() {
+    const a = document.createElement('div');
+    a.style.cssText = 'display:flex;align-items:center;font-size:28px;color:var(--accent);flex-shrink:0;';
+    a.textContent = '→';
+    return a;
+  }
+
+  function mkPanel(title, gridEl, caption, captionColor) {
+    const panel = document.createElement('div');
+    panel.className = 'step-grid-panel';
+    const h = document.createElement('h4');
+    h.textContent = title;
+    panel.appendChild(h);
+    panel.appendChild(gridEl);
+    if (caption) {
+      const sub = document.createElement('p');
+      sub.style.cssText = `font-size:11px;color:${captionColor || 'var(--text-muted)'};text-align:center;margin-top:8px;font-style:italic;`;
+      sub.textContent = caption;
+      panel.appendChild(sub);
+    }
+    return panel;
+  }
+
+  function renderDemo(showNoise, appliedData) {
+    const container = document.getElementById('stepGridContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    const noise = noisy.map((row, r) => row.map((v, c) => v - target[r][c]));
+
+    // Panel 1: noisy input
+    container.appendChild(
+      mkPanel('① Noisy Input  x_noisy',
+        buildCellGrid(noisy, showNoise, showNoise ? noise : null),
+        showNoise ? 'Values + noise arrows (▼ subtract / ▲ add)' : 'Pixel values 0→black, 1→white'
+      )
+    );
+
+    if (showNoise) {
+      container.appendChild(mkArrow());
+      // Panel 2: NN output heatmap
+      container.appendChild(
+        mkPanel('② NN Output  ε̂  (predicted noise)',
+          buildNoiseDisplayGrid(noise),
+          '🟠 positive noise  ·  🔵 negative noise'
+        )
+      );
+    }
+
+    if (appliedData) {
+      container.appendChild(mkArrow());
+      // Panel 3: denoised result
+      container.appendChild(
+        mkPanel('③ After Step  x_{t−1}',
+          buildCellGrid(appliedData, false, null),
+          '✓ One step closer to clean!', 'var(--green)'
+        )
+      );
+    }
+  }
+
+  let appliedDataStore = null;
+  const resetBtn = document.getElementById('stepReset');
+  const showNNBtn = document.getElementById('stepShowNN');
+  const applyBtn = document.getElementById('stepApply');
+  const statusEl = document.getElementById('stepStatus');
+
+  function reset() {
+    genNoisy();
+    appliedDataStore = null;
+    phase = 'init';
+    if (showNNBtn) { showNNBtn.disabled = false; showNNBtn.textContent = '① Show NN Output ε̂'; }
+    if (applyBtn) { applyBtn.disabled = true; }
+    if (statusEl) statusEl.textContent = 'Press "Show NN Output" to see what the network predicts for each pixel.';
+    renderDemo(false, null);
+  }
+
+  if (showNNBtn) {
+    showNNBtn.addEventListener('click', () => {
+      if (phase !== 'init') return;
+      phase = 'shown';
+      showNNBtn.disabled = true;
+      if (applyBtn) applyBtn.disabled = false;
+      if (statusEl) statusEl.textContent =
+        'The network outputs one number per pixel — the predicted noise ε̂. ' +
+        'Orange = pixel is too bright (subtract). Blue = pixel is too dark (add). ' +
+        'Together these 16 numbers form one vector in 16-dimensional space.';
+      renderDemo(true, null);
+    });
+  }
+
+  if (applyBtn) {
+    applyBtn.addEventListener('click', () => {
+      if (phase !== 'shown') return;
+      phase = 'applied';
+      const eta = 0.8;
+      const noise = noisy.map((row, r) => row.map((v, c) => v - target[r][c]));
+      appliedDataStore = noisy.map((row, r) =>
+        row.map((v, c) => clamp(v - eta * noise[r][c], 0, 1))
+      );
+      applyBtn.disabled = true;
+      if (statusEl) statusEl.textContent =
+        'x_{t−1} = x_t − 0.8·ε̂. Each pixel stepped toward its clean value. ' +
+        'Repeat hundreds of times (with decreasing noise σ) to produce a final image.';
+      renderDemo(true, appliedDataStore);
+    });
+  }
+
+  if (resetBtn) resetBtn.addEventListener('click', reset);
+
+  fillWorkedExample();
+  reset();
 })();
 </script>
 
