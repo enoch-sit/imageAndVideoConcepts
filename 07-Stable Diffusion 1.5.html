@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stable Diffusion 1.5 — Latent Diffusion Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;
+  --text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;
+  --accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);
+  --teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);
+  --purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);
+  --border:#E6DDD0;--code-bg:#F5EEE3;
+  --shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);
+  --radius:12px;--radius-sm:8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--purple)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--purple);background:var(--purple-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--purple-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--purple)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:540px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}
+.pill--teal{background:var(--teal-glow);color:var(--teal)}
+.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--purple);opacity:.2}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--accent);background:var(--bg)}
+.step-dot--teal{border-color:var(--teal)}.step-dot--purple{border-color:var(--purple)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--purple);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--accent{border-left:4px solid var(--accent)}.callout--purple{border-left:4px solid var(--purple)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--accent .callout-title{color:var(--accent)}.callout--purple .callout-title{color:var(--purple)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--purple{background:var(--purple);color:#fff}.btn--purple:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn--teal{background:var(--teal);color:#fff}.btn--teal:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+/* Architecture diagram */
+.arch-diagram{display:flex;flex-direction:column;gap:1rem;margin:1.5rem 0}
+.arch-row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}
+.arch-box{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.75rem 1rem;border-radius:var(--radius-sm);border:2px solid transparent;cursor:pointer;transition:all .25s;min-width:120px;text-align:center;flex:1}
+.arch-box .box-title{font-weight:700;font-size:.85rem}
+.arch-box .box-sub{font-size:.72rem;color:var(--text-2);margin-top:.2rem}
+.arch-box--clip{background:rgba(107,82,168,.08);border-color:rgba(107,82,168,.3)}
+.arch-box--clip.sel,.arch-box--clip:hover{background:var(--purple-glow);border-color:var(--purple)}
+.arch-box--unet{background:rgba(191,74,36,.07);border-color:rgba(191,74,36,.3)}
+.arch-box--unet.sel,.arch-box--unet:hover{background:var(--accent-glow);border-color:var(--accent)}
+.arch-box--vae{background:rgba(26,123,107,.07);border-color:rgba(26,123,107,.3)}
+.arch-box--vae.sel,.arch-box--vae:hover{background:var(--teal-glow);border-color:var(--teal)}
+.arch-box--cfg{background:rgba(28,42,56,.04);border-color:var(--border)}
+.arch-box--cfg.sel,.arch-box--cfg:hover{background:rgba(28,42,56,.08);border-color:var(--text-3)}
+.arch-arrow{font-size:1.4rem;color:var(--text-3);flex-shrink:0}
+.arch-detail{background:var(--bg-alt);border-radius:var(--radius-sm);padding:1.25rem;margin-top:.5rem;border-left:3px solid var(--purple);font-size:.88rem;line-height:1.65;transition:all .3s}
+.arch-detail h4{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:600;margin-bottom:.5rem}
+/* Step counter */
+.step-counter{display:grid;grid-template-columns:repeat(6,1fr);gap:.35rem;margin:1rem 0}
+.step-dot-cell{height:18px;border-radius:3px;background:var(--border);transition:background .15s}
+.step-dot-cell.active{background:var(--purple)}
+.step-dot-cell.done{background:rgba(107,82,168,.35)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}.arch-row{flex-direction:column;align-items:stretch}.arch-arrow{display:none}}
+</style>
+</head>
+<body>
+
+<nav class="topnav" id="topnav">
+  <div class="logo">SD 1.5 Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Architecture</a>
+    <a href="#ch2">02 Sampling</a>
+    <a href="#ch3">03 Cross-Attention</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>Stable Diffusion <em>1.5</em><br>Latent Diffusion Architecture</h1>
+  <p class="subtitle">How CLIP text encoding, latent-space U-Net denoising, and VAE decoding combine to generate 512×512 images on consumer hardware.</p>
+  <div class="pill-row">
+    <span class="pill pill--purple">860M U-Net</span>
+    <span class="pill pill--teal">CLIP ViT-L/14</span>
+    <span class="pill pill--accent">512×512 Output</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CHAPTER 1: THREE-COMPONENT ARCHITECTURE ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">Three-Component Architecture</h2></div>
+  <p class="ch-sub">Stable Diffusion 1.5 is not a single network — it is three cooperating components: a text encoder, a latent denoiser, and a pixel decoder. Click each component to explore what it does.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Interactive: Architecture Diagram</div>
+    <div class="sim-desc">Click any component to see details. The arrow shows data flow during inference.</div>
+    <div class="arch-diagram">
+      <div class="arch-row">
+        <div class="arch-box arch-box--clip" onclick="selectArch('clip',this)">
+          <div class="box-title" style="color:var(--purple)">① CLIP Text Encoder</div>
+          <div class="box-sub">ViT-L/14 · 77 tokens<br>768-dim embedding</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box arch-box--unet" onclick="selectArch('unet',this)">
+          <div class="box-title" style="color:var(--accent)">② U-Net Denoiser</div>
+          <div class="box-sub">860M params · 20–50 steps<br>Cross-attention on c</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box arch-box--vae" onclick="selectArch('vae',this)">
+          <div class="box-title" style="color:var(--teal)">③ VAE Decoder</div>
+          <div class="box-sub">4×64×64 latent<br>→ 3×512×512 pixels</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+        <div class="arch-box arch-box--cfg" onclick="selectArch('cfg',this)" style="max-width:220px">
+          <div class="box-title" style="font-size:.8rem">CFG (dual run)</div>
+          <div class="box-sub">w = 7.5 default</div>
+        </div>
+      </div>
+    </div>
+    <div class="arch-detail" id="archDetail">
+      <h4>Select a component above to explore it</h4>
+      <p style="color:var(--text-2)">The three main blocks run in sequence: encode the text prompt → denoise latent → decode to pixels.</p>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>Why Latent Space?</h3>
+    <p>SD 1.5's key innovation over DDPM is running the diffusion <em>in latent space</em>. Instead of denoising 786,432 pixel values, the U-Net works on 16,384 latent values — a 48× dimensionality reduction. This makes 50-step generation feasible in under 10 seconds on a consumer GPU.</p>
+    <div class="eq-box">
+      <span class="eq-label">Compute comparison</span>
+      <span class="mono">DDPM pixel diffusion:  1000 × U-Net(786k values)</span><br>
+      <span class="mono">SD 1.5 latent diffusion: 50  × U-Net(16k values) + decode once</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CHAPTER 2: SAMPLING PIPELINE ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">The Sampling Pipeline</h2></div>
+  <p class="ch-sub">Inference runs in six distinct phases. Press "Run Inference" to step through them.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Interactive: Inference Step Visualiser</div>
+    <div class="sim-desc">Click "Next Step" to advance through the inference pipeline one phase at a time.</div>
+    <div id="pipelineViz" style="margin-bottom:1rem"></div>
+    <div id="pipelineInfo" style="padding:1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.88rem;line-height:1.65;min-height:80px"></div>
+    <div style="display:flex;gap:.75rem;margin-top:1rem;flex-wrap:wrap">
+      <button class="btn btn--purple" id="nextStepBtn">Next Step →</button>
+      <button class="btn btn--ghost" id="resetPipeBtn">Reset</button>
+    </div>
+  </div>
+
+  <div class="step fade-up" style="margin-top:2rem">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>CLIP Conditioning via Cross-Attention</h3>
+    <p>The text embedding from CLIP is injected into every attention block of the U-Net via <strong>cross-attention</strong>. The noisy latent features serve as the query (Q), while the text embedding provides the keys (K) and values (V). This mechanism lets the U-Net attend differently to different words in the prompt at each spatial location.</p>
+    <div class="eq-box">
+      <span class="eq-label">Cross-attention (per U-Net block)</span>
+      <span class="mono">Q = W_Q · z_spatial    (from noisy latent)</span><br>
+      <span class="mono">K = W_K · c_text        (from CLIP embedding)</span><br>
+      <span class="mono">V = W_V · c_text</span><br>
+      <span class="mono">out = softmax(QK^T / √d) · V</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CHAPTER 3: CLIP ENCODER ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">CLIP Text Encoder</h2></div>
+  <p class="ch-sub">CLIP (Contrastive Language-Image Pre-training) maps text into a 768-dimensional space pre-aligned with image features — giving the U-Net a rich semantic anchor.</p>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>Tokenisation and Context Length</h3>
+    <p>SD 1.5 uses the CLIP ViT-L/14 text encoder. The prompt is tokenised to at most 77 tokens (including start and end). Each token maps to a 768-dimensional vector. The entire 77×768 matrix is the condition embedding c passed to the U-Net.</p>
+    <div class="eq-box">
+      <span class="eq-label">Prompt → Condition Tensor</span>
+      <span class="mono">prompt  →  [77 tokens]  →  CLIP_L  →  c ∈ R^{77 × 768}</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Context Limit: 77 Tokens</h3>
+    <p>Prompts longer than 77 tokens are silently truncated by CLIP. Each token is roughly one word or sub-word. "a photograph of a beautiful sunset over the mountains with warm golden light" is about 14 tokens — well under the 75-token limit (77 minus start/end). SDXL resolves this by using two separate encoders with a 154-token combined budget.</p>
+    <div class="callout callout--purple">
+      <div class="callout-title">Practical tokenisation check</div>
+      Run <span class="mono" style="font-size:.85rem">len(tokenizer.encode(prompt))</span> before generation. Anything above 77 will be clipped. Use natural, comma-separated concrete nouns and adjectives — CLIP was trained on image–caption pairs so those semantic patterns transfer best.
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Key Numbers at a Glance</h3>
+    <ul>
+      <li>U-Net: 860M parameters, 4-channel latent input</li>
+      <li>CLIP text encoder: 123M parameters, frozen during SD training</li>
+      <li>VAE: 83M parameters (encoder + decoder)</li>
+      <li>Default output: 512×512 px (can be pushed to 768 with minor quality drop)</li>
+      <li>A16 GPU (16 GB VRAM): ~5 sec/image at 20 DDIM steps</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<footer class="footer">Stable Diffusion 1.5 Interactive Guide · Rombach et al., CVPR 2022 · CLIP: Radford et al., ICML 2021</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var navLinks=document.querySelectorAll('.topnav .links a');
+var chs=['ch1','ch2','ch3'].map(function(id){return document.getElementById(id);});
+function updateNav(){var y=window.scrollY+80;var cur=0;chs.forEach(function(s,i){if(s&&s.offsetTop<=y)cur=i;});navLinks.forEach(function(a,i){a.classList.toggle('active',i===cur);});}
+window.addEventListener('scroll',updateNav,{passive:true});updateNav();
+
+/* ── Architecture detail pane ── */
+var ARCH_DATA={
+  clip:{color:var_purple(),title:'① CLIP Text Encoder (ViT-L/14)',html:'<p>The text encoder is a Vision-Language Transformer pre-trained on 400M image–text pairs. For text-to-image generation, only the <strong>text branch</strong> is used.</p><ul style="padding-left:1.2rem"><li>Input: raw text prompt tokenised to ≤ 77 BPE tokens</li><li>Output: 77 × 768 embedding matrix</li><li>Parameters: 123M (frozen — never fine-tuned during SD training)</li><li>The embedding is passed to every cross-attention layer of the U-Net</li></ul>'},
+  unet:{color:var_accent(),title:'② U-Net Denoiser',html:'<p>The workhorse of SD 1.5. At each denoising step t it receives the noisy latent z_t and the time embedding and text condition, and predicts the noise to remove.</p><ul style="padding-left:1.2rem"><li>860M parameters; 4-channel latent input (64×64)</li><li>Encoder: 4 resolution levels (64, 32, 16, 8) with ResNet + attention blocks</li><li>Bottleneck: spatial transformer with cross-attention to CLIP embedding</li><li>Decoder: mirrored structure with skip connections from encoder</li><li>Called once per DDIM step (20–50 calls during inference)</li></ul>'},
+  vae:{color:var_teal(),title:'③ VAE Decoder (KL-regularised)',html:'<p>Called exactly once after all denoising steps are complete to upsample the 64×64 latent back to a 512×512 RGB image.</p><ul style="padding-left:1.2rem"><li>Input: 4×64×64 latent z₀ (clean latent after full denoising)</li><li>Output: 3×512×512 float image (clipped to [−1, 1] before display)</li><li>Four transposed-conv upsampling blocks: 64→128→256→512 spatial</li><li>83M parameters; trained separately with ELBO + perceptual loss</li></ul>'},
+  cfg:{color:'#5A6878',title:'CFG — Classifier-Free Guidance',html:'<p>At every U-Net step, the denoiser runs <strong>twice</strong>: once with the text condition and once with an empty (null) condition. The difference is amplified by the guidance weight w.</p><div style="background:var(--code-bg);border-left:3px solid #5A6878;padding:.75rem 1rem;border-radius:0 8px 8px 0;margin:.75rem 0;font-family:Fira Code,monospace;font-size:.85rem">ε̃ = ε_uncond + w × (ε_cond − ε_uncond)</div><p>SD 1.5 defaults: w = 7.5. A16 runs two U-Net forward passes per step, so CFG almost doubles inference time.</p>'}
+};
+function var_purple(){return getComputedStyle(document.documentElement).getPropertyValue('--purple').trim()||'#6B52A8';}
+function var_accent(){return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#BF4A24';}
+function var_teal(){return getComputedStyle(document.documentElement).getPropertyValue('--teal').trim()||'#1A7B6B';}
+
+window.selectArch=function(key,btn){
+  document.querySelectorAll('.arch-box').forEach(function(b){b.classList.remove('sel');});
+  if(btn) btn.classList.add('sel');
+  var d=ARCH_DATA[key];
+  var box=document.getElementById('archDetail');
+  box.style.borderLeftColor=d.color;
+  box.innerHTML='<h4 style="color:'+d.color+'">'+d.title+'</h4>'+d.html;
+};
+
+/* ── Pipeline Visualiser ── */
+var STEPS=[
+  {label:'1. Sample latent noise',color:'#8A95A2',html:'<strong>Start</strong>: Sample z_T ∼ N(0, I) — a random 4×64×64 latent tensor. This is the "pure noise" starting point. No information from the prompt yet.'},
+  {label:'2. Encode text prompt',color:var_purple(),html:'<strong>CLIP text encoder</strong>: tokenise the user prompt and run it through ViT-L/14 to produce the 77×768 condition matrix <em>c</em>. Also produce <em>c_uncond</em> (empty prompt embedding) for CFG.'},
+  {label:'3. Add time embedding',color:var_accent(),html:'<strong>Sinusoidal time embedding</strong>: at each denoising step, the current timestep t is encoded as a 320-dim vector (Transformer-style sinusoidal). This is injected into every ResNet block of the U-Net via additive bias.'},
+  {label:'4. U-Net denoise ×N',color:var_accent(),html:'<strong>Core loop (×20–50 iterations)</strong>: Call ε_θ(z_t, t, c) to get the conditioned noise estimate; call ε_θ(z_t, t, ∅) for unconditioned. Combine with CFG formula. Compute z_{t−1} using DDIM sampler. Repeat.'},
+  {label:'5. Decode latent z₀',color:var_teal(),html:'<strong>VAE decoder</strong>: Once z₀ is obtained after all denoising steps, pass it through the VAE decoder to produce the final 3×512×512 float image. This is the only pixel-space operation.'},
+  {label:'6. Post-process',color:'#3A7EBF',html:'<strong>Final output</strong>: Scale pixel values from [−1, 1] to [0, 255] and encode as PNG/JPEG. Total wall-clock time on A16: ~5 sec (20-step DDIM). Display or save the generated image.'}
+];
+
+var pipeStep=0;
+
+function buildPipeline(){
+  var el=document.getElementById('pipelineViz');
+  el.innerHTML='';
+  STEPS.forEach(function(s,i){
+    var d=document.createElement('div');
+    d.style.cssText='display:flex;align-items:center;gap:.5rem;padding:.4rem .6rem;border-radius:6px;margin-bottom:.25rem;transition:all .3s;font-size:.82rem;font-weight:600;border:1.5px solid transparent;cursor:pointer;';
+    var dot='<span style="width:10px;height:10px;border-radius:50%;background:'+s.color+';display:inline-block;flex-shrink:0"></span>';
+    d.innerHTML=dot+'<span>'+s.label+'</span>';
+    d.id='pstep'+i;
+    if(i<pipeStep){d.style.background='rgba(28,42,56,.04)';d.style.borderColor='var(--border)';d.style.opacity='.6';}
+    else if(i===pipeStep){d.style.background='rgba(28,42,56,.06)';d.style.borderColor=s.color;d.style.opacity='1';}
+    el.appendChild(d);
+  });
+  var info=document.getElementById('pipelineInfo');
+  if(pipeStep<STEPS.length){
+    info.innerHTML='<strong style="color:'+STEPS[pipeStep].color+'">Step '+(pipeStep+1)+'/'+STEPS.length+':</strong> '+STEPS[pipeStep].html;
+  } else {
+    info.innerHTML='<strong style="color:var(--teal)">✓ Inference complete!</strong> The pipeline has finished. One 512×512 image generated in 20–50 U-Net passes plus a single VAE decode.';
+  }
+}
+
+document.getElementById('nextStepBtn').addEventListener('click',function(){
+  if(pipeStep<STEPS.length)pipeStep++;
+  buildPipeline();
+  this.textContent=pipeStep>=STEPS.length?'Complete ✓':'Next Step →';
+});
+document.getElementById('resetPipeBtn').addEventListener('click',function(){
+  pipeStep=0;buildPipeline();
+  document.getElementById('nextStepBtn').textContent='Next Step →';
+});
+buildPipeline();
+
+})();
+</script>
+</body>
+</html>

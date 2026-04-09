@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAE Latent Space — Interactive Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FAF6EE; --bg-alt: #F3EDE2; --surface: #FFFFFF;
+  --text: #1C2A38; --text-2: #5A6878; --text-3: #8A95A2;
+  --accent: #BF4A24; --accent-glow: rgba(191,74,36,0.12);
+  --teal: #1A7B6B; --teal-glow: rgba(26,123,107,0.12);
+  --purple: #6B52A8; --purple-glow: rgba(107,82,168,0.10);
+  --border: #E6DDD0; --code-bg: #F5EEE3;
+  --shadow: 0 2px 20px rgba(28,42,56,0.06);
+  --shadow-lg: 0 8px 40px rgba(28,42,56,0.10);
+  --radius: 12px; --radius-sm: 8px;
+}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.72; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+
+.topnav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 0 1.5rem; display: flex; align-items: center; gap: 1rem; height: 52px; background: rgba(250,246,238,0.92); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); }
+.topnav .logo { font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 1.1rem; color: var(--accent); }
+.topnav .links { display: flex; gap: 0.25rem; margin-left: auto; }
+.topnav .links a { font-size: 0.82rem; font-weight: 600; color: var(--text-2); text-decoration: none; padding: 0.35rem 0.75rem; border-radius: 6px; transition: all 0.2s; }
+.topnav .links a:hover, .topnav .links a.active { color: var(--accent); background: var(--accent-glow); }
+
+.hero { padding: 7rem 1.5rem 4rem; text-align: center; background: radial-gradient(ellipse 80% 50% at 50% 0%, var(--teal-glow), transparent), var(--bg); }
+.hero h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.2rem, 5.5vw, 3.6rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.03em; margin-bottom: 1rem; }
+.hero h1 em { font-style: italic; color: var(--teal); }
+.hero .subtitle { font-size: 1.05rem; color: var(--text-2); max-width: 540px; margin: 0 auto 1.75rem; }
+.pill-row { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.03em; padding: 0.4rem 0.9rem; border-radius: 20px; text-transform: uppercase; }
+.pill--accent { background: var(--accent-glow); color: var(--accent); }
+.pill--teal  { background: var(--teal-glow); color: var(--teal); }
+.pill--purple{ background: var(--purple-glow); color: var(--purple); }
+
+.container { max-width: 820px; margin: 0 auto; padding: 0 1.5rem; }
+.chapter { padding: 4rem 0 2rem; border-top: 1px solid var(--border); }
+.chapter-head { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+.ch-num { font-family: 'Cormorant Garamond', serif; font-size: 3.5rem; font-weight: 700; line-height: 1; color: var(--teal); opacity: 0.2; }
+.ch-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
+.ch-sub { font-size: 0.95rem; color: var(--text-2); margin-bottom: 2.5rem; line-height: 1.6; }
+
+.step { position: relative; padding-left: 2.2rem; margin-bottom: 2rem; }
+.step::before { content: ''; position: absolute; left: 0.45rem; top: 2rem; bottom: -1.5rem; width: 2px; background: var(--border); }
+.step:last-of-type::before { display: none; }
+.step-dot { position: absolute; left: 0; top: 0.35rem; width: 1rem; height: 1rem; border-radius: 50%; border: 2px solid var(--accent); background: var(--bg); }
+.step-dot--teal { border-color: var(--teal); }
+.step-dot--purple { border-color: var(--purple); }
+.step h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+.step p, .step ul { margin-bottom: 0.75rem; }
+.step ul { padding-left: 1.2rem; }
+.step li { margin-bottom: 0.3rem; }
+
+.eq-box { background: var(--code-bg); border-left: 3px solid var(--teal); padding: 1rem 1.25rem; margin: 1rem 0 1.25rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; overflow-x: auto; font-size: 0.95rem; }
+.eq-box--accent { border-left-color: var(--accent); }
+.eq-label { display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); margin-bottom: 0.4rem; }
+.mono { font-family: 'Fira Code', monospace; }
+
+.callout { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin: 1.5rem 0; box-shadow: var(--shadow); }
+.callout--teal { border-left: 4px solid var(--teal); }
+.callout--accent { border-left: 4px solid var(--accent); }
+.callout--purple { border-left: 4px solid var(--purple); }
+.callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.4rem; }
+.callout--teal   .callout-title { color: var(--teal); }
+.callout--accent .callout-title { color: var(--accent); }
+.callout--purple .callout-title { color: var(--purple); }
+
+.sim-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin: 2rem 0; box-shadow: var(--shadow-lg); }
+.sim-title { font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; font-weight: 600; margin-bottom: 0.25rem; }
+.sim-desc  { font-size: 0.85rem; color: var(--text-2); margin-bottom: 1rem; }
+.sim-canvas-wrap { position: relative; width: 100%; background: var(--bg-alt); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 1rem; }
+.sim-canvas-wrap canvas { display: block; width: 100%; }
+.sim-controls { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+
+.btn { font-size: 0.82rem; font-weight: 600; padding: 0.55rem 1.1rem; border-radius: 8px; border: none; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.3rem; font-family: 'DM Sans', sans-serif; }
+.btn--teal  { background: var(--teal); color: #fff; }
+.btn--teal:hover  { filter: brightness(1.1); transform: translateY(-1px); }
+.btn--accent{ background: var(--accent); color: #fff; }
+.btn--accent:hover{ filter: brightness(1.1); transform: translateY(-1px); }
+.btn--ghost { background: var(--code-bg); color: var(--text-2); border: 1px solid var(--border); }
+.btn--ghost:hover { background: var(--border); }
+
+/* Compression compare */
+.compress-compare { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: center; margin: 1.5rem 0; }
+@media(max-width:520px) { .compress-compare { grid-template-columns: 1fr; } }
+.compress-box { background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.25rem; text-align: center; }
+.compress-box .big-num { font-family: 'Fira Code', monospace; font-size: 1.6rem; font-weight: 700; }
+.compress-box .unit { font-size: 0.78rem; color: var(--text-2); margin-top: 0.2rem; }
+.compress-box .label { font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; }
+.compress-arrow { font-size: 2rem; color: var(--text-3); text-align: center; }
+
+/* Stats strip */
+.stats-strip { display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 1.5rem 0; }
+.stat-card { flex: 1; min-width: 140px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; text-align: center; }
+.stat-card .stat-num { font-family: 'Fira Code', monospace; font-size: 1.4rem; font-weight: 700; color: var(--teal); }
+.stat-card .stat-label { font-size: 0.75rem; color: var(--text-2); margin-top: 0.2rem; }
+
+.fade-up { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.fade-up.visible { opacity: 1; transform: translateY(0); }
+
+.footer { text-align: center; padding: 3rem 1.5rem; color: var(--text-3); font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 2rem; }
+
+@media(max-width:640px) {
+  .topnav { padding: 0 1rem; }
+  .hero { padding: 6rem 1rem 3rem; }
+  .container { padding: 0 1rem; }
+  .sim-wrap { padding: 1rem; }
+  .topnav .links a { font-size: 0.75rem; padding: 0.3rem 0.5rem; }
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav" id="topnav">
+  <div class="logo">VAE Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Compression</a>
+    <a href="#ch2">02 Encoder</a>
+    <a href="#ch3">03 Latent Space</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>VAE <em>Latent Space</em><br>Compression Before Diffusion</h1>
+  <p class="subtitle">How the Variational Autoencoder compresses 786,432 pixels into 16,384 latent values — making Stable Diffusion possible on consumer GPUs.</p>
+  <div class="pill-row">
+    <span class="pill pill--teal">8× Spatial Compression</span>
+    <span class="pill pill--accent">786k → 16k Values</span>
+    <span class="pill pill--purple">KL-Regularised</span>
+  </div>
+</header>
+
+<div style="height:4rem"></div>
+
+<!-- ═══ CHAPTER 1: WHY COMPRESS ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head">
+    <span class="ch-num">01</span>
+    <h2 class="ch-title">Why Compress at All?</h2>
+  </div>
+  <p class="ch-sub">Running diffusion directly on 512×512 pixels would mean denoising 786,432 values at every step. The VAE shrinks this 48× before diffusion ever starts.</p>
+
+  <div class="stats-strip fade-up">
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--accent)">786,432</div>
+      <div class="stat-label">raw pixel values (512×512×3)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">÷ 48×</div>
+      <div class="stat-label">compression ratio</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">16,384</div>
+      <div class="stat-label">latent values (64×64×4)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--teal)">8×</div>
+      <div class="stat-label">spatial downscale per axis</div>
+    </div>
+  </div>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Interactive: Pixel → Latent Compression</div>
+    <div class="sim-desc">Press "Encode" to watch a 512×512 image compress into a 64×64 latent. Press "Decode" to reconstruct back to pixels.</div>
+    <div class="sim-canvas-wrap">
+      <canvas id="compressCanvas" style="height:280px"></canvas>
+    </div>
+    <div class="sim-controls">
+      <button class="btn btn--teal" id="encodeBtn">▶ Encode</button>
+      <button class="btn btn--accent" id="decodeBtn" disabled>◀ Decode</button>
+      <button class="btn btn--ghost" id="resetCompBtn">Reset</button>
+    </div>
+  </div>
+
+  <div class="step fade-up" style="margin-top:2rem">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Spatial Compression: 512 → 64</h3>
+    <p>Four successive stride-2 convolutional layers each halve the spatial dimensions: 512 → 256 → 128 → 64. The channel dimension simultaneously expands from 3 (RGB) to 4 latent channels, giving the model more expressive capacity at the compact resolution.</p>
+    <div class="eq-box">
+      <span class="eq-label">Dimension flow through VAE encoder</span>
+      <span class="mono">(3, 512, 512) → (4, 64, 64)</span><br>
+      <span class="mono">786,432 values  →  16,384 values  (48× reduction)</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CHAPTER 2: THE ENCODER ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head">
+    <span class="ch-num">02</span>
+    <h2 class="ch-title">The Encoder & Reparameterisation</h2>
+  </div>
+  <p class="ch-sub">The encoder does not map each image to a single point. It maps to a Gaussian: a mean μ and standard deviation σ — then <em>samples</em> a latent vector from that distribution.</p>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>Encoding: Image → Distribution</h3>
+    <p>For each input image x, the encoder produces two vectors of equal size: the mean μ and the log-variance log σ². These define a Gaussian distribution over possible latent codes — not a single deterministic point.</p>
+    <div class="eq-box">
+      <span class="eq-label">Encoder output</span>
+      <span class="mono">E(x)  →  μ,  log σ²   (each of shape 4×64×64)</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Reparameterisation Trick</h3>
+    <p>Sampling from a distribution is non-differentiable — gradients cannot flow through a random sample. The reparameterisation trick moves the randomness outside the computation graph, making the sample differentiable with respect to μ and σ.</p>
+    <div class="eq-box">
+      <span class="eq-label">Reparameterisation (ε ∼ N(0,1) is fixed noise)</span>
+      <span class="mono">z = μ + ε · σ</span>
+    </div>
+    <p>Now gradients flow through μ and σ during backpropagation because ε is just a constant noise vector — not a learnable parameter.</p>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>KL Regularisation: Keeping the Latent Space Smooth</h3>
+    <p>A second term in the VAE loss function penalises the encoder's distribution for drifting too far from a standard Gaussian N(0, I). This KL divergence term prevents the latent space from collapsing into isolated islands and ensures that every point in latent space decodes to a plausible image.</p>
+    <div class="eq-box eq-box--accent">
+      <span class="eq-label">VAE Training Objective (ELBO)</span>
+      <span class="mono">L = E[log p(x|z)]  −  β · KL(q(z|x) ∥ N(0,I))</span>
+    </div>
+    <div class="callout callout--teal">
+      <div class="callout-title">Why this matters for diffusion</div>
+      Without KL regularisation, the latent space would have large empty gaps between clusters. Stable Diffusion starts from Gaussian noise z ~ N(0, I) — KL regularisation guarantees that this random starting point lands somewhere meaningful that the decoder can reconstruct.
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CHAPTER 3: LATENT SPACE ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head">
+    <span class="ch-num">03</span>
+    <h2 class="ch-title">Exploring the Latent Space</h2>
+  </div>
+  <p class="ch-sub">The KL-regularised latent space is smooth and continuous. Interpolating between two latent codes produces plausible in-between images — not visual garbage.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Interactive: Latent Space Map</div>
+    <div class="sim-desc">Click anywhere on the latent map to sample a point. Hover to see the concept region. Drag the KL strength slider to see how regularisation changes the structure.</div>
+    <div class="sim-canvas-wrap">
+      <canvas id="latentCanvas" style="height:340px"></canvas>
+    </div>
+    <div class="sim-controls" style="flex-wrap:wrap;gap:1rem">
+      <div style="display:flex;align-items:center;gap:0.6rem;flex:1;min-width:200px">
+        <label style="font-size:0.82rem;font-weight:600;color:var(--text-2);white-space:nowrap">KL strength β</label>
+        <input type="range" id="klSlider" min="0.1" max="2" step="0.05" value="1" style="flex:1;height:6px;-webkit-appearance:none;appearance:none;background:var(--border);border-radius:3px;outline:none">
+        <span id="klVal" style="font-family:'Fira Code',monospace;font-size:0.85rem;color:var(--teal);min-width:3ch">1.0</span>
+      </div>
+      <button class="btn btn--ghost" id="sampleBtn">Sample Random Point</button>
+    </div>
+    <div id="latentInfo" style="margin-top:0.75rem;padding:0.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:0.85rem;color:var(--text-2);min-height:2.5rem"></div>
+  </div>
+
+  <div class="step fade-up" style="margin-top:2rem">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>The Decoder: Called Only Once</h3>
+    <p>The decoder is a mirror image of the encoder — four stride-2 transposed convolution layers expand 64×64 back to 512×512. Crucially, it is called only once at the very end of sampling, after all diffusion denoising steps are complete in latent space.</p>
+    <div class="eq-box">
+      <span class="eq-label">Decoder dimension flow</span>
+      <span class="mono">(4, 64, 64) → (3, 512, 512)</span><br>
+      <span class="mono">Called once after T denoising steps (not T times!)</span>
+    </div>
+    <div class="callout callout--accent">
+      <div class="callout-title">Key efficiency insight</div>
+      DDPM would call the decoder 1000 times in pixel space. Latent diffusion (SD 1.5, SDXL, AnimateDiff) calls the VAE decoder exactly once — only to produce the final output image. All 20–50 denoising steps happen in the compact 16k-value latent space.
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Role in Every Model in This Course</h3>
+    <ul>
+      <li><strong>Stable Diffusion 1.5 / SDXL</strong>: image VAE compresses 512×512 or 1024×1024 RGB to 64×64 or 128×128 latent before diffusion</li>
+      <li><strong>CogVideoX / AnimateDiff</strong>: Temporal VAE extends to video, compressing (T, H, W) to (T/4, H/8, W/8) — 17M pixel values → under 1M latent values for a 49-frame clip</li>
+      <li><strong>FLUX.1</strong>: uses the same KL-regularised VAE architecture but with 16 latent channels instead of 4 (higher information density for the transformer backbone)</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<footer class="footer">
+  VAE Latent Space — Interactive Guide · Kingma &amp; Welling, ICLR 2014 · Rombach et al., CVPR 2022
+</footer>
+
+<script>
+(function () {
+'use strict';
+
+/* ── Scroll fade-up ── */
+var io = new IntersectionObserver(function (entries) {
+  entries.forEach(function (e) {
+    if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+  });
+}, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-up').forEach(function (el) { io.observe(el); });
+
+/* ── Nav highlight ── */
+var navLinks = document.querySelectorAll('.topnav .links a');
+var chapters = ['ch1','ch2','ch3'].map(function(id){ return document.getElementById(id); });
+function updateNav() {
+  var y = window.scrollY + 80; var cur = 0;
+  chapters.forEach(function(s,i){ if(s && s.offsetTop <= y) cur = i; });
+  navLinks.forEach(function(a,i){ a.classList.toggle('active', i===cur); });
+}
+window.addEventListener('scroll', updateNav, {passive:true});
+updateNav();
+
+/* ══════════════════════════════════════
+   SIM 1 — Pixel-to-Latent Compression
+══════════════════════════════════════ */
+(function () {
+  var canvas   = document.getElementById('compressCanvas');
+  var encodeBtn= document.getElementById('encodeBtn');
+  var decodeBtn= document.getElementById('decodeBtn');
+  var resetBtn = document.getElementById('resetCompBtn');
+
+  var state = 'idle'; // idle | encoding | latent | decoding
+  var animProgress = 0;
+  var animId = null;
+  var rng = mulberry32(42);
+
+  function mulberry32(a) {
+    return function () { a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+  }
+
+  /* Generate a seeded palette of "image-like" pixel colours */
+  var pixelPalette = [];
+  for (var i = 0; i < 2048; i++) {
+    var r = Math.floor(rng() * 180 + 40);
+    var g = Math.floor(rng() * 180 + 30);
+    var b = Math.floor(rng() * 200 + 35);
+    pixelPalette.push([r, g, b]);
+  }
+
+  /* Latent "colours" — more muted, abstract */
+  var latentPalette = [];
+  for (var j = 0; j < 256; j++) {
+    var lr = Math.floor(rng() * 120 + 100);
+    var lg = Math.floor(rng() * 120 + 80);
+    var lb = Math.floor(rng() * 140 + 90);
+    latentPalette.push([lr, lg, lb]);
+  }
+
+  function resize() {
+    var dpr = window.devicePixelRatio || 1;
+    var W = canvas.parentElement.getBoundingClientRect().width;
+    canvas.width  = Math.round(W * dpr);
+    canvas.height = Math.round(280 * dpr);
+    canvas.style.width = W + 'px';
+    canvas.style.height = '280px';
+    draw();
+  }
+
+  function draw() {
+    var dpr = window.devicePixelRatio || 1;
+    var W   = canvas.width / dpr;
+    var H   = canvas.height / dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    var margin  = 20;
+    var boxH    = H - margin * 2 - 40;
+    var fullW   = Math.min(boxH, (W - 120) * 0.6);
+    var latW    = fullW / 8;          // 8× smaller
+    var arrowX  = margin + fullW + 8;
+    var latX    = arrowX + 80;
+
+    var t = animProgress; // 0=full, 1=latent
+
+    // Interpolated "current" display size
+    var dispW = fullW + (latW - fullW) * t;
+    var dispH = dispW; // square
+
+    // Left box: "pixel space"
+    var pxX = margin;
+    var pxY = margin + (boxH - dispW) / 2;
+
+    // Draw pixel grid
+    var gridN  = Math.max(4, Math.round(16 * (1 - t * 0.7)));
+    var cell   = dispW / gridN;
+    ctx.save();
+    for (var row = 0; row < gridN; row++) {
+      for (var col = 0; col < gridN; col++) {
+        var idx = (row * gridN + col) % pixelPalette.length;
+        var c   = pixelPalette[idx];
+        // blend toward latent palette as t increases
+        var lc  = latentPalette[idx % latentPalette.length];
+        var R   = Math.round(c[0] + (lc[0]-c[0]) * t);
+        var G   = Math.round(c[1] + (lc[1]-c[1]) * t);
+        var B   = Math.round(c[2] + (lc[2]-c[2]) * t);
+        ctx.fillStyle = 'rgb('+R+','+G+','+B+')';
+        ctx.fillRect(pxX + col*cell, pxY + row*cell, cell-0.5, cell-0.5);
+      }
+    }
+    ctx.strokeStyle = 'rgba(28,42,56,0.12)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pxX, pxY, dispW, dispH);
+    ctx.restore();
+
+    // Left label
+    ctx.save();
+    ctx.font = '600 11px DM Sans, sans-serif'; ctx.textAlign = 'center';
+    var leftLabel = t < 0.5 ? 'Pixel Space\n(512×512×3)' : (t < 0.9 ? 'Encoding…' : 'Latent\n(64×64×4)');
+    ctx.fillStyle = '#1C2A38';
+    ctx.fillText(leftLabel.split('\n')[0], pxX + dispW/2, pxY - 8);
+    if (leftLabel.includes('\n')) ctx.fillText(leftLabel.split('\n')[1], pxX + dispW/2, pxY - 8 + 14);
+    ctx.restore();
+
+    // Arrow (only visible during encoding/decoding)
+    if (state === 'encoding' || state === 'decoding') {
+      var arrowCx = pxX + dispW + 12;
+      ctx.save();
+      ctx.fillStyle = 'rgba(26,123,107,0.7)';
+      ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(state === 'encoding' ? '→' : '←', arrowCx + 20, H/2 + 8);
+      ctx.restore();
+    }
+
+    // Value counts
+    var pixCount  = Math.round(786432 * (1-t) + 16384 * t);
+    var countStr  = pixCount.toLocaleString();
+    ctx.save();
+    ctx.font = '600 12px Fira Code, monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = t > 0.5 ? '#1A7B6B' : '#BF4A24';
+    ctx.fillText(countStr + ' values', pxX + dispW/2, pxY + dispH + 20);
+    ctx.restore();
+
+    // Dimension formula on right side
+    if (t > 0.8) {
+      ctx.save();
+      ctx.font = '600 11px DM Sans, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(26,123,107,0.8)';
+      ctx.fillText('Encoder output:', W * 0.68, H/2 - 20);
+      ctx.font = '500 11px Fira Code, monospace';
+      ctx.fillText('(4, 64, 64)', W * 0.68, H/2 - 4);
+      ctx.fillText('μ  +  log σ²', W * 0.68, H/2 + 14);
+      ctx.fillStyle = 'rgba(28,42,56,0.3)';
+      ctx.fillText('KL ∼ N(0, I)', W * 0.68, H/2 + 34);
+      ctx.restore();
+    }
+  }
+
+  function startEncode() {
+    if (state !== 'idle') return;
+    state = 'encoding';
+    encodeBtn.disabled = true;
+    var start = null;
+    function step(ts) {
+      if (!start) start = ts;
+      animProgress = Math.min(1, (ts - start) / 1200);
+      draw();
+      if (animProgress < 1) { animId = requestAnimationFrame(step); }
+      else { state = 'latent'; decodeBtn.disabled = false; }
+    }
+    animId = requestAnimationFrame(step);
+  }
+
+  function startDecode() {
+    if (state !== 'latent') return;
+    state = 'decoding';
+    decodeBtn.disabled = true;
+    var startP = animProgress;
+    var startTs = null;
+    function step(ts) {
+      if (!startTs) startTs = ts;
+      var frac = Math.min(1, (ts - startTs) / 1000);
+      animProgress = startP * (1 - frac);
+      draw();
+      if (frac < 1) { animId = requestAnimationFrame(step); }
+      else { state = 'idle'; animProgress = 0; encodeBtn.disabled = false; }
+    }
+    animId = requestAnimationFrame(step);
+  }
+
+  function reset() {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    state = 'idle'; animProgress = 0;
+    encodeBtn.disabled = false; decodeBtn.disabled = true;
+    draw();
+  }
+
+  encodeBtn.addEventListener('click', startEncode);
+  decodeBtn.addEventListener('click', startDecode);
+  resetBtn .addEventListener('click', reset);
+  window.addEventListener('resize', resize);
+  resize();
+})();
+
+/* ══════════════════════════════════════
+   SIM 2 — Latent Space Map
+══════════════════════════════════════ */
+(function () {
+  var canvas    = document.getElementById('latentCanvas');
+  var klSlider  = document.getElementById('klSlider');
+  var klValLbl  = document.getElementById('klVal');
+  var sampleBtn = document.getElementById('sampleBtn');
+  var infoBox   = document.getElementById('latentInfo');
+
+  var W_LOGIC = 600, H_LOGIC = 340;
+
+  /* Concept clusters */
+  var clusters = [
+    { x: 0.25, y: 0.30, r: 0.10, color: '#1A7B6B', label: 'Portrait faces',    desc: 'z codes for human faces — smooth transitions between expressions, identities, lighting' },
+    { x: 0.72, y: 0.25, r: 0.09, color: '#6B52A8', label: 'Landscapes',        desc: 'z codes for outdoor scenes — interpolates between day/night, seasons, weather' },
+    { x: 0.60, y: 0.65, r: 0.08, color: '#BF4A24', label: 'Animals',           desc: 'z codes shared between mammal classes — cats and dogs are nearby in latent space' },
+    { x: 0.20, y: 0.70, r: 0.09, color: '#3A7EBF', label: 'Architecture',      desc: 'z codes for buildings — style (modern/classical) encoded along one latent axis' },
+    { x: 0.44, y: 0.45, r: 0.07, color: '#C99B2A', label: 'Abstract textures', desc: 'Transitional region — KL regularisation keeps these between denser clusters' },
+  ];
+
+  var selectedPt = null;
+  var hoverCluster = null;
+
+  function rng2(seed) {
+    var s = seed;
+    return function () { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
+  }
+
+  function resize() {
+    var dpr = window.devicePixelRatio || 1;
+    var W   = canvas.parentElement.getBoundingClientRect().width;
+    canvas.width  = Math.round(W   * dpr);
+    canvas.height = Math.round(340 * dpr);
+    canvas.style.width  = W   + 'px';
+    canvas.style.height = '340px';
+    draw();
+  }
+
+  function toCanvas(nx, ny) {
+    var dpr = window.devicePixelRatio || 1;
+    var CW  = canvas.width / dpr;
+    var CH  = canvas.height / dpr;
+    return { x: nx * CW, y: ny * CH };
+  }
+
+  function toNorm(px, py) {
+    var dpr = window.devicePixelRatio || 1;
+    var CW  = canvas.width / dpr;
+    var CH  = canvas.height / dpr;
+    return { x: px / CW, y: py / CH };
+  }
+
+  function draw() {
+    var kl  = parseFloat(klSlider.value);
+    var dpr = window.devicePixelRatio || 1;
+    var CW  = canvas.width  / dpr;
+    var CH  = canvas.height / dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, CW, CH);
+
+    /* Background gradient — KL prior N(0,1) pushes everything toward center */
+    var bgG = ctx.createRadialGradient(CW*0.5, CH*0.5, 0, CW*0.5, CH*0.5, CW*0.55);
+    bgG.addColorStop(0,   'rgba(26,123,107,0.06)');
+    bgG.addColorStop(0.6, 'rgba(250,246,238,0.0)');
+    bgG.addColorStop(1,   'rgba(28,42,56,0.05)');
+    ctx.fillStyle = bgG; ctx.fillRect(0, 0, CW, CH);
+
+    /* KL prior circle */
+    var priorR = Math.min(CW, CH) * 0.38 * kl;
+    ctx.save();
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = 'rgba(26,123,107,0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(CW*0.5, CH*0.5, priorR, 0, Math.PI*2); ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.font = '500 10px DM Sans,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(26,123,107,0.45)';
+    ctx.fillText('KL prior  N(0, I)  β=' + kl.toFixed(1), CW*0.5, CH*0.5 - priorR - 6);
+    ctx.restore();
+
+    /* Cluster blobs — spread shrinks with higher KL */
+    var spread = 1 / Math.sqrt(kl);
+    var rLocal = rng2(99);
+    clusters.forEach(function (cl) {
+      var cx0 = 0.5 + (cl.x - 0.5) * spread;
+      var cy0 = 0.5 + (cl.y - 0.5) * spread;
+      var r0  = cl.r * spread * Math.min(CW, CH);
+      var p   = toCanvas(cx0, cy0);
+      var g   = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r0 * 1.6);
+      g.addColorStop(0,   hexToRgba(cl.color, 0.30));
+      g.addColorStop(0.5, hexToRgba(cl.color, 0.12));
+      g.addColorStop(1,   'rgba(0,0,0,0)');
+      ctx.save();
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r0 * 1.6, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+
+      /* Dot cloud */
+      var pts = rng2(clusters.indexOf(cl) * 17 + 3);
+      for (var i = 0; i < 28; i++) {
+        var angle = pts() * Math.PI * 2;
+        var dist  = pts() * r0 * 0.9;
+        var dx = Math.cos(angle) * dist, dy = Math.sin(angle) * dist;
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = cl.color;
+        ctx.beginPath(); ctx.arc(p.x + dx, p.y + dy, 2.5, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+      }
+
+      /* Label */
+      ctx.save();
+      ctx.font = '600 11px DM Sans,sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = cl.color;
+      ctx.fillText(cl.label, p.x, p.y - r0 * 0.6 - 5);
+      ctx.restore();
+    });
+
+    /* Selected sample point */
+    if (selectedPt) {
+      var sp = toCanvas(selectedPt.x, selectedPt.y);
+      ctx.save();
+      ctx.strokeStyle = '#BF4A24'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, 8, 0, Math.PI*2); ctx.stroke();
+      ctx.fillStyle = '#BF4A24'; ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, 4, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function hexToRgba(hex, a) {
+    var r = parseInt(hex.slice(1,3),16);
+    var g = parseInt(hex.slice(3,5),16);
+    var b = parseInt(hex.slice(5,7),16);
+    return 'rgba('+r+','+g+','+b+','+a+')';
+  }
+
+  function findNearestCluster(nx, ny, kl) {
+    var spread = 1 / Math.sqrt(kl);
+    var best = null, bestD = Infinity;
+    clusters.forEach(function (cl) {
+      var cx0 = 0.5 + (cl.x - 0.5) * spread;
+      var cy0 = 0.5 + (cl.y - 0.5) * spread;
+      var d = Math.sqrt((nx-cx0)*(nx-cx0) + (ny-cy0)*(ny-cy0));
+      if (d < bestD) { bestD = d; best = { cluster: cl, dist: d }; }
+    });
+    return best;
+  }
+
+  function handleClick(e) {
+    var rect = canvas.getBoundingClientRect();
+    var px = (e.clientX || e.touches[0].clientX) - rect.left;
+    var py = (e.clientY || e.touches[0].clientY) - rect.top;
+    var dpr = window.devicePixelRatio || 1;
+    var CW  = canvas.width/dpr, CH = canvas.height/dpr;
+    var nx  = px / CW, ny = py / CH;
+    var kl  = parseFloat(klSlider.value);
+
+    selectedPt = { x: nx, y: ny };
+    draw();
+
+    var res = findNearestCluster(nx, ny, kl);
+    var distFromPrior = Math.sqrt((nx-0.5)*(nx-0.5) + (ny-0.5)*(ny-0.5)) * 2;
+    infoBox.innerHTML =
+      '<strong>Sampled z</strong>: (' + (nx*2-1).toFixed(2) + ', ' + (ny*2-1).toFixed(2) + ') &nbsp;·&nbsp; ' +
+      'Distance from prior: ' + distFromPrior.toFixed(2) + '<br>' +
+      '<span style="color:' + res.cluster.color + '">' + res.cluster.label + '</span>: ' + res.cluster.desc;
+  }
+
+  function handleRandomSample() {
+    var kl = parseFloat(klSlider.value);
+    /* Sample from N(0, 1/sqrt(kl)) centred at 0.5 */
+    var u1 = Math.random(), u2 = Math.random();
+    while (u1 === 0) u1 = Math.random();
+    var std = 0.20 / Math.sqrt(kl);
+    var nx  = 0.5 + Math.sqrt(-2*Math.log(u1)) * Math.cos(2*Math.PI*u2) * std;
+    var ny  = 0.5 + Math.sqrt(-2*Math.log(u1)) * Math.sin(2*Math.PI*u2) * std;
+    nx = Math.max(0.02, Math.min(0.98, nx));
+    ny = Math.max(0.02, Math.min(0.98, ny));
+    selectedPt = { x: nx, y: ny };
+    draw();
+    var res = findNearestCluster(nx, ny, kl);
+    infoBox.innerHTML =
+      '<strong>Random sample z ∼ N(0,I)</strong> → nearest concept: ' +
+      '<span style="color:' + res.cluster.color + '"><strong>' + res.cluster.label + '</strong></span><br>' +
+      res.cluster.desc;
+  }
+
+  canvas.addEventListener('click', handleClick);
+  canvas.addEventListener('touchstart', function(e){ e.preventDefault(); handleClick(e); }, {passive:false});
+  sampleBtn.addEventListener('click', handleRandomSample);
+  klSlider.addEventListener('input', function () {
+    klValLbl.textContent = parseFloat(this.value).toFixed(1);
+    draw();
+  });
+  window.addEventListener('resize', resize);
+  resize();
+})();
+
+})();
+</script>
+</body>
+</html>

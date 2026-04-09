@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temporal VAE — Spatiotemporal Compression for Video</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--teal)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--teal);background:var(--teal-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--teal-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--teal)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:560px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--teal);opacity:.2}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--teal);background:var(--bg)}
+.step-dot--purple{border-color:var(--purple)}.step-dot--accent{border-color:var(--accent)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--teal);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--purple{border-left-color:var(--purple)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--teal{background:var(--teal);color:#fff}.btn--teal:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.slider-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-top:.5rem}
+.slider-row label{font-size:.82rem;font-weight:600;color:var(--text-2);white-space:nowrap}
+input[type=range]{flex:1;min-width:80px;accent-color:var(--teal)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.cmp-table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:.88rem}
+.cmp-table th{background:var(--bg-alt);font-weight:700;padding:.65rem 1rem;text-align:left;border-bottom:2px solid var(--border)}
+.cmp-table td{padding:.6rem 1rem;border-bottom:1px solid var(--border)}
+.cmp-table tr:last-child td{border-bottom:none}
+.cmp-table td:first-child{font-weight:600;color:var(--text-2)}
+.hi-teal{color:var(--teal);font-weight:700}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">Temporal VAE Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Architecture</a>
+    <a href="#ch2">02 Causal Conv</a>
+    <a href="#ch3">03 Compression</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>Temporal VAE — <em>Video Codec</em><br>for Diffusion Models</h1>
+  <p class="subtitle">How CogVideoX's Temporal VAE compresses (T, H, W) video frames into a compact 4-channel latent space using 3D causal convolutions that respect the arrow of time.</p>
+  <div class="pill-row">
+    <span class="pill pill--teal">3D Causal Conv</span>
+    <span class="pill pill--purple">Temporal Stride 4×</span>
+    <span class="pill pill--accent">Spatial Stride 8×</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">Encoder Architecture</h2></div>
+  <p class="ch-sub">The Temporal VAE's encoder processes a raw video tensor (T, C, H, W) through 3D convolutions that jointly reduce spatial and temporal dimensions, producing a compressed latent that the diffusion transformer operates on.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Encoder Pipeline Walkthrough</div>
+    <div class="sim-desc">Click Next to trace how a T×H×W video volume flows through the Temporal VAE encoder stages.</div>
+    <div class="sim-canvas-wrap"><canvas id="encCanvas" style="height:200px"></canvas></div>
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+      <button class="btn btn--teal" onclick="encNext()">Next &rsaquo;</button>
+      <button class="btn btn--ghost" onclick="encReset()">Reset</button>
+      <span id="encLabel" style="font-size:.85rem;color:var(--text-2)">Stage 1 of 5</span>
+    </div>
+    <div id="encInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>3D vs 2D Convolution</h3>
+    <p>Standard 2D VAE (used in Stable Diffusion) applies 2D convolutions independently to each frame. This compresses spatial dimensions (H/8, W/8) but leaves temporal dimension unchanged — all frames remain independent. The Temporal VAE adds 3D tconv kernels with temporal stride, so the encoder also compresses across frames, resulting in T/4.</p>
+    <div class="eq-box">
+      <span class="eq-label">Compression dimensions</span>
+      <span class="mono">2D VAE input:  (T, 3, H, W)</span><br>
+      <span class="mono">2D VAE output: (T, 4, H/8, W/8)  ← frames independent</span><br>
+      <span class="mono">Temporal VAE output: (T/4, 4, H/8, W/8)  ← jointly compressed</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--accent"></span>
+    <h3>Latent Dimensions for CogVideoX</h3>
+    <p>For 49 frames at 480×720: the Temporal VAE produces a latent of shape (13, 4, 60, 90). This 4-channel 3D tensor is what the CogVideoX DiT transformer operates on — roughly 28000 video tokens (vs 4M raw pixels per second).</p>
+    <div class="eq-box">
+      <span class="eq-label">Shape arithmetic</span>
+      <span class="mono">T_out = (T-1)/4 + 1 = (49-1)/4+1 = 13  (causal first frame)</span><br>
+      <span class="mono">H_out = 480/8 = 60</span><br>
+      <span class="mono">W_out = 720/8 = 90</span><br>
+      <span class="mono">Latent tokens = 13 × 60 × 90 = 70,200</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Causal 3D Convolutions</h2></div>
+  <p class="ch-sub">A causal convolution at time step t can only look at frames t, t−1, t−2, ... — never future frames. This maintains temporal order: the model can generate one frame at a time in an autoregressive manner without recomputing the entire sequence.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Causal vs Non-Causal Reception</div>
+    <div class="sim-desc">Drag the target frame slider to see which past frames a causal kernel can access (teal) vs which it cannot (grey), compared to a non-causal kernel (bidirectional).</div>
+    <div class="sim-canvas-wrap"><canvas id="causalCanvas" style="height:200px"></canvas></div>
+    <div class="slider-row">
+      <label>Target frame: <span id="causalFrameVal">4</span></label>
+      <input type="range" id="causalSlider" min="0" max="7" value="4" oninput="updateCausalFrame(this.value)">
+      <button class="btn btn--ghost" id="causalModeBtn" onclick="toggleCausalMode()">Non-causal</button>
+    </div>
+    <div id="causalInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>Padding Strategy</h3>
+    <p>To implement causal behavior, the Temporal VAE pads the time dimension on the left only. A temporal kernel of size k=3 pads by k−1=2 zeros at the start. This ensures the convolution always looks at present and past frames, never future frames.</p>
+    <div class="eq-box eq-box--purple">
+      <span class="eq-label">Causal padding equation</span>
+      <span class="mono">pad = (kernel_t - 1, 0)  on time axis</span><br>
+      <span class="mono">For kernel_t=3:  pad (2,0) → output[t] depends on input[t-2:t+1]</span><br>
+      <span class="mono">For first frame:  padded zeros act as "empty past"</span>
+    </div>
+  </div>
+
+  <div class="callout callout--teal fade-up">
+    <div class="callout-title">Why Causal Matters for Generation</div>
+    Non-causal 3D convolutions require the full video to be available before encoding begins. Causal convolutions allow the decoder to reconstruct frames one by one as they are denoised. CogVideoX uses this to enable streaming decode: show frame 0, then frame 1, etc., as generation finishes.
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Compression Ratio Comparison</h2></div>
+  <p class="ch-sub">The quality vs compression tradeoff of the Temporal VAE is critical. Too much compression degrades temporal detail; too little makes the diffusion problem too expensive. The 4× temporal + 8× spatial factor was tuned for quality at 6-second clips.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Compression Ratio Visualiser</div>
+    <div class="sim-desc">Adjust video length and resolution to compare raw pixel count vs latent token count for different VAE types.</div>
+    <div class="sim-canvas-wrap"><canvas id="compCanvas" style="height:220px"></canvas></div>
+    <div class="slider-row">
+      <label>Frames: <span id="compFrameVal">49</span></label>
+      <input type="range" id="compFrameSlider" min="8" max="120" value="49" oninput="updateComp()">
+    </div>
+    <div id="compInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <table class="cmp-table fade-up">
+    <thead><tr><th>Property</th><th>2D VAE (per-frame)</th><th>Temporal VAE (3D)</th></tr></thead>
+    <tbody>
+      <tr><td>Spatial compression</td><td>8× H, 8× W</td><td class="hi-teal">8× H, 8× W</td></tr>
+      <tr><td>Temporal compression</td><td>None (1×)</td><td class="hi-teal">4×</td></tr>
+      <tr><td>Output shape (49 frames)</td><td>(49, 4, H/8, W/8)</td><td class="hi-teal">(13, 4, H/8, W/8)</td></tr>
+      <tr><td>Causal decoding</td><td>Yes (frames independent)</td><td class="hi-teal">Yes (causal 3D conv)</td></tr>
+      <tr><td>Temporal consistency</td><td>Lower (no inter-frame latent)</td><td class="hi-teal">Higher (cross-frame latent)</td></tr>
+      <tr><td>Training data requirement</td><td>Images + videos</td><td class="hi-teal">Videos only (need motion)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout--accent fade-up">
+    <div class="callout-title">Temporal VAE in the CogVideoX pipeline</div>
+    Step 1: Temporal VAE encodes the conditioning frame(s) to latent space. Step 2: The DiT denoises T_lat frames. Step 3: The Temporal VAE decoder reconstructs T full-resolution frames. The causal decoder ensures frame 0 is ready before frame 1, enabling early display during generation.
+  </div>
+</div>
+</section>
+
+<footer class="footer">Temporal VAE Interactive Guide · CogVideoX · 2024</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var navLinks=document.querySelectorAll('.topnav .links a');
+var sections=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function updateNav(){var y=window.scrollY+80;var c=0;sections.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});navLinks.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',updateNav,{passive:true});updateNav();
+
+/* ── Encoder pipeline canvas ── */
+var encCanvas=document.getElementById('encCanvas');
+var encStep=0;
+var ENC=[
+  {label:'Input Video',shape:'(49, 3, 480, 720)',info:'Raw video tensor: 49 frames, 3 RGB channels, 480×720 pixels. Total raw size = 49×3×480×720 ≈ 50.8 million values per clip.'},
+  {label:'3D Conv Block 1',shape:'(49, 32, 480, 720)',info:'First 3D conv with temporal kernel k_t=3, spatial kernel k_s=3. Spatial stride=1, temporal stride=1. Expands channels from 3→32. Output remains 49 frames at full resolution.'},
+  {label:'Temporal Downsample',shape:'(13, 64, 480, 720)',info:'Causal 3D conv with temporal stride=4 (and causal padding). Frames 49→13 via formula (T-1)/4+1=13. Channels 32→64.'},
+  {label:'Spatial Downsample',shape:'(13, 128, 60, 90)',info:'2D conv with spatial stride=8 applied per frame. H 480→60, W 720→90. Channels 64→128. Final spatial compression achieved.'},
+  {label:'Latent μ, σ',shape:'(13, 4, 60, 90) each',info:'Final 1×1 conv splits to μ and σ (each shape 13×4×60×90). Latent z is sampled as z = μ + ε·σ. Total latent = 70,200 tokens × 4 channels. Compression ratio: 50.8M → 280K values = 180× compression.'}
+];
+function resizeEnc(){
+  var dpr=window.devicePixelRatio||1;
+  var W=encCanvas.parentElement.getBoundingClientRect().width;
+  encCanvas.width=Math.round(W*dpr);encCanvas.height=Math.round(200*dpr);
+  encCanvas.style.width=W+'px';encCanvas.style.height='200px';drawEnc();
+}
+function drawEnc(){
+  var dpr=window.devicePixelRatio||1;var W=encCanvas.width/dpr,H=encCanvas.height/dpr;
+  var ctx=encCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var N=ENC.length;var bw=Math.min(110,(W-30)/N-4);var bh=56;var gap=Math.max(4,(W-30-bw*N)/(N-1));
+  var startX=(W-(bw*N+gap*(N-1)))/2;var by=H/2-bh/2;
+  ENC.forEach(function(s,i){
+    var x=startX+i*(bw+gap);var active=i===encStep;var done=i<encStep;
+    ctx.fillStyle=active?'rgba(26,123,107,.15)':done?'rgba(26,123,107,.06)':'rgba(230,221,208,.3)';
+    ctx.strokeStyle=active?'#1A7B6B':done?'#1A7B6B88':'#E6DDD0';ctx.lineWidth=active?2.5:1.2;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle=active?'#1A7B6B':done?'#1A7B6B':'#8A95A2';
+    ctx.font=(active?'700 ':'600 ')+'9px DM Sans,sans-serif';ctx.textAlign='center';
+    var words=s.label.split(' ');
+    words.forEach(function(w,wi){ctx.fillText(w,x+bw/2,by+16+(wi*11));});
+    ctx.fillStyle='#8A95A2';ctx.font='500 7.5px Fira Code,monospace';
+    ctx.fillText(s.shape.split(',')[0],x+bw/2,by+bh-7);
+    if(i<N-1){
+      ctx.strokeStyle=done?'#1A7B6B88':'#E6DDD0';ctx.lineWidth=1.2;
+      var ax=x+bw+2;ctx.beginPath();ctx.moveTo(ax,by+bh/2);ctx.lineTo(ax+gap-4,by+bh/2);ctx.stroke();
+      ctx.fillStyle=done?'#1A7B6B88':'#E6DDD0';ctx.beginPath();ctx.moveTo(ax+gap,by+bh/2);ctx.lineTo(ax+gap-6,by+bh/2-4);ctx.lineTo(ax+gap-6,by+bh/2+4);ctx.closePath();ctx.fill();
+    }
+  });
+  document.getElementById('encInfo').textContent=ENC[encStep].info;
+  document.getElementById('encLabel').textContent='Stage '+(encStep+1)+' of '+ENC.length;
+}
+window.encNext=function(){encStep=Math.min(ENC.length-1,encStep+1);drawEnc();};
+window.encReset=function(){encStep=0;drawEnc();};
+
+/* ── Causal canvas ── */
+var causalCanvas=document.getElementById('causalCanvas');
+var causalFrame=4;var causalMode='causal';
+window.updateCausalFrame=function(v){causalFrame=parseInt(v);document.getElementById('causalFrameVal').textContent=v;drawCausal();};
+window.toggleCausalMode=function(){
+  causalMode=causalMode==='causal'?'noncausal':'causal';
+  document.getElementById('causalModeBtn').textContent=causalMode==='causal'?'Non-causal':'Causal';
+  drawCausal();
+};
+function resizeCausal(){
+  var dpr=window.devicePixelRatio||1;
+  var W=causalCanvas.parentElement.getBoundingClientRect().width;
+  causalCanvas.width=Math.round(W*dpr);causalCanvas.height=Math.round(200*dpr);
+  causalCanvas.style.width=W+'px';causalCanvas.style.height='200px';drawCausal();
+}
+function drawCausal(){
+  var dpr=window.devicePixelRatio||1;var W=causalCanvas.width/dpr,H=causalCanvas.height/dpr;
+  var ctx=causalCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var N=8;var bw=Math.min(52,(W-30)/N-6);var bh=52;var gap=Math.max(4,(W-30-bw*N)/(N-1));
+  var startX=(W-(bw*N+gap*(N-1)))/2;var by=H/2-bh/2;
+  var KERNEL=3;// kernel size
+  for(var i=0;i<N;i++){
+    var x=startX+i*(bw+gap);
+    var isTarget=i===causalFrame;
+    var inRange=(causalMode==='causal')?(i>=causalFrame-KERNEL+1&&i<=causalFrame):(Math.abs(i-causalFrame)<=Math.floor(KERNEL/2));
+    var color=isTarget?'#BF4A24':inRange?'#1A7B6B':'#8A95A2';
+    var bg=isTarget?'rgba(191,74,36,.15)':inRange?'rgba(26,123,107,.13)':'rgba(230,221,208,.4)';
+    ctx.fillStyle=bg;ctx.strokeStyle=color;ctx.lineWidth=isTarget?2.5:inRange?2:1;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle=color;ctx.font=(isTarget?'700 ':'600 ')+'10px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText('f'+i,x+bw/2,by+bh/2+4);
+    if(inRange&&!isTarget){
+      ctx.fillStyle='#1A7B6B';ctx.font='500 8px DM Sans,sans-serif';
+      ctx.fillText('seen',x+bw/2,by+bh-6);
+    }
+    if(isTarget){ctx.fillStyle='#BF4A24';ctx.font='500 8px DM Sans,sans-serif';ctx.fillText('target',x+bw/2,by+bh-6);}
+  }
+  // arrows from seen frames to target
+  for(var j=0;j<N;j++){
+    var inR=(causalMode==='causal')?(j>=causalFrame-KERNEL+1&&j<causalFrame):(Math.abs(j-causalFrame)<=Math.floor(KERNEL/2)&&j!==causalFrame);
+    if(inR){
+      var fx=startX+j*(bw+gap)+bw/2;var tx=startX+causalFrame*(bw+gap)+bw/2;var fy=by;
+      ctx.strokeStyle='rgba(26,123,107,.4)';ctx.lineWidth=1.5;
+      ctx.setLineDash([3,3]);
+      ctx.beginPath();ctx.moveTo(fx,fy-4);ctx.bezierCurveTo(fx,fy-24,tx,fy-24,tx,fy-4);ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+  var seen=(causalMode==='causal')?KERNEL-1:Math.floor(KERNEL/2)*2;
+  document.getElementById('causalInfo').textContent=(causalMode==='causal')?
+    'Causal kernel k='+KERNEL+': frame '+causalFrame+' can see frames '+Math.max(0,causalFrame-KERNEL+1)+'..'+causalFrame+' ('+seen+' past + itself). Future frames are inaccessible — temporal information flows only forward in time.':
+    'Non-causal kernel k='+KERNEL+': frame '+causalFrame+' sees frames '+(causalFrame-Math.floor(KERNEL/2))+'..'+(causalFrame+Math.floor(KERNEL/2))+'. Access to future frames would require the full clip to be available before encoding starts.';
+}
+
+/* ── Compression bar canvas ── */
+var compCanvas=document.getElementById('compCanvas');
+window.updateComp=function(){
+  var v=parseInt(document.getElementById('compFrameSlider').value);
+  document.getElementById('compFrameVal').textContent=v;drawComp(v);
+};
+function resizeComp(){
+  var dpr=window.devicePixelRatio||1;
+  var W=compCanvas.parentElement.getBoundingClientRect().width;
+  compCanvas.width=Math.round(W*dpr);compCanvas.height=Math.round(220*dpr);
+  compCanvas.style.width=W+'px';compCanvas.style.height='220px';
+  drawComp(parseInt(document.getElementById('compFrameSlider').value));
+}
+function drawComp(T){
+  var H=480,Wd=720;
+  var raw=T*3*H*Wd;
+  var vae2d=T*4*(H/8)*(Wd/8);
+  var vatd=Math.floor((T-1)/4+1)*4*(H/8)*(Wd/8);
+  var dpr=window.devicePixelRatio||1;var W=compCanvas.width/dpr,Hc=compCanvas.height/dpr;
+  var ctx=compCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,Hc);
+  var bars=[{label:'Raw video',val:raw,color:'#8A95A2'},{label:'2D VAE',val:vae2d,color:'#6B52A8'},{label:'Temporal VAE',val:vatd,color:'#1A7B6B'}];
+  var maxVal=raw;var bh=40;var startY=20;var barW=W-120-20;var labelX=10;
+  bars.forEach(function(b,i){
+    var y=startY+i*(bh+16);var fw=barW*(b.val/maxVal);
+    ctx.fillStyle='rgba(230,221,208,.4)';ctx.beginPath();ctx.roundRect(100,y,barW,bh,4);ctx.fill();
+    ctx.fillStyle=b.color;ctx.beginPath();ctx.roundRect(100,y,fw,bh,4);ctx.fill();
+    ctx.fillStyle='#1C2A38';ctx.font='600 10px DM Sans,sans-serif';ctx.textAlign='right';
+    ctx.fillText(b.label,95,y+bh/2+4);
+    ctx.fillStyle='#fff';ctx.font='700 10px DM Sans,sans-serif';ctx.textAlign='left';
+    var millions=(b.val/1e6).toFixed(1);
+    ctx.fillText(millions+'M vals',104,y+bh/2+4);
+    ctx.fillStyle='#5A6878';ctx.font='500 9px DM Sans,sans-serif';ctx.textAlign='right';
+    ctx.fillText((b.val/raw*100).toFixed(1)+'%',100+barW+4,y+bh/2+4);
+  });
+  var ratio=(raw/vatd).toFixed(0);
+  document.getElementById('compInfo').textContent='For '+T+' frames at 480×720: raw = '+(raw/1e6).toFixed(1)+'M values, 2D VAE = '+(vae2d/1e3).toFixed(0)+'K values, Temporal VAE = '+(vatd/1e3).toFixed(0)+'K values. Overall compression ratio vs raw: '+ratio+'× for Temporal VAE.';
+}
+
+window.addEventListener('resize',function(){resizeEnc();resizeCausal();resizeComp();});
+resizeEnc();resizeCausal();resizeComp();
+})();
+</script>
+</body>
+</html>

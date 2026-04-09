@@ -1,0 +1,1593 @@
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Understanding Diffusion Models — Interactive Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&amp;family=DM+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAF7F2;
+    --bg-warm: #F5F0E8;
+    --bg-card: #FFFFFF;
+    --text-primary: #2C2416;
+    --text-secondary: #6B5D4F;
+    --text-muted: #9E8E7C;
+    --accent: #C25B28;
+    --accent-light: #E8A87C;
+    --accent-glow: rgba(194, 91, 40, 0.15);
+    --blue: #3A6EA5;
+    --blue-light: #A3C4E0;
+    --green: #4A8B5C;
+    --green-light: #B5D5BE;
+    --purple: #7B5EA7;
+    --purple-light: #C4B0DC;
+    --border: #E5DDD3;
+    --shadow: 0 2px 20px rgba(44, 36, 22, 0.06);
+    --shadow-lg: 0 8px 40px rgba(44, 36, 22, 0.1);
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── Navigation ── */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(250, 247, 242, 0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+  }
+  nav .inner {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 56px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  nav .inner::-webkit-scrollbar { display: none; }
+  nav a {
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+    padding: 6px 14px;
+    border-radius: 99px;
+    transition: all 0.3s;
+    flex-shrink: 0;
+  }
+  nav a:hover, nav a.active {
+    color: var(--accent);
+    background: var(--accent-glow);
+  }
+  nav .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-right: 6px;
+    transition: all 0.3s;
+  }
+  nav a.active .step-num,
+  nav a:hover .step-num {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    min-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 100px 24px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(194,91,40,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--text-primary);
+    max-width: 700px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.8s ease;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .hero p {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    max-width: 540px;
+    animation: fadeUp 0.8s 0.15s ease both;
+  }
+  .hero .scroll-hint {
+    margin-top: 40px;
+    animation: fadeUp 0.8s 0.3s ease both, bob 2.5s ease-in-out infinite 1s;
+    color: var(--text-muted);
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .hero .scroll-hint svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(6px); }
+  }
+
+  /* ── Sections ── */
+  section {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 60px 24px 80px;
+  }
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .section-label .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  section h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 16px;
+  }
+  section .subtitle {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    max-width: 600px;
+    margin-bottom: 32px;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    box-shadow: var(--shadow);
+    margin-bottom: 28px;
+  }
+  .card h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .card p {
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+  }
+
+  /* ── Math blocks ── */
+  .math-block {
+    background: var(--bg-warm);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin: 16px 0;
+    overflow-x: auto;
+  }
+
+  /* ── Canvas containers ── */
+  .sim-container {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 24px 0;
+    box-shadow: var(--shadow);
+  }
+  .sim-container canvas {
+    display: block;
+    width: 100%;
+    cursor: crosshair;
+    touch-action: none;
+  }
+  .sim-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-warm);
+  }
+  .sim-controls label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sim-controls input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 140px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+  }
+  .sim-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(194,91,40,0.3);
+  }
+  .sim-controls input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: none;
+  }
+  .sim-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 10px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-warm);
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 22px;
+    border-radius: 99px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #A84D22; transform: translateY(-1px); }
+  .btn-secondary {
+    background: var(--bg-warm);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--border); }
+
+  /* ── Step indicators ── */
+  .steps-row {
+    display: flex;
+    gap: 16px;
+    margin: 24px 0;
+    flex-wrap: wrap;
+  }
+  .step-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: var(--bg-warm);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    flex: 1;
+    min-width: 160px;
+  }
+  .step-badge .num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .step-badge.s1 .num { background: var(--blue-light); color: var(--blue); }
+  .step-badge.s2 .num { background: var(--green-light); color: var(--green); }
+  .step-badge.s3 .num { background: var(--purple-light); color: var(--purple); }
+
+  /* ── Analogy box ── */
+  .analogy {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(194,91,40,0.05), rgba(194,91,40,0.02));
+    border: 1px solid rgba(194,91,40,0.15);
+    border-radius: 12px;
+    margin: 20px 0;
+  }
+  .analogy-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .analogy p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+  }
+  .analogy strong { color: var(--accent); }
+
+  /* ── Divider ── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 0 auto;
+    max-width: 400px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .card { padding: 20px; }
+    .sim-controls { padding: 12px 16px; }
+    .sim-controls input[type="range"] { width: 100px; }
+    section { padding: 40px 16px 60px; }
+    .steps-row { gap: 10px; }
+    .step-badge { min-width: 120px; padding: 8px 12px; font-size: 12px; }
+  }
+
+  /* ── Denoising visual ── */
+  .denoise-strip {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    align-items: flex-end;
+    margin: 20px 0;
+    overflow-x: auto;
+    padding: 10px 0;
+  }
+  .denoise-frame {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .denoise-frame canvas {
+    width: 100%;
+    height: 100%;
+  }
+  .denoise-arrow {
+    display: flex;
+    align-items: center;
+    color: var(--accent);
+    font-size: 18px;
+    flex-shrink: 0;
+    padding: 0 2px;
+  }
+
+  /* progress bar for denoising */
+  .progress-bar-outer {
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    margin: 12px 0 4px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .progress-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  /* footer */
+  footer {
+    text-align: center;
+    padding: 40px 24px;
+    font-size: 13px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <div class="inner">
+    <a href="#hero"><span class="step-num">~</span>Intro</a>
+    <a href="#score"><span class="step-num">1</span>Score Function</a>
+    <a href="#denoising"><span class="step-num">2</span>Denoising</a>
+    <a href="#compass"><span class="step-num">3</span>Neural Compass</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero" id="hero">
+  <h1>How <em>Diffusion Models</em> Learn to Create</h1>
+  <p>An interactive, step-by-step guide to score functions, denoising, and the neural compass that turns pure noise into images.</p>
+  <div class="scroll-hint">
+    Scroll to begin
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>
+  </div>
+</div>
+
+<!-- ═══════════════════════ SECTION 1: SCORE FUNCTION ═══════════════════════ -->
+<section id="score">
+  <div class="section-label"><span class="dot"></span>Concept 1</div>
+  <h2>The Score Function</h2>
+  <p class="subtitle">At every point in space, the score tells you which direction to move to reach higher probability — where the real data lives.</p>
+
+  <div class="card">
+    <h3>What is it?</h3>
+    <p>Given a probability density function p(x) that describes how likely each point x is to be "real data," the <strong>score function</strong> is defined as:</p>
+    <div class="math-block">s(x) = ∇ₓ log p(x)</div>
+    <p>This is the gradient (direction of steepest ascent) of the <em>log</em> probability density. It's a vector field: at every point x, it gives a direction and magnitude pointing toward regions of higher data likelihood.</p>
+  </div>
+
+  <div class="card">
+    <h3>Interactive: Score Vector Field</h3>
+    <p>Below is a 2D probability landscape with two clusters (a Gaussian mixture). The arrows are the score vectors — they always point toward the nearest high-density peak. <strong>Hover or tap</strong> anywhere to see the score at that point.</p>
+    <div class="sim-container">
+      <canvas id="scoreCanvas" width="800" height="500"></canvas>
+      <div class="sim-hint">↕ Hover / tap to explore &nbsp;·&nbsp; Arrows = ∇ log p(x) &nbsp;·&nbsp; Bright regions = high density</div>
+      <div class="sim-controls">
+        <label>Cluster spread
+          <input type="range" id="scoreSpread" min="0.3" max="2" step="0.05" value="0.8">
+        </label>
+        <label>Arrow density
+          <input type="range" id="scoreDensity" min="6" max="20" step="1" value="12">
+        </label>
+        <button class="btn btn-secondary" id="scoreReset">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="analogy">
+    <div class="analogy-icon">🏔️</div>
+    <div>
+      <p><strong>Analogy:</strong> Imagine a hilly landscape where the peaks are places real data lives. If you drop a ball anywhere, the score function is the slope of the hill at that point — it tells the ball exactly which direction to roll uphill toward the nearest peak.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Why the <em>log</em>?</h3>
+    <p>Taking the logarithm transforms multiplication into addition and turns tiny probability values into manageable numbers. Critically, <strong>∇ log p(x) = ∇p(x) / p(x)</strong>, so the score is a <em>normalised</em> gradient — it doesn't depend on the overall scale of p(x), which means we never need to know the normalising constant Z.</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════ SECTION 2: DENOISING SCORE MATCHING ═══════════════════════ -->
+<section id="denoising">
+  <div class="section-label"><span class="dot"></span>Concept 2</div>
+  <h2>Learning the Score by Denoising</h2>
+  <p class="subtitle">Diffusion models sidestep the intractable normalising constant by learning the score directly through a denoising objective.</p>
+
+  <div class="steps-row">
+    <div class="step-badge s1"><span class="num">A</span>Add noise to real data</div>
+    <div class="step-badge s2"><span class="num">B</span>Train network to predict noise</div>
+    <div class="step-badge s3"><span class="num">C</span>Noise prediction ≈ score</div>
+  </div>
+
+  <div class="card">
+    <h3>The Normalising Constant Problem</h3>
+    <p>To compute p(x) exactly, we'd need:</p>
+    <div class="math-block">p(x) = p̃(x) / Z &nbsp;&nbsp;where&nbsp;&nbsp; Z = ∫ p̃(x) dx</div>
+    <p>This integral Z is <strong>intractable</strong> for complex data like images (imagine integrating over all possible pixel combinations). But the score ∇ log p(x) is independent of Z, because log Z is just a constant whose gradient is zero!</p>
+  </div>
+
+  <div class="card">
+    <h3>Interactive: The Forward Diffusion Process</h3>
+    <p>Watch how clean data points are gradually corrupted by Gaussian noise at increasing levels σ. Use the slider to control the noise level, or press <strong>Play</strong> to animate.</p>
+    <div class="sim-container">
+      <canvas id="diffuseCanvas" width="800" height="400"></canvas>
+      <div class="sim-controls">
+        <label>Noise level σ
+          <input type="range" id="noiseSlider" min="0" max="100" step="1" value="0">
+          <span id="noiseVal" style="min-width:36px;text-align:right;">0.00</span>
+        </label>
+        <button class="btn btn-primary" id="diffusePlay">▶ Play</button>
+        <button class="btn btn-secondary" id="diffuseReset">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Denoising Score Matching</h3>
+    <p>The key insight: if we train a neural network to predict the noise ε that was added to a clean sample, the network's output is <strong>proportional to the score</strong> at the noisy point:</p>
+    <div class="math-block">s_θ(x̃, σ) ≈ ∇ log p_σ(x̃) = −ε / σ²</div>
+    <p>So by simply learning to denoise, the network implicitly learns the score function at every noise level — no normalising constant needed!</p>
+  </div>
+
+  <div class="card">
+    <h3>Interactive: Denoising in Action</h3>
+    <p>Click <strong>Denoise</strong> to watch noisy points get pulled back toward the clean data manifold by following the learned score vectors. The blue arrows show the predicted "denoise direction."</p>
+    <div class="sim-container">
+      <canvas id="denoiseCanvas" width="800" height="400"></canvas>
+      <div class="sim-controls">
+        <button class="btn btn-primary" id="denoiseStart">⟳ Denoise</button>
+        <button class="btn btn-secondary" id="denoiseScatter">Add Noise</button>
+        <label>Step speed
+          <input type="range" id="denoiseSpeed" min="1" max="10" step="1" value="5">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="analogy">
+    <div class="analogy-icon">🔊</div>
+    <div>
+      <p><strong>Analogy:</strong> Imagine you record a song and add static. If you train someone to remove the static at every volume level, they implicitly learn the structure of the original song. That's exactly what the denoising network does — by predicting noise, it understands the underlying data.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════ SECTION 3: NEURAL COMPASS ═══════════════════════ -->
+<section id="compass">
+  <div class="section-label"><span class="dot"></span>Concept 3</div>
+  <h2>The Neural Compass</h2>
+  <p class="subtitle">The trained network acts as a compass in noise-space, guiding iterative steps from pure noise to a coherent image.</p>
+
+  <div class="card">
+    <h3>From Noise to Image, Step by Step</h3>
+    <p>At generation time, we start with pure Gaussian noise x_T and iteratively refine it. At each step t, the network predicts the score at the current noise level σ_t, and we take a small step in that direction:</p>
+    <div class="math-block">x_{t-1} = x_t + η · s_θ(x_t, σ_t) + √(2η) · z</div>
+    <p>This is <strong>Langevin dynamics</strong>: follow the score (climb toward data) plus a small random perturbation z for exploration. As σ decreases through the schedule, the steps become more precise and the image sharpens.</p>
+  </div>
+
+  <div class="card">
+    <h3>Interactive: The Compass Simulation</h3>
+    <p>Watch particles start as pure noise and get guided toward data clusters by the score "compass." Each particle follows the learned vector field, step by step, converging onto the real data manifold.</p>
+    <div class="sim-container">
+      <canvas id="compassCanvas" width="800" height="500"></canvas>
+      <div class="progress-bar-outer"><div class="progress-bar-inner" id="compassProgress" style="width:0%"></div></div>
+      <div class="progress-label" id="compassLabel">t = T (pure noise)</div>
+      <div class="sim-controls">
+        <button class="btn btn-primary" id="compassRun">▶ Run Diffusion</button>
+        <button class="btn btn-secondary" id="compassReset">Reset</button>
+        <label>Particles
+          <input type="range" id="compassParticles" min="20" max="200" step="10" value="80">
+        </label>
+        <label>Steps
+          <input type="range" id="compassSteps" min="20" max="200" step="10" value="100">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Interactive: Image Denoising Walkthrough</h3>
+    <p>This simulates how a 2D "image" (a pixel grid) is denoised step-by-step. The target pattern emerges from pure static as the compass guides each pixel toward its correct value.</p>
+    <div class="sim-container">
+      <canvas id="pixelCanvas" width="800" height="400"></canvas>
+      <div class="sim-controls">
+        <button class="btn btn-primary" id="pixelRun">▶ Denoise Image</button>
+        <button class="btn btn-secondary" id="pixelReset">Reset</button>
+        <label>Speed
+          <input type="range" id="pixelSpeed" min="1" max="10" step="1" value="5">
+        </label>
+      </div>
+      <div class="progress-bar-outer"><div class="progress-bar-inner" id="pixelProgress" style="width:0%"></div></div>
+      <div class="progress-label" id="pixelLabel">Ready</div>
+    </div>
+  </div>
+
+  <div class="analogy">
+    <div class="analogy-icon">🧭</div>
+    <div>
+      <p><strong>Analogy:</strong> Imagine being lost in a dense fog (noise). You have a magical compass (the neural network) that doesn't point north, but toward the nearest "real place" (data). At first the fog is thick so the compass gives broad directions, but as you walk and the fog thins, the compass becomes more precise. Step by step, you arrive at a real, recognisable destination — a generated image.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Why It Works</h3>
+    <p>The magic lies in the <strong>multi-scale</strong> nature. At high noise, the score captures global structure (overall shapes, layout). At low noise, it captures fine details (textures, edges). The neural network is trained at <em>all</em> noise levels simultaneously, so it learns a complete map from any amount of noise back to clean data.</p>
+    <div class="steps-row">
+      <div class="step-badge s1"><span class="num">T</span>Global structure emerges</div>
+      <div class="step-badge s2"><span class="num">·</span>Shapes refine</div>
+      <div class="step-badge s3"><span class="num">0</span>Fine details appear</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Interactive Guide to Diffusion Models — Score Functions, Denoising &amp; the Neural Compass
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════════════ */
+function gaussianRandom() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+function gaussian2D(x, y, mx, my, s) {
+  const dx = x - mx, dy = y - my;
+  return Math.exp(-(dx * dx + dy * dy) / (2 * s * s));
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+const canvasAspects = {};
+function resizeCanvas(canvas) {
+  // Store original aspect ratio on first call
+  if (!canvasAspects[canvas.id]) {
+    canvasAspects[canvas.id] = canvas.getAttribute('height') / canvas.getAttribute('width');
+  }
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(rect.width, 100); // minimum 100px to avoid zero
+  const aspect = canvasAspects[canvas.id];
+  const h = w * aspect;
+  canvas.style.height = h + 'px';
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  return { w, h, dpr };
+}
+
+/* ═══════════════════════════════════════════════════════
+   NAV HIGHLIGHT
+   ═══════════════════════════════════════════════════════ */
+const navLinks = document.querySelectorAll('nav a');
+const sections = ['hero', 'score', 'denoising', 'compass'].map(id => document.getElementById(id));
+
+function updateNav() {
+  let current = 0;
+  const scrollY = window.scrollY + 100;
+  sections.forEach((sec, i) => {
+    if (sec && sec.offsetTop <= scrollY) current = i;
+  });
+  navLinks.forEach((a, i) => a.classList.toggle('active', i === current));
+}
+window.addEventListener('scroll', updateNav, { passive: true });
+updateNav();
+
+/* ═══════════════════════════════════════════════════════
+   SECTION 1: SCORE VECTOR FIELD
+   ═══════════════════════════════════════════════════════ */
+(function () {
+  const canvas = document.getElementById('scoreCanvas');
+  const spreadSlider = document.getElementById('scoreSpread');
+  const densitySlider = document.getElementById('scoreDensity');
+  const resetBtn = document.getElementById('scoreReset');
+
+  // Cluster centers in normalized coords [0,1]
+  let clusters = [
+    { x: 0.3, y: 0.4 },
+    { x: 0.72, y: 0.55 }
+  ];
+  let mouseX = -1, mouseY = -1;
+  let animId = null;
+
+  function getSpread() { return parseFloat(spreadSlider.value) * 0.12; }
+  function getDensity() { return parseInt(densitySlider.value); }
+
+  function scoreFn(px, py, spread) {
+    let sx = 0, sy = 0;
+    const s2 = spread * spread;
+    clusters.forEach(c => {
+      const dx = px - c.x, dy = py - c.y;
+      const w = Math.exp(-(dx * dx + dy * dy) / (2 * s2));
+      sx += -dx / s2 * w;
+      sy += -dy / s2 * w;
+    });
+    return { x: sx, y: sy };
+  }
+
+  function density(px, py, spread) {
+    let d = 0;
+    clusters.forEach(c => {
+      d += gaussian2D(px, py, c.x, c.y, spread);
+    });
+    return d;
+  }
+
+  function draw() {
+    const { w, h, dpr } = resizeCanvas(canvas);
+    const ctx = canvas.getContext('2d');
+    if (canvas.width < 1 || canvas.height < 1) return;
+    const spread = getSpread();
+    const n = getDensity();
+
+    // Draw BG first
+    ctx.fillStyle = '#FAF7F2';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw density heatmap at reduced resolution for performance
+    const scale = 4; // render at 1/4 resolution then upscale
+    const heatW = Math.max(1, Math.ceil(canvas.width / scale));
+    const heatH = Math.max(1, Math.ceil(canvas.height / scale));
+    const imgData = ctx.createImageData(heatW, heatH);
+    for (let py = 0; py < heatH; py++) {
+      for (let px = 0; px < heatW; px++) {
+        const nx = px / heatW;
+        const ny = py / heatH;
+        const d = density(nx, ny, spread);
+        const idx = (py * heatW + px) * 4;
+        const intensity = Math.min(d, 1);
+        imgData.data[idx] = Math.round(lerp(250, 194, intensity));
+        imgData.data[idx + 1] = Math.round(lerp(247, 91, intensity));
+        imgData.data[idx + 2] = Math.round(lerp(242, 40, intensity));
+        imgData.data[idx + 3] = Math.round(intensity * 120);
+      }
+    }
+    // Draw to offscreen canvas, then scale up
+    const offscreen = document.createElement('canvas');
+    offscreen.width = heatW;
+    offscreen.height = heatH;
+    offscreen.getContext('2d').putImageData(imgData, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(offscreen, 0, 0, canvas.width, canvas.height);
+
+    // Draw arrows
+    const stepX = canvas.width / n;
+    const stepY = canvas.height / n;
+    for (let i = 0.5; i < n; i++) {
+      for (let j = 0.5; j < n; j++) {
+        const px = i * stepX;
+        const py = j * stepY;
+        const nx = px / canvas.width;
+        const ny = py / canvas.height;
+        const sc = scoreFn(nx, ny, spread);
+        const mag = Math.sqrt(sc.x * sc.x + sc.y * sc.y);
+        if (mag < 0.001) continue;
+        const maxLen = stepX * 0.7;
+        const len = Math.min(mag * canvas.width * 0.3, maxLen);
+        const dirX = sc.x / mag;
+        const dirY = sc.y / mag;
+        const alpha = clamp(mag * 3, 0.15, 0.85);
+
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(Math.atan2(dirY, dirX));
+        ctx.strokeStyle = `rgba(44, 36, 22, ${alpha})`;
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(len, 0);
+        // arrowhead
+        ctx.moveTo(len, 0);
+        ctx.lineTo(len - 5 * dpr, -3 * dpr);
+        ctx.moveTo(len, 0);
+        ctx.lineTo(len - 5 * dpr, 3 * dpr);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // Draw cluster centers
+    clusters.forEach(c => {
+      const cx = c.x * canvas.width, cy = c.y * canvas.height;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 6 * dpr, 0, Math.PI * 2);
+      ctx.fillStyle = '#C25B28';
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2 * dpr;
+      ctx.stroke();
+    });
+
+    // Mouse probe
+    if (mouseX >= 0 && mouseY >= 0) {
+      const nx = mouseX / w;
+      const ny = mouseY / h;
+      const sc = scoreFn(nx, ny, spread);
+      const mag = Math.sqrt(sc.x * sc.x + sc.y * sc.y);
+      if (mag > 0.001) {
+        const dirX = sc.x / mag;
+        const dirY = sc.y / mag;
+        const len = Math.min(mag * canvas.width * 0.5, 80 * dpr);
+        const px = mouseX * dpr, py = mouseY * dpr;
+
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(Math.atan2(dirY, dirX));
+        ctx.strokeStyle = '#C25B28';
+        ctx.lineWidth = 3 * dpr;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(len, 0);
+        ctx.moveTo(len, 0);
+        ctx.lineTo(len - 10 * dpr, -6 * dpr);
+        ctx.moveTo(len, 0);
+        ctx.lineTo(len - 10 * dpr, 6 * dpr);
+        ctx.stroke();
+        ctx.restore();
+
+        // probe dot
+        ctx.beginPath();
+        ctx.arc(px, py, 5 * dpr, 0, Math.PI * 2);
+        ctx.fillStyle = '#C25B28';
+        ctx.fill();
+      }
+    }
+  }
+
+  function animate() {
+    draw();
+    animId = requestAnimationFrame(animate);
+  }
+
+  function getCanvasCoords(e) {
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches ? e.touches[0] : e;
+    return {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top
+    };
+  }
+
+  canvas.addEventListener('mousemove', e => {
+    const c = getCanvasCoords(e);
+    mouseX = c.x;
+    mouseY = c.y;
+  });
+  canvas.addEventListener('mouseleave', () => { mouseX = -1; mouseY = -1; });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const c = getCanvasCoords(e);
+    mouseX = c.x;
+    mouseY = c.y;
+  }, { passive: false });
+  canvas.addEventListener('touchend', () => { mouseX = -1; mouseY = -1; });
+
+  spreadSlider.addEventListener('input', draw);
+  densitySlider.addEventListener('input', draw);
+  resetBtn.addEventListener('click', () => {
+    spreadSlider.value = 0.8;
+    densitySlider.value = 12;
+    clusters = [{ x: 0.3, y: 0.4 }, { x: 0.72, y: 0.55 }];
+    draw();
+  });
+
+  animate();
+})();
+
+/* ═══════════════════════════════════════════════════════
+   SECTION 2A: FORWARD DIFFUSION
+   ═══════════════════════════════════════════════════════ */
+(function () {
+  const canvas = document.getElementById('diffuseCanvas');
+  const noiseSlider = document.getElementById('noiseSlider');
+  const noiseVal = document.getElementById('noiseVal');
+  const playBtn = document.getElementById('diffusePlay');
+  const resetBtn = document.getElementById('diffuseReset');
+
+  // Generate clean data points: two crescent shapes
+  const cleanPoints = [];
+  function generateClean() {
+    cleanPoints.length = 0;
+    // Crescent 1
+    for (let i = 0; i < 120; i++) {
+      const angle = Math.PI * (i / 120);
+      const r = 0.15 + gaussianRandom() * 0.008;
+      cleanPoints.push({
+        cx: 0.35 + r * Math.cos(angle),
+        cy: 0.5 - r * Math.sin(angle),
+        x: 0, y: 0
+      });
+    }
+    // Crescent 2
+    for (let i = 0; i < 120; i++) {
+      const angle = Math.PI + Math.PI * (i / 120);
+      const r = 0.15 + gaussianRandom() * 0.008;
+      cleanPoints.push({
+        cx: 0.55 + r * Math.cos(angle),
+        cy: 0.5 - r * Math.sin(angle),
+        x: 0, y: 0
+      });
+    }
+    // Small central cluster
+    for (let i = 0; i < 40; i++) {
+      cleanPoints.push({
+        cx: 0.45 + gaussianRandom() * 0.03,
+        cy: 0.45 + gaussianRandom() * 0.03,
+        x: 0, y: 0
+      });
+    }
+    // Pre-generate noise offsets
+    cleanPoints.forEach(p => {
+      p.nx = gaussianRandom();
+      p.ny = gaussianRandom();
+    });
+  }
+  generateClean();
+
+  function draw() {
+    const { w, h, dpr } = resizeCanvas(canvas);
+    if (canvas.width < 1 || canvas.height < 1) return;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FAF7F2';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const sigma = parseFloat(noiseSlider.value) / 100 * 0.35;
+    noiseVal.textContent = sigma.toFixed(2);
+
+    cleanPoints.forEach(p => {
+      p.x = p.cx + p.nx * sigma;
+      p.y = p.cy + p.ny * sigma;
+      const px = p.x * canvas.width;
+      const py = p.y * canvas.height;
+      const cleanFrac = 1 - sigma / 0.35;
+      const r = lerp(2, 3.5, cleanFrac) * dpr;
+
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, Math.PI * 2);
+      // Color: orange when clean, grey when noisy
+      const red = Math.round(lerp(160, 194, cleanFrac));
+      const green = Math.round(lerp(150, 91, cleanFrac));
+      const blue = Math.round(lerp(140, 40, cleanFrac));
+      const alpha = lerp(0.4, 0.85, cleanFrac);
+      ctx.fillStyle = `rgba(${red},${green},${blue},${alpha})`;
+      ctx.fill();
+    });
+
+    // Noise level label
+    ctx.fillStyle = '#6B5D4F';
+    ctx.font = `${13 * dpr}px "DM Sans", sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText(`σ = ${sigma.toFixed(3)}`, 14 * dpr, 24 * dpr);
+    const pct = Math.round(parseFloat(noiseSlider.value));
+    ctx.textAlign = 'right';
+    ctx.fillText(pct === 0 ? 'Clean data' : pct === 100 ? 'Pure noise' : `${pct}% noise`, canvas.width - 14 * dpr, 24 * dpr);
+  }
+
+  let playInterval = null;
+  let playing = false;
+  playBtn.addEventListener('click', () => {
+    if (playing) {
+      clearInterval(playInterval);
+      playBtn.textContent = '▶ Play';
+      playing = false;
+      return;
+    }
+    playing = true;
+    playBtn.textContent = '⏸ Pause';
+    noiseSlider.value = 0;
+    playInterval = setInterval(() => {
+      let v = parseInt(noiseSlider.value);
+      if (v >= 100) {
+        clearInterval(playInterval);
+        playBtn.textContent = '▶ Play';
+        playing = false;
+        return;
+      }
+      noiseSlider.value = v + 1;
+      draw();
+    }, 50);
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (playing) { clearInterval(playInterval); playing = false; playBtn.textContent = '▶ Play'; }
+    noiseSlider.value = 0;
+    generateClean();
+    draw();
+  });
+
+  noiseSlider.addEventListener('input', draw);
+  draw();
+  window.addEventListener('resize', draw);
+})();
+
+/* ═══════════════════════════════════════════════════════
+   SECTION 2B: DENOISING SIMULATION
+   ═══════════════════════════════════════════════════════ */
+(function () {
+  const canvas = document.getElementById('denoiseCanvas');
+  const startBtn = document.getElementById('denoiseStart');
+  const scatterBtn = document.getElementById('denoiseScatter');
+  const speedSlider = document.getElementById('denoiseSpeed');
+
+  // Target clusters
+  const targets = [
+    { x: 0.3, y: 0.35, s: 0.06 },
+    { x: 0.7, y: 0.6, s: 0.07 },
+    { x: 0.5, y: 0.7, s: 0.05 }
+  ];
+
+  let points = [];
+  let animRunning = false;
+  let animId = null;
+
+  function generateClean() {
+    points = [];
+    targets.forEach(t => {
+      for (let i = 0; i < 40; i++) {
+        points.push({
+          x: t.x + gaussianRandom() * t.s,
+          y: t.y + gaussianRandom() * t.s,
+          tx: t.x + gaussianRandom() * t.s * 0.3,
+          ty: t.y + gaussianRandom() * t.s * 0.3
+        });
+      }
+    });
+  }
+
+  function scatter() {
+    points.forEach(p => {
+      p.x = p.tx + gaussianRandom() * 0.2;
+      p.y = p.ty + gaussianRandom() * 0.2;
+    });
+    draw();
+  }
+
+  function scoreFn(px, py) {
+    let sx = 0, sy = 0;
+    targets.forEach(t => {
+      const dx = px - t.x, dy = py - t.y;
+      const s2 = t.s * t.s * 4;
+      const w = Math.exp(-(dx * dx + dy * dy) / (2 * s2));
+      sx += -dx / s2 * w;
+      sy += -dy / s2 * w;
+    });
+    return { x: sx, y: sy };
+  }
+
+  function draw() {
+    const { w, h, dpr } = resizeCanvas(canvas);
+    if (canvas.width < 1 || canvas.height < 1) return;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FAF7F2';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw target regions
+    targets.forEach(t => {
+      const grad = ctx.createRadialGradient(
+        t.x * canvas.width, t.y * canvas.height, 0,
+        t.x * canvas.width, t.y * canvas.height, t.s * 3 * canvas.width
+      );
+      grad.addColorStop(0, 'rgba(74,139,92,0.12)');
+      grad.addColorStop(1, 'rgba(74,139,92,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    });
+
+    // Draw points with score arrows
+    points.forEach(p => {
+      const px = p.x * canvas.width;
+      const py = p.y * canvas.height;
+      const sc = scoreFn(p.x, p.y);
+      const mag = Math.sqrt(sc.x * sc.x + sc.y * sc.y);
+
+      // Arrow
+      if (mag > 0.01) {
+        const dirX = sc.x / mag;
+        const dirY = sc.y / mag;
+        const len = Math.min(mag * canvas.width * 0.15, 30 * dpr);
+        ctx.strokeStyle = 'rgba(58, 110, 165, 0.5)';
+        ctx.lineWidth = 1.2 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + dirX * len, py + dirY * len);
+        ctx.stroke();
+      }
+
+      // Dot
+      ctx.beginPath();
+      ctx.arc(px, py, 3.5 * dpr, 0, Math.PI * 2);
+      ctx.fillStyle = '#3A6EA5';
+      ctx.fill();
+    });
+  }
+
+  function runDenoise() {
+    if (animRunning) return;
+    animRunning = true;
+    startBtn.textContent = '⟳ Running...';
+
+    let step = 0;
+    const maxSteps = 60;
+    const speed = parseInt(speedSlider.value);
+
+    function tick() {
+      if (step >= maxSteps) {
+        animRunning = false;
+        startBtn.textContent = '⟳ Denoise';
+        return;
+      }
+      const eta = 0.003 * speed;
+      points.forEach(p => {
+        const sc = scoreFn(p.x, p.y);
+        p.x += sc.x * eta + gaussianRandom() * 0.002;
+        p.y += sc.y * eta + gaussianRandom() * 0.002;
+      });
+      step++;
+      draw();
+      animId = requestAnimationFrame(tick);
+    }
+    tick();
+  }
+
+  generateClean();
+  scatter();
+
+  startBtn.addEventListener('click', runDenoise);
+  scatterBtn.addEventListener('click', () => {
+    if (animRunning) { cancelAnimationFrame(animId); animRunning = false; startBtn.textContent = '⟳ Denoise'; }
+    scatter();
+  });
+
+  window.addEventListener('resize', draw);
+})();
+
+/* ═══════════════════════════════════════════════════════
+   SECTION 3A: COMPASS / PARTICLE DIFFUSION
+   ═══════════════════════════════════════════════════════ */
+(function () {
+  const canvas = document.getElementById('compassCanvas');
+  const progressBar = document.getElementById('compassProgress');
+  const progressLabel = document.getElementById('compassLabel');
+  const runBtn = document.getElementById('compassRun');
+  const resetBtn = document.getElementById('compassReset');
+  const particleSlider = document.getElementById('compassParticles');
+  const stepsSlider = document.getElementById('compassSteps');
+
+  // Target distribution: shape like a star
+  const dataClusters = [
+    { x: 0.5, y: 0.22, s: 0.035 },
+    { x: 0.28, y: 0.45, s: 0.035 },
+    { x: 0.72, y: 0.45, s: 0.035 },
+    { x: 0.36, y: 0.74, s: 0.035 },
+    { x: 0.64, y: 0.74, s: 0.035 },
+    { x: 0.5, y: 0.48, s: 0.055 }
+  ];
+
+  let particles = [];
+  let trails = [];
+  let running = false;
+  let animId = null;
+  let needsRedraw = true;
+
+  function scoreFn(px, py, sigma) {
+    let sx = 0, sy = 0;
+    const effS = sigma * sigma + 0.03 * 0.03;
+    dataClusters.forEach(c => {
+      const dx = px - c.x, dy = py - c.y;
+      const s2 = effS + c.s * c.s;
+      const weight = Math.exp(-(dx * dx + dy * dy) / (2 * s2));
+      sx += -dx / s2 * weight;
+      sy += -dy / s2 * weight;
+    });
+    return { x: sx, y: sy };
+  }
+
+  function initParticles() {
+    const n = parseInt(particleSlider.value);
+    particles = [];
+    trails = [];
+    for (let i = 0; i < n; i++) {
+      const p = {
+        x: 0.1 + Math.random() * 0.8,
+        y: 0.1 + Math.random() * 0.8,
+        hue: Math.random() * 40 + 10
+      };
+      particles.push(p);
+      trails.push([{ x: p.x, y: p.y }]);
+    }
+  }
+
+  function draw() {
+    const { w, h, dpr } = resizeCanvas(canvas);
+    if (canvas.width < 2 || canvas.height < 2) return;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FAF7F2';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw target regions with stronger glow
+    dataClusters.forEach(c => {
+      const grad = ctx.createRadialGradient(
+        c.x * canvas.width, c.y * canvas.height, 0,
+        c.x * canvas.width, c.y * canvas.height, c.s * 6 * canvas.width
+      );
+      grad.addColorStop(0, 'rgba(194,91,40,0.18)');
+      grad.addColorStop(0.5, 'rgba(194,91,40,0.06)');
+      grad.addColorStop(1, 'rgba(194,91,40,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    });
+
+    // Draw cluster centers as filled circles with ring
+    dataClusters.forEach(c => {
+      const cx = c.x * canvas.width, cy = c.y * canvas.height;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 6 * dpr, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(194,91,40,0.25)';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3 * dpr, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(194,91,40,0.5)';
+      ctx.fill();
+    });
+
+    // Draw trails with gradient opacity (faint at start, stronger at end)
+    trails.forEach((trail, i) => {
+      if (trail.length < 2 || !particles[i]) return;
+      for (let j = 1; j < trail.length; j++) {
+        const alpha = 0.05 + (j / trail.length) * 0.35;
+        ctx.beginPath();
+        ctx.moveTo(trail[j - 1].x * canvas.width, trail[j - 1].y * canvas.height);
+        ctx.lineTo(trail[j].x * canvas.width, trail[j].y * canvas.height);
+        ctx.strokeStyle = `hsla(${particles[i].hue}, 65%, 50%, ${alpha})`;
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.stroke();
+      }
+    });
+
+    // Draw particles
+    particles.forEach(p => {
+      const px = p.x * canvas.width, py = p.y * canvas.height;
+      // Outer glow
+      ctx.beginPath();
+      ctx.arc(px, py, 7 * dpr, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${p.hue}, 70%, 50%, 0.15)`;
+      ctx.fill();
+      // Main dot
+      ctx.beginPath();
+      ctx.arc(px, py, 4 * dpr, 0, Math.PI * 2);
+      ctx.fillStyle = `hsl(${p.hue}, 75%, 48%)`;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5 * dpr;
+      ctx.stroke();
+    });
+
+    needsRedraw = false;
+  }
+
+  function runDiffusion() {
+    if (running) return;
+    running = true;
+    runBtn.textContent = '⏸ Running...';
+    initParticles();
+    draw(); // draw initial scattered state
+
+    const totalSteps = parseInt(stepsSlider.value);
+    let step = 0;
+
+    // Small delay so the user sees the initial noise state
+    setTimeout(function startTick() {
+      function tick() {
+        if (step >= totalSteps) {
+          running = false;
+          runBtn.textContent = '▶ Run Diffusion';
+          progressBar.style.width = '100%';
+          progressLabel.textContent = 't = 0 (clean data) — converged!';
+          draw();
+          return;
+        }
+
+        const progress = step / totalSteps;
+        const t = 1 - progress; // goes from 1 (noisy) to 0 (clean)
+        const sigma = t * 0.35;
+        // Adaptive step size: larger steps early, smaller steps late
+        const eta = 0.015 + 0.01 * t;
+
+        particles.forEach((p, i) => {
+          const sc = scoreFn(p.x, p.y, sigma);
+          // Independent noise for x and y, decreasing with sigma
+          const noiseMag = sigma > 0.02 ? sigma * 0.08 : 0;
+          const noiseX = gaussianRandom() * noiseMag;
+          const noiseY = gaussianRandom() * noiseMag;
+          p.x += sc.x * eta + noiseX;
+          p.y += sc.y * eta + noiseY;
+          p.x = clamp(p.x, 0.02, 0.98);
+          p.y = clamp(p.y, 0.02, 0.98);
+          // Record trail every 2 steps
+          if (step % 2 === 0) {
+            trails[i].push({ x: p.x, y: p.y });
+          }
+        });
+
+        step++;
+        const pct = (step / totalSteps) * 100;
+        progressBar.style.width = pct + '%';
+        const tVal = Math.round(t * totalSteps);
+        progressLabel.textContent = 't = ' + tVal + '  \u00b7  \u03c3 = ' + sigma.toFixed(3) + '  \u00b7  step ' + step + '/' + totalSteps;
+
+        draw();
+        animId = requestAnimationFrame(tick);
+      }
+      tick();
+    }, 300);
+  }
+
+  resetBtn.addEventListener('click', () => {
+    if (running) { cancelAnimationFrame(animId); running = false; runBtn.textContent = '▶ Run Diffusion'; }
+    initParticles();
+    progressBar.style.width = '0%';
+    progressLabel.textContent = 't = T (pure noise)';
+    draw();
+  });
+
+  runBtn.addEventListener('click', runDiffusion);
+
+  // Lazy init: redraw when canvas scrolls into view
+  const observer = new IntersectionObserver(function (entries) {
+    if (entries[0].isIntersecting && needsRedraw) {
+      draw();
+    }
+  }, { threshold: 0.1 });
+  observer.observe(canvas);
+
+  initParticles();
+  draw();
+  window.addEventListener('resize', () => { needsRedraw = true; draw(); });
+})();
+
+/* ═══════════════════════════════════════════════════════
+   SECTION 3B: PIXEL GRID DENOISING
+   ═══════════════════════════════════════════════════════ */
+(function () {
+  const canvas = document.getElementById('pixelCanvas');
+  const runBtn = document.getElementById('pixelRun');
+  const resetBtn = document.getElementById('pixelReset');
+  const speedSlider = document.getElementById('pixelSpeed');
+  const progressBar = document.getElementById('pixelProgress');
+  const progressLabel = document.getElementById('pixelLabel');
+
+  const GRID = 28;
+  let targetGrid = [];
+  let currentGrid = [];
+  let running = false;
+  let animId = null;
+  let needsRedraw = true;
+
+  // Generate target: a smiley face pattern
+  function generateTarget() {
+    targetGrid = [];
+    for (let y = 0; y < GRID; y++) {
+      targetGrid[y] = [];
+      for (let x = 0; x < GRID; x++) {
+        const cx = x - GRID / 2 + 0.5;
+        const cy = y - GRID / 2 + 0.5;
+        const dist = Math.sqrt(cx * cx + cy * cy);
+
+        let val = 0.92; // light bg
+
+        // Face circle
+        if (dist < 11) val = 0.98;
+        if (dist >= 10 && dist < 11.5) val = 0.25;
+
+        // Eyes
+        const leDist = Math.sqrt((cx + 3.5) * (cx + 3.5) + (cy + 2.5) * (cy + 2.5));
+        const reDist = Math.sqrt((cx - 3.5) * (cx - 3.5) + (cy + 2.5) * (cy + 2.5));
+        if (leDist < 1.8 || reDist < 1.8) val = 0.2;
+
+        // Smile
+        if (cy > 1 && cy < 5 && dist > 5 && dist < 7.5 && cx > -6 && cx < 6) val = 0.2;
+
+        targetGrid[y][x] = val;
+      }
+    }
+  }
+
+  function initNoise() {
+    currentGrid = [];
+    for (let y = 0; y < GRID; y++) {
+      currentGrid[y] = [];
+      for (let x = 0; x < GRID; x++) {
+        currentGrid[y][x] = Math.random();
+      }
+    }
+  }
+
+  function draw() {
+    const { w, h, dpr } = resizeCanvas(canvas);
+    if (canvas.width < 1 || canvas.height < 1) return;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FAF7F2';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const margin = 20 * dpr;
+    const gapBetween = 40 * dpr;
+    const availW = (canvas.width - margin * 2 - gapBetween) / 2;
+    const availH = canvas.height - margin * 2;
+    const cellSize = Math.floor(Math.min(availW / GRID, availH / GRID));
+    const gridW = cellSize * GRID;
+    const gridH = cellSize * GRID;
+
+    // Center vertically
+    const topY = Math.floor((canvas.height - gridH) / 2);
+
+    // Left: current state
+    const leftX = Math.floor((canvas.width / 2 - gapBetween / 2 - gridW));
+    for (let y = 0; y < GRID; y++) {
+      for (let x = 0; x < GRID; x++) {
+        const v = clamp(currentGrid[y][x], 0, 1);
+        const c = Math.round(v * 255);
+        ctx.fillStyle = `rgb(${c},${c},${c})`;
+        ctx.fillRect(leftX + x * cellSize, topY + y * cellSize, cellSize - 1, cellSize - 1);
+      }
+    }
+
+    // Right: target
+    const rightX = Math.floor(canvas.width / 2 + gapBetween / 2);
+    for (let y = 0; y < GRID; y++) {
+      for (let x = 0; x < GRID; x++) {
+        const v = clamp(targetGrid[y][x], 0, 1);
+        const c = Math.round(v * 255);
+        ctx.fillStyle = `rgb(${c},${c},${c})`;
+        ctx.fillRect(rightX + x * cellSize, topY + y * cellSize, cellSize - 1, cellSize - 1);
+      }
+    }
+
+    // Labels
+    ctx.fillStyle = '#6B5D4F';
+    ctx.font = `${12 * dpr}px "DM Sans", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Current State', leftX + gridW / 2, topY - 10 * dpr);
+    ctx.fillText('Target', rightX + gridW / 2, topY - 10 * dpr);
+
+    // Arrow between
+    const arrowY = canvas.height / 2;
+    const arrowX = canvas.width / 2;
+    ctx.strokeStyle = '#C25B28';
+    ctx.lineWidth = 2 * dpr;
+    ctx.beginPath();
+    ctx.moveTo(arrowX - 15 * dpr, arrowY);
+    ctx.lineTo(arrowX + 15 * dpr, arrowY);
+    ctx.lineTo(arrowX + 8 * dpr, arrowY - 6 * dpr);
+    ctx.moveTo(arrowX + 15 * dpr, arrowY);
+    ctx.lineTo(arrowX + 8 * dpr, arrowY + 6 * dpr);
+    ctx.stroke();
+    needsRedraw = false;
+  }
+
+  function runPixelDenoise() {
+    if (running) return;
+    running = true;
+    runBtn.textContent = '⏸ Running...';
+    initNoise();
+
+    const totalSteps = 120;
+    let step = 0;
+    const speed = parseInt(speedSlider.value);
+
+    function tick() {
+      if (step >= totalSteps) {
+        running = false;
+        runBtn.textContent = '▶ Denoise Image';
+        progressBar.style.width = '100%';
+        progressLabel.textContent = 'Complete!';
+        draw();
+        return;
+      }
+
+      const t = 1 - step / totalSteps;
+      const alpha = 0.02 * speed; // step size
+      const noiseLevel = t * 0.15;
+
+      for (let y = 0; y < GRID; y++) {
+        for (let x = 0; x < GRID; x++) {
+          // Score: direction toward target
+          const diff = targetGrid[y][x] - currentGrid[y][x];
+          currentGrid[y][x] += diff * alpha + gaussianRandom() * noiseLevel * alpha;
+        }
+      }
+
+      step++;
+      const pct = (step / totalSteps) * 100;
+      progressBar.style.width = pct + '%';
+      progressLabel.textContent = 'Step ' + step + '/' + totalSteps + '  \u00b7  noise \u03c3 = ' + (t * 0.5).toFixed(2);
+      draw();
+      animId = requestAnimationFrame(tick);
+    }
+    tick();
+  }
+
+  resetBtn.addEventListener('click', () => {
+    if (running) { cancelAnimationFrame(animId); running = false; runBtn.textContent = '▶ Denoise Image'; }
+    initNoise();
+    progressBar.style.width = '0%';
+    progressLabel.textContent = 'Ready';
+    draw();
+  });
+
+  runBtn.addEventListener('click', runPixelDenoise);
+
+  // Lazy init: redraw when canvas scrolls into view
+  const pixelObserver = new IntersectionObserver(function (entries) {
+    if (entries[0].isIntersecting && needsRedraw) {
+      draw();
+    }
+  }, { threshold: 0.1 });
+  pixelObserver.observe(canvas);
+
+  generateTarget();
+  initNoise();
+  draw();
+  window.addEventListener('resize', () => { needsRedraw = true; draw(); });
+})();
+</script>
+
+
+
+</body></html>

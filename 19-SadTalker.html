@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SadTalker — Audio-Driven 3D Talking-Head Synthesis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--accent)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--accent);background:var(--accent-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--accent-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:580px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--accent);opacity:.22}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--accent);background:var(--bg)}
+.step-dot--teal{border-color:var(--teal)}.step-dot--purple{border-color:var(--purple)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--accent);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--teal{border-left-color:var(--teal)}.eq-box--purple{border-left-color:var(--purple)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--accent{background:var(--accent);color:#fff}.btn--accent:hover{filter:brightness(1.1)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">SadTalker Guide</div>
+  <div class="links">
+    <a href="#ch1">01 3DMM</a>
+    <a href="#ch2">02 Audio→Motion</a>
+    <a href="#ch3">03 Pipeline</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>SadTalker — <em>Audio-Driven</em><br>3D Talking Head</h1>
+  <p class="subtitle">SadTalker generates realistic talking-head animations from a single portrait photo and an audio clip. It regresses 3D Morphable Model (3DMM) coefficients from audio, then maps them to head-pose and expression motion fields for image animation.</p>
+  <div class="pill-row">
+    <span class="pill pill--accent">3DMM coefficients</span>
+    <span class="pill pill--teal">Audio→Coeff regression</span>
+    <span class="pill pill--purple">Face-vid2vid render</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">3D Morphable Model Coefficients</h2></div>
+  <p class="ch-sub">SadTalker represents a face state as a 257-dim 3DMM coefficient vector based on the BFM (Basel Face Model). This separates identity, expression, texture, lighting, and pose into disentangled subspaces that can be predicted from audio independently.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">3DMM Coefficient Space</div>
+    <div class="sim-desc">Click each subspace block to learn what it controls. Drag the expression slider to see expression coefficients in action on a simplified wire face.</div>
+    <div class="sim-canvas-wrap"><canvas id="tdmmCanvas" style="height:300px"></canvas></div>
+    <div id="tdmmInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.6;margin-bottom:.5rem">Click a coefficient group to see its meaning.</div>
+    <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+      <label style="font-size:.82rem;font-weight:600;color:var(--text-2)">Expression exp₀: <span id="expCoeffVal">0.0</span></label>
+      <input type="range" id="expCoeffSlider" min="-3" max="3" step="0.1" value="0" oninput="updateTdmm()" style="flex:1;min-width:80px;accent-color:var(--accent)">
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>BFM Coefficient Breakdown</h3>
+    <div class="eq-box">
+      <span class="eq-label">3DMM decomposition (BFM)</span>
+      <span class="mono">S = S̄ + A_id·α + A_exp·β_exp</span><br>
+      <span class="mono">  S̄ ∈ ℝ^(N×3) — mean face shape</span><br>
+      <span class="mono">  α ∈ ℝ⁸⁰    — identity shape PCA (80 dims)</span><br>
+      <span class="mono">  β_exp ∈ ℝ⁶⁴ — expression coefficients (64 dims)</span><br><br>
+      <span class="mono">Full coeff vector c = [α(80), β_exp(64),</span><br>
+      <span class="mono">                       β_tex(80), γ(27), p(6)]</span><br>
+      <span class="mono">Total = 257 dimensions</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Audio → 3DMM Motion</h2></div>
+  <p class="ch-sub">SadTalker uses two separate networks to go from audio to motion: PoseVAE regresses head pose variations (yaw/pitch/roll + translation, 6D motion) and ExpNet regresses expression coefficients. Audio features are Mel spectrograms processed by a 1D-CNN encoder.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Audio Feature → Coefficient Flow</div>
+    <div class="sim-desc">Click through the processing pipeline from raw audio waveform to 3DMM expression and pose coefficients.</div>
+    <div class="sim-canvas-wrap"><canvas id="audioCanvas" style="height:240px"></canvas></div>
+    <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+      <button class="btn btn--accent" onclick="audioNext()">Next ›</button>
+      <button class="btn btn--ghost" onclick="audioReset()">Reset</button>
+      <span id="audioStepLabel" style="font-size:.85rem;font-weight:600;color:var(--accent);padding:.55rem 0">Step 1 of 5</span>
+    </div>
+    <div id="audioInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>PoseVAE — Head Motion Prediction</h3>
+    <p>SadTalker uses a variational autoencoder conditioned on audio to generate <em>head pose sequences</em>. The pose is represented as 6D: yaw, pitch, roll (head rotation) + tx, ty, tz (3D translation of the head in the 3DMM camera space). The VAE sampling adds natural variation — preventing all heads from moving identically to the same audio.</p>
+    <div class="eq-box eq-box--teal">
+      <span class="eq-label">PoseVAE sampling</span>
+      <span class="mono">z ~ q(z|c_id)  — sample from identity-conditioned prior</span><br>
+      <span class="mono">p_t = PoseVAE_decoder(z, audio_feat_t)</span><br>
+      <span class="mono">p_t = [yaw, pitch, roll, tx, ty, tz]_t  ∈ ℝ⁶</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>ExpNet — Expression Coefficient Prediction</h3>
+    <p>ExpNet regresses the 64-dim expression coefficients β_exp from the audio feature sequence using a transformer encoder. Only expression-related 3DMM coefficients are predicted (not identity or texture); the identity coefficients are frozen from the input portrait image.</p>
+    <div class="eq-box eq-box--purple">
+      <span class="eq-label">ExpNet</span>
+      <span class="mono">β_exp_t = ExpNet(DeepSpeech2_feat_t, c_id)  ∈ ℝ⁶⁴</span><br>
+      <span class="mono">audio_feat = DeepSpeech2(mel_t:t+W)  ∈ ℝ²⁹</span><br>
+      <span class="mono">Window W = 16 audio frames = ~200 ms</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Full Pipeline Overview</h2></div>
+  <p class="ch-sub">SadTalker's full pipeline: (1) extract identity coefficients from the portrait image, (2) audio→motion (PoseVAE + ExpNet), (3) render expression-motion fields, (4) image animation via face-vid2vid (FaceVid2Vid).</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">SadTalker End-to-End Pipeline</div>
+    <div class="sim-desc">Click through each of the four pipeline stages.</div>
+    <div class="sim-canvas-wrap"><canvas id="pipeCanvas" style="height:200px"></canvas></div>
+    <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+      <button class="btn btn--accent" onclick="pipeNext()">Next Stage ›</button>
+      <button class="btn btn--ghost" onclick="pipeReset()">Reset</button>
+      <span id="pipeStepLabel" style="font-size:.85rem;font-weight:600;color:var(--accent);padding:.55rem 0">Stage 1 of 4</span>
+    </div>
+    <div id="pipeInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="callout callout--accent fade-up">
+    <div class="callout-title">Course usage context — comparison with DAWN and EchoMimic</div>
+    SadTalker (App 19), DAWN (App 20) and EchoMimic (App 21) all take audio + portrait → video but differ architecturally. SadTalker uses an explicit 3DMM intermediate; DAWN uses single-image diffusion with noise-injected temporal motion; EchoMimic conditions a video diffusion model on audio embeddings and reference face frames directly, without a 3DMM stage.
+  </div>
+</div>
+</section>
+
+<footer class="footer">SadTalker Interactive Guide · Zhang et al., CVPR 2023</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ─── 3DMM canvas ─── */
+var tdmmCanvas=document.getElementById('tdmmCanvas');
+var GROUPS=[
+  {label:'Identity α',sub:'ℝ⁸⁰',col:'#1A7B6B',info:'Identity shape PCA (80 dims). Encodes the geometry of the specific person: nose shape, cheekbone width, jaw shape, etc. Extracted ONCE from the portrait image and frozen. Not affected by audio.'},
+  {label:'Expression β_exp',sub:'ℝ⁶⁴',col:'#BF4A24',info:'Expression coefficients (64 dims). Predicted FRAME-BY-FRAME by ExpNet from audio. Controls jaw open, lip curl, cheek puff, eye squeeze, brow raise — all face deformations tied to speech.'},
+  {label:'Texture β_tex',sub:'ℝ⁸⁰',col:'#6B52A8',info:'Texture PCA (80 dims). Encodes albedo/skin colour for BFM renderer. Extracted from portrait and frozen. Not modified by audio.'},
+  {label:'Illumin γ',sub:'ℝ²⁷',col:'#8A95A2',info:'Spherical harmonic lighting (27 dims = 9 SH coefficients × 3 RGB channels). Extracted from portrait. Optionally updated per frame for consistent lighting.'},
+  {label:'Pose p',sub:'ℝ⁶',col:'#BF4A24',info:'Head pose (6 dims): yaw, pitch, roll (head rotation) + tx, ty, tz (3D head translation). Predicted FRAME-BY-FRAME by PoseVAE conditioned on audio and identity.'}
+];
+var activeGroup=-1;
+function resizeTdmm(){var dpr=window.devicePixelRatio||1;var W=tdmmCanvas.parentElement.getBoundingClientRect().width;tdmmCanvas.width=Math.round(W*dpr);tdmmCanvas.height=Math.round(300*dpr);tdmmCanvas.style.width=W+'px';tdmmCanvas.style.height='300px';drawTdmm();}
+window.updateTdmm=function(){
+  document.getElementById('expCoeffVal').textContent=parseFloat(document.getElementById('expCoeffSlider').value).toFixed(1);
+  drawTdmm();
+};
+function drawTdmm(){
+  var psi=parseFloat(document.getElementById('expCoeffSlider').value);
+  var dpr=window.devicePixelRatio||1;var W=tdmmCanvas.width/dpr,H=tdmmCanvas.height/dpr;
+  var ctx=tdmmCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var N=GROUPS.length;var bw=Math.min(98,(W-30)/N-4);var bh=60;var gap=Math.max(4,(W-30-bw*N)/(N-1));
+  var startX=(W-(bw*N+gap*(N-1)))/2;var by=20;
+  GROUPS.forEach(function(g,i){
+    var x=startX+i*(bw+gap);var act=i===activeGroup;
+    ctx.fillStyle=act?g.col+'33':'rgba(230,221,208,.35)';ctx.strokeStyle=act?g.col:'#E6DDD0';ctx.lineWidth=act?2.5:1.2;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,8);ctx.fill();ctx.stroke();
+    ctx.fillStyle=act?g.col:'#5A6878';ctx.font=(act?'700 ':'600 ')+'10px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText(g.label,x+bw/2,by+24);
+    ctx.fillStyle=act?g.col:'#8A95A2';ctx.font='500 9px Fira Code,monospace';ctx.fillText(g.sub,x+bw/2,by+40);
+    // Motion badge on expression and pose
+    if(i===1||i===4){ctx.fillStyle='rgba(191,74,36,.85)';ctx.font='600 8px DM Sans,sans-serif';ctx.textAlign='center';
+      var bx=x+bw-2;var bby=by-2;ctx.beginPath();ctx.roundRect(bx-22,bby,24,12,4);ctx.fill();
+      ctx.fillStyle='#fff';ctx.fillText('motion',bx-10,bby+9);}
+  });
+  // Face preview area
+  var fy=by+bh+28;var cx2=W/2;var fr=Math.min(W*0.2,70);
+  ctx.strokeStyle='rgba(191,74,36,.4)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.ellipse(cx2,fy+fr,fr*0.72,fr,0,0,Math.PI*2);ctx.stroke();
+  var jawOpen=Math.max(0,psi)*fr*0.055+fr*0.025;
+  var mouthY=fy+fr+fr*0.42;var mW=fr*0.32;
+  ctx.strokeStyle='rgba(191,74,36,.65)';ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.moveTo(cx2-mW,mouthY);ctx.bezierCurveTo(cx2-mW*.5,mouthY+jawOpen*0.3,cx2+mW*.5,mouthY+jawOpen*0.3,cx2+mW,mouthY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx2-mW,mouthY);ctx.bezierCurveTo(cx2-mW*.5,mouthY+jawOpen,cx2+mW*.5,mouthY+jawOpen,cx2+mW,mouthY);ctx.stroke();
+  var eyeY=fy+fr*0.6;
+  ctx.strokeStyle='rgba(26,123,107,.5)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.ellipse(cx2-fr*0.28,eyeY,fr*0.12,fr*0.065,0,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(cx2+fr*0.28,eyeY,fr*0.12,fr*0.065,0,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#8A95A2';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('exp₀='+(psi>0?'+':'')+psi.toFixed(1),cx2,fy+fr*2+16);
+}
+tdmmCanvas.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var W=tdmmCanvas.width/dpr;var N=GROUPS.length;
+  var bw=Math.min(98,(W-30)/N-4);var bh=60;var gap=Math.max(4,(W-30-bw*N)/(N-1));
+  var startX=(W-(bw*N+gap*(N-1)))/2;var by=20;
+  var rect=tdmmCanvas.getBoundingClientRect();var mx=(e.clientX-rect.left)*(W/rect.width);var my=(e.clientY-rect.top)*(W/rect.width);
+  for(var i=0;i<N;i++){var x=startX+i*(bw+gap);if(mx>=x&&mx<=x+bw&&my>=by&&my<=by+bh){activeGroup=i;drawTdmm();document.getElementById('tdmmInfo').textContent=GROUPS[i].info;return;}}
+});
+
+/* ─── Audio pipeline canvas ─── */
+var audioCanvas=document.getElementById('audioCanvas');
+var audioStep=0;
+var AUDIO_STEPS=[
+  {label:'Step 1 — Raw waveform',info:'Input: raw 16kHz audio waveform containing speech. The waveform is first windowed into overlapping 25ms frames with 10ms hop size to maintain temporal coherence across frames.'},
+  {label:'Step 2 — Mel spectrogram (80 bins)',info:'The audio is transformed to an 80-bin mel-scaled spectrogram. Mel scale mimics the non-linear human hearing frequency response, placing more resolution in speech-critical 300-3400 Hz range. Shape: T_audio × 80 for T audio frames.'},
+  {label:'Step 3 — DeepSpeech2 audio features',info:'The mel spectrogram is processed by DeepSpeech2 (pre-trained ASR model) to extract 29-dim speech features per frame. These features encode phoneme probabilities and are more semantically meaningful than raw mel bins for driving lip shapes.'},
+  {label:'Step 4 — Window (16 frames = ~200ms)',info:'Audio features are windowed into overlapping 16-frame windows (~200 ms). This provides temporal context so the network can anticipate upcoming consonants/vowels and produce smoother transitions rather than reacting only to the current frame.'},
+  {label:'Step 5 — Parallel prediction: β_exp + pose',info:'Two networks run in parallel: ExpNet takes the windowed audio feature and fixed identity c_id → β_exp_t ∈ ℝ⁶⁴. PoseVAE takes audio + sampled latent z → pose_t ∈ ℝ⁶. Both produce one output vector per video frame at 25 fps.'}
+];
+window.audioNext=function(){if(audioStep<AUDIO_STEPS.length-1)audioStep++;drawAudio();};
+window.audioReset=function(){audioStep=0;drawAudio();};
+function drawAudio(){
+  document.getElementById('audioStepLabel').textContent='Step '+(audioStep+1)+' of '+AUDIO_STEPS.length;
+  document.getElementById('audioInfo').textContent=AUDIO_STEPS[audioStep].info;
+  var dpr=window.devicePixelRatio||1;var W=audioCanvas.width/dpr,H=audioCanvas.height/dpr;
+  var ctx=audioCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};}
+  var rng=mulberry32(42);
+  var cx=W/2;var pad=20;
+  if(audioStep===0){
+    // Waveform
+    ctx.strokeStyle='rgba(191,74,36,.7)';ctx.lineWidth=1.5;ctx.beginPath();
+    for(var i=0;i<=W;i++){var y=H/2+(rng()-.5)*H*0.55*Math.sin(i/W*Math.PI*1.2);i===0?ctx.moveTo(i,y):ctx.lineTo(i,y);}ctx.stroke();
+    ctx.fillStyle='#8A95A2';ctx.font='500 9px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('raw 16kHz waveform',cx,H-6);
+  } else if(audioStep===1){
+    // Mel spectrogram heatmap
+    var binsN=80;var cols=Math.floor((W-pad*2)/2);var binH=(H-40)/binsN;
+    for(var c=0;c<cols;c++){for(var b=0;b<binsN;b++){var v=Math.pow(rng(),2)*(b<40?0.7:0.3)+rng()*0.15;ctx.fillStyle='rgba(191,74,36,'+Math.min(1,v)+')';ctx.fillRect(pad+c*2,18+b*binH,2,binH);}}
+    ctx.fillStyle='#8A95A2';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('mel spectrogram 80 bins × T_audio',cx,H-6);
+  } else if(audioStep===2){
+    // DeepSpeech2 feature bars
+    var D=29;var fw=Math.max(2,(W-pad*2)/D-1);
+    for(var d=0;d<D;d++){var h=(rng()*0.7+0.1)*(H-50);ctx.fillStyle='rgba(26,123,107,.7)';ctx.fillRect(pad+d*(fw+1),H-28-h,fw,h);}
+    ctx.fillStyle='#8A95A2';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('DeepSpeech2 features: 29 dims per frame',cx,H-6);
+  } else if(audioStep===3){
+    // 16-frame window
+    var colN=16;var cw=(W-pad*2-15)/colN;
+    for(var ci=0;ci<colN;ci++){
+      var alpha=0.35+ci/colN*0.55;
+      ctx.fillStyle='rgba(107,82,168,'+alpha+')';ctx.beginPath();ctx.roundRect(pad+ci*(cw+1),28,cw,H-56,4);ctx.fill();
+    }
+    ctx.strokeStyle='rgba(107,82,168,.8)';ctx.lineWidth=2;ctx.strokeRect(pad,26,colN*(cw+1)-1,H-52);
+    ctx.fillStyle='#6B52A8';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('16-frame window (~200ms) of 29-dim audio features',cx,H-6);
+  } else {
+    // Two outputs side by side
+    var hw=W/2-30;
+    ctx.fillStyle='rgba(191,74,36,.15)';ctx.beginPath();ctx.roundRect(pad,28,hw,H-56,8);ctx.fill();
+    ctx.strokeStyle='rgba(191,74,36,.6)';ctx.lineWidth=1.5;ctx.strokeRect(pad,28,hw,H-56);
+    ctx.fillStyle='#BF4A24';ctx.font='700 10px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('β_exp_t ∈ ℝ⁶⁴',pad+hw/2,H/2-8);
+    ctx.fillStyle='#8A95A2';ctx.font='500 9px Fira Code,monospace';ctx.fillText('ExpNet',pad+hw/2,H/2+8);
+    ctx.fillStyle='rgba(26,123,107,.15)';ctx.beginPath();ctx.roundRect(W/2+10,28,hw,H-56,8);ctx.fill();
+    ctx.strokeStyle='rgba(26,123,107,.6)';ctx.lineWidth=1.5;ctx.strokeRect(W/2+10,28,hw,H-56);
+    ctx.fillStyle='#1A7B6B';ctx.font='700 10px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('pose_t ∈ ℝ⁶',W/2+10+hw/2,H/2-8);
+    ctx.fillStyle='#8A95A2';ctx.font='500 9px Fira Code,monospace';ctx.fillText('PoseVAE',W/2+10+hw/2,H/2+8);
+    ctx.fillStyle='#1C2A38';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('output per frame at 25 fps',cx,H-6);
+  }
+}
+function resizeAudio(){var dpr=window.devicePixelRatio||1;var W=audioCanvas.parentElement.getBoundingClientRect().width;audioCanvas.width=Math.round(W*dpr);audioCanvas.height=Math.round(240*dpr);audioCanvas.style.width=W+'px';audioCanvas.style.height='240px';drawAudio();}
+
+/* ─── Pipeline canvas ─── */
+var pipeCanvas=document.getElementById('pipeCanvas');
+var pipeStep=0;
+var PIPE_STAGES=[
+  {label:'Stage 1 — Image encoder',info:'The input portrait is passed through a 3DMM fitting network (based on Deep3DFaceReconstruction). This extracts the identity coefficients α ∈ ℝ⁸⁰ and texture β_tex ∈ ℝ⁸⁰. These are frozen for the rest of the pipeline — they will not be modified by audio.'},
+  {label:'Stage 2 — Audio → motion coefficients',info:'Audio → Mel spectrogram → DeepSpeech2 features → (ExpNet → β_exp sequence) + (PoseVAE → head pose sequence). Both operate at video rate (25 fps); the output is a sequence of [β_exp_t, p_t] vectors of length T_video.'},
+  {label:'Stage 3 — 3DMM render (expression motion field)',info:'The predicted 3DMM coefficients are used to render a 3D face mesh and project it to 2D. Rather than rendering a textured face, SadTalker extracts sparse 2D keypoint flow fields from consecutive 3DMM states — these will drive the image animator.'},
+  {label:'Stage 4 — FaceVid2Vid animation',info:'The input portrait and the rendered 3DMM motion flow fields are fed to FaceVid2Vid, a generative image animation model. FaceVid2Vid learns to warp and hallucinate pixel-level detail from the reference face using the keypoint motion, producing the final video frames.'}
+];
+window.pipeNext=function(){if(pipeStep<PIPE_STAGES.length-1)pipeStep++;drawPipe();};
+window.pipeReset=function(){pipeStep=0;drawPipe();};
+function drawPipe(){
+  document.getElementById('pipeStepLabel').textContent='Stage '+(pipeStep+1)+' of '+PIPE_STAGES.length;
+  document.getElementById('pipeInfo').textContent=PIPE_STAGES[pipeStep].info;
+  var dpr=window.devicePixelRatio||1;var W=pipeCanvas.width/dpr,H=pipeCanvas.height/dpr;
+  var ctx=pipeCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var labels=['Image\nEncoder','Audio→\nMotion','3DMM\nRender','FaceVid2Vid\nAnimate'];
+  var N=labels.length;var bw=Math.min(120,(W-30)/N-8);var bh=64;var gap=Math.max(8,(W-30-bw*N)/(N-1));
+  var sx=(W-(bw*N+gap*(N-1)))/2;var by=(H-bh)/2;
+  labels.forEach(function(lbl,i){
+    var x=sx+i*(bw+gap);var act=i===pipeStep;var done=i<pipeStep;
+    ctx.fillStyle=act?'rgba(191,74,36,.18)':done?'rgba(191,74,36,.08)':'rgba(230,221,208,.35)';
+    ctx.strokeStyle=act?'#BF4A24':done?'rgba(191,74,36,.5)':'#E6DDD0';ctx.lineWidth=act?2.5:1.2;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,8);ctx.fill();ctx.stroke();
+    ctx.fillStyle=act?'#BF4A24':done?'rgba(191,74,36,.6)':'#5A6878';ctx.font=(act?'700 ':'500 ')+'10px DM Sans,sans-serif';ctx.textAlign='center';
+    var parts=lbl.split('\n');parts.forEach(function(p,j){ctx.fillText(p,x+bw/2,by+(bh-12*(parts.length-1))/2+8+j*14);});
+    if(i<N-1){ctx.strokeStyle=done?'rgba(191,74,36,.5)':'rgba(230,221,208,.7)';ctx.lineWidth=1.5;
+      var ax=x+bw+1;ctx.beginPath();ctx.moveTo(ax+1,by+bh/2);ctx.lineTo(ax+gap-2,by+bh/2);ctx.stroke();}
+  });
+}
+function resizePipe(){var dpr=window.devicePixelRatio||1;var W=pipeCanvas.parentElement.getBoundingClientRect().width;pipeCanvas.width=Math.round(W*dpr);pipeCanvas.height=Math.round(200*dpr);pipeCanvas.style.width=W+'px';pipeCanvas.style.height='200px';drawPipe();}
+
+window.addEventListener('resize',function(){resizeTdmm();resizeAudio();resizePipe();});
+resizeTdmm();resizeAudio();resizePipe();
+drawAudio();drawPipe();
+})();
+</script>
+</body>
+</html>

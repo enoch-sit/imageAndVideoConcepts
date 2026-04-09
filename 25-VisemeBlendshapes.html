@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Viseme → Blendshapes (ARKit 52)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--accent)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--accent);background:var(--accent-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--accent-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:580px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--accent);opacity:.22}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--accent);background:var(--bg)}
+.step-dot--teal{border-color:var(--teal)}.step-dot--purple{border-color:var(--purple)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--accent);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--teal{border-left-color:var(--teal)}.eq-box--purple{border-left-color:var(--purple)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--accent{background:var(--accent);color:#fff}.btn--accent:hover{filter:brightness(1.1)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">Viseme→Blendshapes Guide</div>
+  <div class="links">
+    <a href="#ch1">01 ARKit 52</a>
+    <a href="#ch2">02 Mapping Matrix</a>
+    <a href="#ch3">03 Boundary Blend</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>Viseme → <em>Blendshapes</em><br>(ARKit 52)</h1>
+  <p class="subtitle">ARKit provides 52 facial blendshapes covering every region of the face. For lip sync, a viseme class activates a specific sparse subset of these blendshapes at defined weights. This lookup-table approach avoids neural inference at render time and produces deterministic, artist-tunable results.</p>
+  <div class="pill-row">
+    <span class="pill pill--accent">ARKit 52 blendshapes</span>
+    <span class="pill pill--teal">Sparse weight matrix</span>
+    <span class="pill pill--purple">Per-viseme activation</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">ARKit 52 Blendshape Atlas</h2></div>
+  <p class="ch-sub">ARKit's 52 blendshapes are organised into six face regions. Lip-sync uses primarily the Jaw (4) and Mouth (20+ shapes). Click a region group to highlight the blendshapes activated for lip movement.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">ARKit Blendshape Groups</div>
+    <div class="sim-desc">Click a region group button to highlight relevant blendshapes for lip sync.</div>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem">
+      <button class="btn btn--ghost" onclick="setRegion('jaw')">Jaw</button>
+      <button class="btn btn--ghost" onclick="setRegion('mouth')">Mouth</button>
+      <button class="btn btn--ghost" onclick="setRegion('eye')">Eye</button>
+      <button class="btn btn--ghost" onclick="setRegion('brow')">Brow</button>
+      <button class="btn btn--ghost" onclick="setRegion('cheek')">Cheek/Nose</button>
+      <button class="btn btn--accent" onclick="setRegion('all')">All</button>
+    </div>
+    <div class="sim-canvas-wrap"><canvas id="atlasCvs" style="height:220px"></canvas></div>
+    <div id="atlasInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65">Click a region group above.</div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Viseme → Blendshape Weight Matrix</h2></div>
+  <p class="ch-sub">Each of the 15 viseme classes maps to a sparse set of blendshape weights. Clicking a viseme row reveals which blendshapes are non-zero (shown as orange bars) and their default weight values.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">15 × 52 Sparse Weight Matrix</div>
+    <div class="sim-desc">Click a viseme row to see the blendshape activation vector.</div>
+    <div class="sim-canvas-wrap"><canvas id="matrixCvs" style="height:260px"></canvas></div>
+    <div id="matrixInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65">Click a viseme row to see its blendshape profile.</div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Sparse Matrix Properties</h3>
+    <p>Most visemes activate only 2–5 blendshapes out of 52. The jaw group and mouth group account for ~80% of all activations. Eye/brow/cheek shapes are never activated by phoneme-driven visemes (they are controlled by expression channels — separate from lip sync).</p>
+    <div class="eq-box eq-box--teal">
+      <span class="eq-label">Blendshape vector example — Viseme V0 (sil/bilabial closure)</span>
+      <span class="mono">jawOpen          : 0.0   — jaw closed</span><br>
+      <span class="mono">mouthClose       : 0.9   — main bilabial closure</span><br>
+      <span class="mono">mouthPressLeft   : 0.4   — lip press reinforcement</span><br>
+      <span class="mono">mouthPressRight  : 0.4</span><br>
+      <span class="mono">all other 48 shapes : 0.0</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Blendshape Interpolation at Boundaries</h2></div>
+  <p class="ch-sub">At phoneme boundaries the blendshape vector transitions from one viseme's weights to the next. We interpolate each blendshape independently using the half-cosine window from App 24. The result is a per-frame blendshape array ready for renderer consumption.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Per-Blendshape Interpolation Preview</div>
+    <div class="sim-desc">Select two visemes and see how each blendshape weight transitions between them over the blend window.</div>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:.75rem;align-items:center">
+      <label style="font-size:.85rem;font-weight:600">From:</label>
+      <select id="fromVis" onchange="drawInterp()" style="font-family:inherit;padding:.4rem .7rem;border-radius:6px;border:1px solid var(--border);background:var(--bg-alt)"></select>
+      <label style="font-size:.85rem;font-weight:600">To:</label>
+      <select id="toVis" onchange="drawInterp()" style="font-family:inherit;padding:.4rem .7rem;border-radius:6px;border:1px solid var(--border);background:var(--bg-alt)"></select>
+    </div>
+    <div class="sim-canvas-wrap"><canvas id="interpCvs" style="height:200px"></canvas></div>
+    <div id="interpInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="callout callout--accent fade-up">
+    <div class="callout-title">Output: Per-frame blendshape array</div>
+    The output of the viseme-to-blendshape stage is a NumPy array of shape (N_frames × 52), where each row is a normalised float weight vector. This array is consumed by the renderer (Blender/UE5/ARKit-compatible character) to drive facial animation. App 26 (Temporal Smoothing) applies a final filter pass before rendering.
+  </div>
+</div>
+</section>
+
+<footer class="footer">Viseme → Blendshapes Interactive Guide</footer>
+
+<script>
+(function(){
+'use strict';
+
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ─── ARKit blendshape definitions (52 shapes, grouped) ─── */
+var ARKIT=[
+  // JAW (4)
+  {n:'jawOpen',g:'jaw'},{n:'jawForward',g:'jaw'},{n:'jawLeft',g:'jaw'},{n:'jawRight',g:'jaw'},
+  // MOUTH (24)
+  {n:'mouthClose',g:'mouth'},{n:'mouthFunnel',g:'mouth'},{n:'mouthPucker',g:'mouth'},{n:'mouthLeft',g:'mouth'},
+  {n:'mouthRight',g:'mouth'},{n:'mouthSmileLeft',g:'mouth'},{n:'mouthSmileRight',g:'mouth'},
+  {n:'mouthFrownLeft',g:'mouth'},{n:'mouthFrownRight',g:'mouth'},{n:'mouthDimpleLeft',g:'mouth'},
+  {n:'mouthDimpleRight',g:'mouth'},{n:'mouthStretchLeft',g:'mouth'},{n:'mouthStretchRight',g:'mouth'},
+  {n:'mouthRollLower',g:'mouth'},{n:'mouthRollUpper',g:'mouth'},{n:'mouthShrugLower',g:'mouth'},
+  {n:'mouthShrugUpper',g:'mouth'},{n:'mouthPressLeft',g:'mouth'},{n:'mouthPressRight',g:'mouth'},
+  {n:'mouthLowerDownLeft',g:'mouth'},{n:'mouthLowerDownRight',g:'mouth'},
+  {n:'mouthUpperUpLeft',g:'mouth'},{n:'mouthUpperUpRight',g:'mouth'},
+  // EYE (12)
+  {n:'eyeBlinkLeft',g:'eye'},{n:'eyeLookDownLeft',g:'eye'},{n:'eyeLookInLeft',g:'eye'},{n:'eyeLookOutLeft',g:'eye'},
+  {n:'eyeLookUpLeft',g:'eye'},{n:'eyeSquintLeft',g:'eye'},{n:'eyeWideLeft',g:'eye'},
+  {n:'eyeBlinkRight',g:'eye'},{n:'eyeLookDownRight',g:'eye'},{n:'eyeLookInRight',g:'eye'},
+  {n:'eyeLookOutRight',g:'eye'},{n:'eyeLookUpRight',g:'eye'},
+  // BROW (8)
+  {n:'browDownLeft',g:'brow'},{n:'browDownRight',g:'brow'},{n:'browInnerUp',g:'brow'},
+  {n:'browOuterUpLeft',g:'brow'},{n:'browOuterUpRight',g:'brow'},{n:'noseSneerLeft',g:'brow'},
+  {n:'noseSneerRight',g:'brow'},{n:'cheekSquintLeft',g:'brow'},
+  // CHEEK/NOSE (4)
+  {n:'cheekPuff',g:'cheek'},{n:'cheekSquintRight',g:'cheek'},{n:'tongueOut',g:'cheek'},{n:'eyeSquintRight',g:'cheek'}
+];
+
+/* Viseme → blendshape weight lookup (15 visemes × 52 weights, sparse) */
+var VIS_NAMES=['sil','aa','ah','ee','oh','R','CH','SS','FF','TH','DD','kk','nn','HH','AW'];
+/* Build 15×52 weight matrix (named indices) */
+function bsIdx(name){for(var i=0;i<ARKIT.length;i++)if(ARKIT[i].n===name)return i;return -1;}
+var V2B=[];
+for(var v=0;v<15;v++)V2B.push(new Float32Array(52));
+function setW(vis,bsName,w){var i=bsIdx(bsName);if(i>=0)V2B[vis][i]=w;}
+// V0 sil — closed
+setW(0,'mouthClose',0.85);setW(0,'mouthPressLeft',0.4);setW(0,'mouthPressRight',0.4);
+// V1 aa — wide open
+setW(1,'jawOpen',0.85);setW(1,'mouthLowerDownLeft',0.4);setW(1,'mouthLowerDownRight',0.4);setW(1,'mouthUpperUpLeft',0.2);setW(1,'mouthUpperUpRight',0.2);
+// V2 ah — slightly open
+setW(2,'jawOpen',0.35);setW(2,'mouthLowerDownLeft',0.2);setW(2,'mouthLowerDownRight',0.2);
+// V3 ee — spread
+setW(3,'jawOpen',0.2);setW(3,'mouthSmileLeft',0.55);setW(3,'mouthSmileRight',0.55);setW(3,'mouthStretchLeft',0.3);setW(3,'mouthStretchRight',0.3);
+// V4 oh — rounded
+setW(4,'jawOpen',0.45);setW(4,'mouthFunnel',0.6);setW(4,'mouthPucker',0.4);setW(4,'mouthRollLower',0.2);setW(4,'mouthRollUpper',0.2);
+// V5 R — retroflexed
+setW(5,'jawOpen',0.25);setW(5,'mouthFunnel',0.25);setW(5,'mouthPucker',0.25);setW(5,'mouthLowerDownLeft',0.15);setW(5,'mouthLowerDownRight',0.15);
+// V6 CH — postalveolar
+setW(6,'jawOpen',0.3);setW(6,'mouthFunnel',0.4);setW(6,'mouthLeft',0.2);setW(6,'mouthRight',0.2);
+// V7 SS — sibilant
+setW(7,'jawOpen',0.15);setW(7,'mouthStretchLeft',0.35);setW(7,'mouthStretchRight',0.35);setW(7,'mouthShrugLower',0.2);
+// V8 FF — labiodental
+setW(8,'jawOpen',0.1);setW(8,'mouthRollLower',0.8);setW(8,'mouthUpperUpLeft',0.3);setW(8,'mouthUpperUpRight',0.3);setW(8,'mouthShrugLower',0.15);
+// V9 TH — interdental
+setW(9,'jawOpen',0.2);setW(9,'mouthLowerDownLeft',0.4);setW(9,'mouthLowerDownRight',0.4);setW(9,'mouthUpperUpLeft',0.15);setW(9,'mouthUpperUpRight',0.15);
+// V10 DD — alveolar stop
+setW(10,'jawOpen',0.2);setW(10,'mouthStretchLeft',0.2);setW(10,'mouthStretchRight',0.2);setW(10,'mouthShrugLower',0.3);
+// V11 kk — velar
+setW(11,'jawOpen',0.22);setW(11,'mouthLowerDownLeft',0.1);setW(11,'mouthLowerDownRight',0.1);
+// V12 nn — nasal
+setW(12,'jawOpen',0.15);setW(12,'mouthStretchLeft',0.15);setW(12,'mouthStretchRight',0.15);
+// V13 HH — open glottal
+setW(13,'jawOpen',0.35);setW(13,'mouthLowerDownLeft',0.15);setW(13,'mouthLowerDownRight',0.15);
+// V14 AW — diphthong
+setW(14,'jawOpen',0.7);setW(14,'mouthLowerDownLeft',0.3);setW(14,'mouthLowerDownRight',0.3);setW(14,'mouthFunnel',0.25);setW(14,'mouthRollLower',0.1);
+
+/* ─── Atlas canvas ─── */
+var atlasCvs=document.getElementById('atlasCvs');var activeRegion='all';
+var G_COLORS={jaw:'#BF4A24',mouth:'#1A7B6B',eye:'#6B52A8',brow:'#2A6A8A',cheek:'#8A6B2A'};
+window.setRegion=function(r){activeRegion=r;drawAtlas();document.getElementById('atlasInfo').textContent={jaw:'Jaw (4 shapes): jawOpen drives most visemes. jawForward/Left/Right used for emphasis.',mouth:'Mouth (24 shapes): the core lip-sync group. mouthClose, mouthFunnel, mouthPucker, mouthSmile, mouthStretch, mouthRollLower/Upper, mouthPress, mouthLowerDown, mouthUpperUp — most are activated by at least one viseme.',eye:'Eye (12 shapes): NOT used in phoneme-driven lip sync. Controlled separately by emotion/blink channels.',brow:'Brow/nose (8 shapes): NOT used for phoneme lip sync. Driven by emotion blendshapes.',cheek:'Cheek/nose (4 shapes): cheekPuff and tongueOut used in some viseme rigs; cheekSquint controlled by emotion.',all:'All 52 ARKit blendshapes. For lip sync, the jaw group and mouth group (28 shapes total) are the ones used.'}[r]||'Click a group to filter.';}
+function resizeAtlas(){var dpr=window.devicePixelRatio||1;var W=atlasCvs.parentElement.getBoundingClientRect().width;atlasCvs.width=Math.round(W*dpr);atlasCvs.height=Math.round(220*dpr);atlasCvs.style.width=W+'px';atlasCvs.style.height='220px';drawAtlas();}
+function drawAtlas(){
+  var dpr=window.devicePixelRatio||1;var W=atlasCvs.width/dpr,H=atlasCvs.height/dpr;
+  var ctx=atlasCvs.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var COLS=9;var bw=(W-16)/COLS;var bh=20;var sx=8;
+  ARKIT.forEach(function(bs,i){
+    var c=i%COLS;var r=Math.floor(i/COLS);var x=sx+c*bw;var y=8+r*(bh+3);
+    var active_=activeRegion==='all'||bs.g===activeRegion;var col=G_COLORS[bs.g]||'#888';
+    ctx.fillStyle=active_?col+'33':'rgba(230,221,208,.3)';ctx.strokeStyle=active_?col:'rgba(230,221,208,.6)';ctx.lineWidth=active_?1.5:0.7;
+    ctx.beginPath();ctx.roundRect(x+1,y,bw-2,bh,4);ctx.fill();ctx.stroke();
+    ctx.fillStyle=active_?col:'#AAA';ctx.font=(active_?'600 ':'400 ')+'7px DM Sans,sans-serif';ctx.textAlign='center';
+    var label=bs.n.replace(/([A-Z])/g,' $1').trim();var words=label.split(' ');var disp=words.slice(-2).join(' ');
+    ctx.fillText(disp,x+bw/2,y+bh/2+3);
+  });
+}
+
+/* ─── Matrix canvas ─── */
+var matrixCvs=document.getElementById('matrixCvs');var activeVisRow=-1;
+var VIS_COLORS=['#6B52A8','#1A7B6B','#8A95A2','#BF4A24','#2A6A8A','#7B4F1A','#1A4A7B','#BF6A24','#6B1A7B','#2A8A6B','#8A2A4A','#4A6B8A','#8A6B2A','#1A6B4A','#4A2A8A'];
+function resizeMatrix(){var dpr=window.devicePixelRatio||1;var W=matrixCvs.parentElement.getBoundingClientRect().width;matrixCvs.width=Math.round(W*dpr);matrixCvs.height=Math.round(260*dpr);matrixCvs.style.width=W+'px';matrixCvs.style.height='260px';drawMatrix();}
+function drawMatrix(){
+  var dpr=window.devicePixelRatio||1;var W=matrixCvs.width/dpr,H=matrixCvs.height/dpr;
+  var ctx=matrixCvs.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var header=16;var rowH=(H-header)/15;var C=52;var cellW=(W-50)/C;
+  // column header
+  ctx.fillStyle='rgba(230,221,208,.5)';ctx.fillRect(50,0,W-50,header);
+  ctx.fillStyle='#8A95A2';ctx.font='500 7px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('← 52 ARKit blendshapes (columns) →',50+(W-50)/2,12);
+  for(var v=0;v<15;v++){
+    var y=header+v*rowH;var act=v===activeVisRow;var col=VIS_COLORS[v];
+    if(act){ctx.fillStyle='rgba(191,74,36,.15)';ctx.fillRect(0,y,W,rowH);}
+    else if(v%2===0){ctx.fillStyle='rgba(243,237,226,.4)';ctx.fillRect(0,y,W,rowH);}
+    // Row label
+    ctx.fillStyle=act?'#BF4A24':col;ctx.font=(act?'700 ':'600 ')+'8px DM Sans,sans-serif';ctx.textAlign='right';ctx.fillText('V'+v+' '+VIS_NAMES[v],48,y+rowH*.65);
+    // Weight cells
+    for(var c=0;c<C;c++){
+      var w=V2B[v][c];var cx=50+c*cellW;var cy=y+1;
+      if(w>0){ctx.fillStyle='rgba(191,74,36,'+Math.min(w,1).toFixed(2)+')';ctx.fillRect(cx,cy,Math.max(cellW-0.5,1),rowH-2);}
+      else{ctx.fillStyle='rgba(230,221,208,.3)';ctx.fillRect(cx,cy,Math.max(cellW-0.5,1),rowH-2);}
+    }
+  }
+}
+matrixCvs.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var W=matrixCvs.width/dpr,H=matrixCvs.height/dpr;
+  var header=16;var rowH=(H-header)/15;
+  var rect=matrixCvs.getBoundingClientRect();var my=(e.clientY-rect.top)*(H/rect.height);
+  var v=Math.floor((my-header)/rowH);if(v>=0&&v<15){activeVisRow=v;drawMatrix();
+    var active_bs=[];for(var c=0;c<52;c++){if(V2B[v][c]>0)active_bs.push(ARKIT[c].n+'='+V2B[v][c].toFixed(2));}
+    document.getElementById('matrixInfo').textContent='Viseme V'+v+' "'+VIS_NAMES[v]+'" activates: '+active_bs.join(', ')+'.';}
+});
+
+/* ─── Interpolation canvas ─── */
+var interpCvs=document.getElementById('interpCvs');
+var fromSel=document.getElementById('fromVis');var toSel=document.getElementById('toVis');
+VIS_NAMES.forEach(function(n,i){
+  [fromSel,toSel].forEach(function(sel){var opt=document.createElement('option');opt.value=i;opt.textContent='V'+i+' '+n;sel.appendChild(opt);});
+});
+fromSel.value=0;toSel.value=3; // sil → ee default
+window.drawInterp=function(){
+  var dpr=window.devicePixelRatio||1;var W=interpCvs.width/dpr,H=interpCvs.height/dpr;
+  var ctx=interpCvs.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var vA=parseInt(fromSel.value),vB=parseInt(toSel.value);
+  // Find blendshapes that differ
+  var diffs=[];for(var c=0;c<52;c++){var wa=V2B[vA][c];var wb=V2B[vB][c];if(Math.abs(wa-wb)>0.05)diffs.push({i:c,wa:wa,wb:wb});}
+  var N_show=Math.min(diffs.length,6);var laneH=(H-10)/N_show;var m=14;
+  diffs.slice(0,N_show).forEach(function(d,li){
+    var y=li*laneH+5;ctx.fillStyle='rgba(230,221,208,.3)';ctx.fillRect(m,y,W-m*2,laneH-3);
+    ctx.fillStyle='#5A6878';ctx.font='600 8px DM Sans,sans-serif';ctx.textAlign='left';ctx.fillText(ARKIT[d.i].n,m+4,y+laneH-7);
+    // Draw half-cosine blend curve
+    var aw=W-m*2;ctx.beginPath();ctx.strokeStyle='#BF4A24';ctx.lineWidth=2;
+    for(var xi=0;xi<=aw;xi++){var t=xi/aw;var w=0.5*(1-Math.cos(Math.PI*t));var val=d.wa*(1-w)+d.wb*w;var cy=y+(laneH-4)*(1-val*.95);if(xi===0)ctx.moveTo(m+xi,cy);else ctx.lineTo(m+xi,cy);}
+    ctx.stroke();
+    // start/end dots
+    var yA=y+(laneH-4)*(1-d.wa*.95);var yB=y+(laneH-4)*(1-d.wb*.95);
+    ctx.fillStyle='#1A7B6B';ctx.beginPath();ctx.arc(m+4,yA,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#6B52A8';ctx.beginPath();ctx.arc(m+aw-4,yB,4,0,Math.PI*2);ctx.fill();
+  });
+  document.getElementById('interpInfo').textContent=diffs.length+' blendshapes differ between V'+vA+' "'+VIS_NAMES[vA]+'" and V'+vB+' "'+VIS_NAMES[vB]+'". Each curve shows the half-cosine interpolation for one blendshape weight. Teal circle = start weight, purple = end weight.';
+};
+function resizeInterp(){var dpr=window.devicePixelRatio||1;var W=interpCvs.parentElement.getBoundingClientRect().width;interpCvs.width=Math.round(W*dpr);interpCvs.height=Math.round(200*dpr);interpCvs.style.width=W+'px';interpCvs.style.height='200px';drawInterp();}
+
+window.addEventListener('resize',function(){resizeAtlas();resizeMatrix();resizeInterp();});
+resizeAtlas();resizeMatrix();resizeInterp();
+drawAtlas();drawMatrix();drawInterp();
+document.getElementById('atlasInfo').textContent='All 52 ARKit blendshapes are shown. For lip sync, the jaw group and mouth group (28 shapes total) are the ones used.';
+})();
+</script>
+</body>
+</html>

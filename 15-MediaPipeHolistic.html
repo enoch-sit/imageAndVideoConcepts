@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediaPipe Holistic — 543 Landmark Body Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--teal)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--teal);background:var(--teal-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--teal-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--teal)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:560px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--teal);opacity:.2}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--teal);background:var(--bg)}
+.step-dot--purple{border-color:var(--purple)}.step-dot--accent{border-color:var(--accent)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--teal);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--purple{border-left-color:var(--purple)}.eq-box--accent{border-left-color:var(--accent)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--teal{background:var(--teal);color:#fff}.btn--teal:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.btn--active{background:var(--teal-glow);color:var(--teal);border:1.5px solid var(--teal)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.badge-row{display:flex;gap:.5rem;flex-wrap:wrap;margin:.75rem 0}
+.badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.8rem;font-weight:600;padding:.3rem .7rem;border-radius:12px}
+.badge--pose{background:rgba(26,123,107,.12);color:var(--teal)}
+.badge--hand{background:rgba(107,82,168,.12);color:var(--purple)}
+.badge--face{background:rgba(191,74,36,.12);color:var(--accent)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">MediaPipe Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Architecture</a>
+    <a href="#ch2">02 Landmark Map</a>
+    <a href="#ch3">03 Output Format</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>MediaPipe Holistic — <em>543 Landmarks</em><br>in Real-Time</h1>
+  <p class="subtitle">How MediaPipe Holistic detects 33 body pose + 21×2 hand + 468 facial landmarks simultaneously from a single RGB image using three cascaded sub-models.</p>
+  <div class="pill-row">
+    <span class="pill pill--teal">33 Pose Landmarks</span>
+    <span class="pill pill--purple">42 Hand Landmarks</span>
+    <span class="pill pill--accent">468 Face Landmarks</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">Three-Model Pipeline</h2></div>
+  <p class="ch-sub">Holistic is not one monolithic model — it's a pipeline of three specialized sub-models: BlazePose for body, a hand crop model for each hand, and MediaPipe FaceMesh for the face. They share a single forward pass by reusing intermediate feature maps.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Pipeline Click-Through</div>
+    <div class="sim-desc">Click Next to step through how MediaPipe Holistic processes an input frame into 543 landmarks.</div>
+    <div class="sim-canvas-wrap"><canvas id="pipeCanvas" style="height:200px"></canvas></div>
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+      <button class="btn btn--teal" onclick="pipeNext()">Next &rsaquo;</button>
+      <button class="btn btn--ghost" onclick="pipeReset()">Reset</button>
+      <span id="pipeLabel" style="font-size:.85rem;color:var(--text-2)">Step 1 of 5</span>
+    </div>
+    <div id="pipeInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>BlazePose Backbone</h3>
+    <p>BlazePose first runs a lightweight detector on the full frame to find a person bounding box. Then a keypoint model (MobileNet-based) returns 33 landmarks in 3D: (x, y, z, visibility). Z is relative depth in hip-width units — a rough depth estimate without stereo cameras.</p>
+    <div class="eq-box">
+      <span class="eq-label">BlazePose 33 joint output</span>
+      <span class="mono">pose_landmarks[i] = (x_norm, y_norm, z_norm, visibility)</span><br>
+      <span class="mono">x,y ∈ [0,1] normalized to image dims</span><br>
+      <span class="mono">z: depth relative to hips, in hip-width units</span><br>
+      <span class="mono">visibility: sigmoid confidence [0,1]</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>Hand Crop and 21-Point Tracking</h3>
+    <p>The wrist position from BlazePose is used to crop a 256×256 patch around each hand. A hand landmark model then returns 21 (x,y,z) landmarks per hand in that local crop, which Holistic projects back to global image coordinates. Left and right hands are tracked independently.</p>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--accent"></span>
+    <h3>FaceMesh 468 Points</h3>
+    <p>FaceMesh detects 468 face landmarks on a cropped face region. These cover eyes, iris, eyebrows, nose, lips, and face contour. The refined landmark variant also adds 5 iris landmarks per eye (478 total in newer versions). In Holistic, the face crop is derived from nose/ear landmarks detected by BlazePose.</p>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Landmark Visualiser</h2></div>
+  <p class="ch-sub">Click a region button to see the canonical skeleton/mesh layout drawn on a normalised canvas. This is what you see when you draw the raw output landmarks from MediaPipe before projection to pixel coordinates.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Stick Figure Landmark Map</div>
+    <div class="sim-desc">Select a region to visualise its landmark layout. Dots show keypoint positions; lines show the MediaPipe connection skeleton.</div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
+      <button class="btn btn--teal btn--active" id="btnPose" onclick="setRegion('pose')">Pose (33)</button>
+      <button class="btn btn--ghost" id="btnHand" onclick="setRegion('hand')">Hand (21)</button>
+      <button class="btn btn--ghost" id="btnFace" onclick="setRegion('face')">Face (468)</button>
+    </div>
+    <div class="sim-canvas-wrap"><canvas id="landCanvas" style="height:320px"></canvas></div>
+    <div id="landInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="callout callout--teal fade-up">
+    <div class="callout-title">Why 543, not 522?</div>
+    33 pose + 21 left hand + 21 right hand + 468 face = 543. But if one or both hands are not visible, those landmarks are simply absent (or zero-filled). MediaPipe reports a <code>multi_hand_landmarks</code> list that may contain 0, 1, or 2 entries depending on hand detection confidence.
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Output Format and Pipeline Usage</h2></div>
+  <p class="ch-sub">MediaPipe Holistic returns landmark data as normalised (x, y, z) coordinates plus a visibility/presence flag. In this course, Holistic output drives the SMPL pose fitting and ControlNet conditioning stages.</p>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Coordinate System</h3>
+    <p>All landmarks are in normalised image coordinates where (0,0) is top-left and (1,1) is bottom-right. For 3D-aware use you also have z, a relative depth estimate in body-scale units. Converting to pixel coordinates: just multiply by image width/height.</p>
+    <div class="eq-box">
+      <span class="eq-label">Coordinate conversion</span>
+      <span class="mono">x_px = landmark.x * image_width</span><br>
+      <span class="mono">y_px = landmark.y * image_height</span><br>
+      <span class="mono">z_px ≈ landmark.z * image_width  (depth in same scale as x)</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>To SMPL: 33 → 24 Joints</h3>
+    <p>SMPL uses 24 body joints, while BlazePose provides 33. The mapping requires selecting corresponding joints and ignoring MediaPipe-specific landmarks (e.g., eye, ear) that don't have SMPL equivalents. Then Procrustes alignment scales and rotates the MediaPipe 33-point skeleton to best match the SMPL canonical T-pose joint positions before regressing SMPL pose parameters (θ ∈ ℝ⁷²).</p>
+  </div>
+
+  <div class="callout callout--accent fade-up">
+    <div class="callout-title">Course pipeline context</div>
+    In the talking-head animation pipeline: MediaPipe Holistic runs per-frame on a driving video → BlazePose 33 joints feed into SMPL pose regression → ControlNet receives the resulting skeleton overlay → CogVideoX / AnimateDiff generates the animated character. Face landmarks (468 pts) feed separately into the lip-sync pathway.
+  </div>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Data Flow Summary</div>
+    <div class="sim-desc">Click through the landmark routing from single image to downstream pipeline modules.</div>
+    <div class="sim-canvas-wrap"><canvas id="flowCanvas" style="height:180px"></canvas></div>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <button class="btn btn--teal" onclick="flowNext()">Next &rsaquo;</button>
+      <button class="btn btn--ghost" onclick="flowReset()">Reset</button>
+      <span id="flowLabel" style="font-size:.85rem;color:var(--text-2)">Step 1 of 5</span>
+    </div>
+    <div id="flowInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+</div>
+</section>
+
+<footer class="footer">MediaPipe Holistic Interactive Guide · Google MediaPipe Team</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ── Pipeline steps ── */
+var PIPE=[
+  {label:'Input Frame',info:'A single RGB image (or video frame) of arbitrary resolution. MediaPipe resizes internally to run its models efficiently on CPU or GPU.'},
+  {label:'BlazePose Detect',info:'A rapid bounding box detector identifies a person ROI. The ROI is cropped and input to the BlazePose landmark model. Output: 33 landmarks (x,y,z,visibility) + mediapipe_pose_world_landmarks (in metres).'},
+  {label:'Hand Crop',info:'Wrist positions (landmarks 15,16) and hand visibility are used to crop both hand regions. Each 256×256 crop is sent to the hand landmark model, returning 21 (x,y,z) landmarks in local crop coords, then projected back globally.'},
+  {label:'Face Crop',info:'Nose tip and ear landmarks from BlazePose define a face crop region. MediaPipe FaceMesh processes this crop and returns 468 (or 478 with iris) landmarks normalised within the face bounding box.'},
+  {label:'Combined Output',info:'Holistic returns: pose_landmarks (33), left_hand_landmarks (21 or None), right_hand_landmarks (21 or None), face_landmarks (468). Total = up to 543 landmarks per frame at ≈25ms on a modern CPU.'}
+];
+var pipeCanvas=document.getElementById('pipeCanvas');var pipeStep=0;
+function resizePipe(){
+  var dpr=window.devicePixelRatio||1;
+  var W=pipeCanvas.parentElement.getBoundingClientRect().width;
+  pipeCanvas.width=Math.round(W*dpr);pipeCanvas.height=Math.round(200*dpr);
+  pipeCanvas.style.width=W+'px';pipeCanvas.style.height='200px';drawPipe();
+}
+function drawPipe(){
+  var dpr=window.devicePixelRatio||1;var W=pipeCanvas.width/dpr,H=pipeCanvas.height/dpr;
+  var ctx=pipeCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var N=PIPE.length;var bw=Math.min(100,(W-30)/N-4);var bh=56;var gap=Math.max(4,(W-30-bw*N)/(N-1));
+  var startX=(W-(bw*N+gap*(N-1)))/2;var by=H/2-bh/2;
+  PIPE.forEach(function(s,i){
+    var x=startX+i*(bw+gap);var active=i===pipeStep;var done=i<pipeStep;
+    ctx.fillStyle=active?'rgba(26,123,107,.15)':done?'rgba(26,123,107,.06)':'rgba(230,221,208,.3)';
+    ctx.strokeStyle=active?'#1A7B6B':done?'#1A7B6B88':'#E6DDD0';ctx.lineWidth=active?2.5:1.2;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle=active?'#1A7B6B':done?'#1A7B6B':'#8A95A2';
+    ctx.font=(active?'700 ':'600 ')+'9px DM Sans,sans-serif';ctx.textAlign='center';
+    var words=s.label.split(' ');words.forEach(function(w,wi){ctx.fillText(w,x+bw/2,by+18+(wi*12));});
+    if(i<N-1){ctx.strokeStyle=done?'#1A7B6B88':'#E6DDD0';ctx.lineWidth=1.2;var ax=x+bw+2;ctx.beginPath();ctx.moveTo(ax,by+bh/2);ctx.lineTo(ax+gap-4,by+bh/2);ctx.stroke();ctx.fillStyle=done?'#1A7B6B88':'#E6DDD0';ctx.beginPath();ctx.moveTo(ax+gap,by+bh/2);ctx.lineTo(ax+gap-6,by+bh/2-4);ctx.lineTo(ax+gap-6,by+bh/2+4);ctx.closePath();ctx.fill();}
+  });
+  document.getElementById('pipeInfo').textContent=PIPE[pipeStep].info;
+  document.getElementById('pipeLabel').textContent='Step '+(pipeStep+1)+' of '+PIPE.length;
+}
+window.pipeNext=function(){pipeStep=Math.min(PIPE.length-1,pipeStep+1);drawPipe();};
+window.pipeReset=function(){pipeStep=0;drawPipe();};
+
+/* ── Landmark visualiser ── */
+var landCanvas=document.getElementById('landCanvas');
+var landRegion='pose';
+window.setRegion=function(r){
+  landRegion=r;
+  ['pose','hand','face'].forEach(function(n){
+    var b=document.getElementById('btn'+n.charAt(0).toUpperCase()+n.slice(1));
+    if(b){b.className='btn '+(n===r?'btn--teal btn--active':'btn--ghost');}
+  });drawLandmarks();
+};
+function resizeLand(){
+  var dpr=window.devicePixelRatio||1;
+  var W=landCanvas.parentElement.getBoundingClientRect().width;
+  landCanvas.width=Math.round(W*dpr);landCanvas.height=Math.round(320*dpr);
+  landCanvas.style.width=W+'px';landCanvas.style.height='320px';drawLandmarks();
+}
+function drawLandmarks(){
+  var dpr=window.devicePixelRatio||1;var W=landCanvas.width/dpr,H=landCanvas.height/dpr;
+  var ctx=landCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  if(landRegion==='pose'){drawPoseSkeleton(ctx,W,H);}
+  else if(landRegion==='hand'){drawHandSkeleton(ctx,W,H);}
+  else{drawFaceMesh(ctx,W,H);}
+}
+function pt(pts,i){return pts[i];}
+function drawJoint(ctx,pts,i,r,color){var p=pts[i];if(!p)return;ctx.beginPath();ctx.arc(p[0],p[1],r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();}
+function drawBone(ctx,pts,a,b,color,lw){var pa=pts[a];var pb=pts[b];if(!pa||!pb)return;ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.beginPath();ctx.moveTo(pa[0],pa[1]);ctx.lineTo(pb[0],pb[1]);ctx.stroke();}
+
+function drawPoseSkeleton(ctx,W,H){
+  // 33 BlazePose landmarks - canonical T-pose layout
+  var s=Math.min(W,H)*0.82;var ox=(W-s*0.4)/2;var oy=(H-s*0.9)/2;
+  var P={
+    0:[ox+s*0.2,oy+s*0.02],// nose
+    1:[ox+s*0.18,oy+s*0.01],2:[ox+s*0.22,oy+s*0.01],// eye inner L/R
+    3:[ox+s*0.16,oy+s*0.01],4:[ox+s*0.24,oy+s*0.01],// eye L/R
+    5:[ox+s*0.14,oy+s*0.01],6:[ox+s*0.26,oy+s*0.01],// eye outer
+    7:[ox+s*0.12,oy+s*0.025],8:[ox+s*0.28,oy+s*0.025],// ear L/R
+    9:[ox+s*0.18,oy+s*0.06],10:[ox+s*0.22,oy+s*0.06],// mouth L/R
+    11:[ox+s*0.1,oy+s*0.14],12:[ox+s*0.3,oy+s*0.14],// shoulder L/R
+    13:[ox+s*0.02,oy+s*0.28],14:[ox+s*0.38,oy+s*0.28],// elbow L/R
+    15:[ox-s*0.01,oy+s*0.42],16:[ox+s*0.41,oy+s*0.42],// wrist L/R
+    17:[ox-s*0.03,oy+s*0.47],18:[ox+s*0.43,oy+s*0.47],// pinky L/R
+    19:[ox-s*0.02,oy+s*0.46],20:[ox+s*0.42,oy+s*0.46],// index L/R
+    21:[ox-s*0.00,oy+s*0.46],22:[ox+s*0.40,oy+s*0.46],// thumb L/R
+    23:[ox+s*0.13,oy+s*0.44],24:[ox+s*0.27,oy+s*0.44],// hip L/R
+    25:[ox+s*0.11,oy+s*0.62],26:[ox+s*0.29,oy+s*0.62],// knee L/R
+    27:[ox+s*0.10,oy+s*0.78],28:[ox+s*0.30,oy+s*0.78],// ankle L/R
+    29:[ox+s*0.10,oy+s*0.82],30:[ox+s*0.30,oy+s*0.82],// heel L/R
+    31:[ox+s*0.09,oy+s*0.86],32:[ox+s*0.31,oy+s*0.86]// foot L/R
+  };
+  var BONES=[[11,12],[11,13],[12,14],[13,15],[14,16],[11,23],[12,24],[23,24],[23,25],[24,26],[25,27],[26,28],[27,29],[28,30],[27,31],[28,32],[29,31],[30,32],[0,9],[0,10],[9,10],[0,1],[0,4],[1,2],[2,3],[4,5],[5,6],[6,7],[7,8]];
+  BONES.forEach(function(b){drawBone(ctx,P,b[0],b[1],'rgba(26,123,107,.55)',2);});
+  Object.keys(P).forEach(function(i){drawJoint(ctx,P,i,4,'#1A7B6B');});
+  ctx.fillStyle='#1A7B6B';ctx.font='700 11px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('33 Pose Landmarks',W/2,H-8);
+  document.getElementById('landInfo').textContent='BlazePose 33 landmarks cover full body: face region (0-10), shoulders/elbows/wrists (11-22), hips/knees/ankles/feet (23-32). All in normalised image coordinates. Z-depth is estimated relative to hip midpoint in hip-width units.';
+}
+
+function drawHandSkeleton(ctx,W,H){
+  var s=Math.min(W,H)*0.78;var cx=W/2-s*0.1;var cy=H*0.12;
+  // 21 hand landmarks in a hand shape
+  var P={
+    0:[cx,cy+s*0.5],// wrist
+    1:[cx-s*0.12,cy+s*0.38],2:[cx-s*0.13,cy+s*0.25],3:[cx-s*0.1,cy+s*0.14],4:[cx-s*0.09,cy+s*0.04],// thumb
+    5:[cx-s*0.08,cy+s*0.32],6:[cx-s*0.09,cy+s*0.18],7:[cx-s*0.09,cy+s*0.1],8:[cx-s*0.09,cy+s*0.02],// index
+    9:[cx+s*0.0,cy+s*0.3],10:[cx+s*0.0,cy+s*0.16],11:[cx+s*0.0,cy+s*0.08],12:[cx+s*0.0,cy+s*0.0],// middle
+    13:[cx+s*0.09,cy+s*0.32],14:[cx+s*0.1,cy+s*0.18],15:[cx+s*0.1,cy+s*0.1],16:[cx+s*0.1,cy+s*0.03],// ring
+    17:[cx+s*0.17,cy+s*0.36],18:[cx+s*0.19,cy+s*0.24],19:[cx+s*0.19,cy+s*0.16],20:[cx+s*0.19,cy+s*0.08]// pinky
+  };
+  var BONES=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];
+  BONES.forEach(function(b){drawBone(ctx,P,b[0],b[1],'rgba(107,82,168,.5)',2);});
+  Object.keys(P).forEach(function(i){drawJoint(ctx,P,i,4,'#6B52A8');});
+  ctx.fillStyle='#6B52A8';ctx.font='700 11px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('21 Hand Landmarks',W/2,H-8);
+  document.getElementById('landInfo').textContent='21 hand landmarks: 1 wrist (0) + 4 landmarks per finger (1-4 thumb, 5-8 index, 9-12 middle, 13-16 ring, 17-20 pinky). Returned per-hand (left and right separately). Coordinates are local to the hand crop, then projected back to global image space by Holistic.';
+}
+
+function drawFaceMesh(ctx,W,H){
+  // Simplified ellipse-distributed 468-ish face dots
+  var cx=W/2;var cy=H*0.45;var rx=Math.min(W*0.3,120);var ry=rx*1.35;
+  ctx.strokeStyle='rgba(191,74,36,.12)';ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.stroke();
+  // Scatter ~130 dots (representative subset)
+  function mulb(s){var m=1664525,a=1013904223,n=4294967296;s=(m*s+a)%n;return s/n;}
+  var seed=42;
+  for(var i=0;i<468;i++){
+    seed=Math.floor(seed*1664525+1013904223)%4294967296;var r1=seed/4294967296;
+    seed=Math.floor(seed*1664525+1013904223)%4294967296;var r2=seed/4294967296;
+    // Skew distribution toward face contour + feature areas
+    var ang=r1*Math.PI*2;
+    var rad=Math.sqrt(r2)*0.95+0.05;
+    var x=cx+rx*rad*Math.cos(ang);var y=cy+ry*rad*Math.sin(ang)*1.05;
+    ctx.beginPath();ctx.arc(x,y,1.3,0,Math.PI*2);ctx.fillStyle='rgba(191,74,36,.55)';ctx.fill();
+  }
+  // Eyes
+  var eyeL=[cx-rx*0.38,cy-ry*0.18];var eyeR=[cx+rx*0.38,cy-ry*0.18];
+  ctx.strokeStyle='rgba(191,74,36,.7)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.ellipse(eyeL[0],eyeL[1],rx*0.18,ry*0.10,0,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(eyeR[0],eyeR[1],rx*0.18,ry*0.10,0,0,Math.PI*2);ctx.stroke();
+  // Mouth
+  ctx.beginPath();ctx.ellipse(cx,cy+ry*0.28,rx*0.25,ry*0.09,0,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#BF4A24';ctx.font='700 11px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('468 Face Mesh Landmarks',W/2,H-8);
+  document.getElementById('landInfo').textContent='FaceMesh 468 landmarks densely cover the entire face: forehead, eye regions (with iris in v2 = 478 total), nose bridge, lips, cheeks and face contour. The face oval landmark ring (10 outer points) is especially useful for crop detection in downstream models.';
+}
+
+/* ── Flow canvas ── */
+var FLOW=[
+  {label:'MediaPipe Input',info:'A 480×720 (or any size) RGB frame. MediaPipe auto-resizes. The model runs in Python via pip install mediapipe and processes each frame as a NumPy array.'},
+  {label:'33 Pose Joints',info:'BlazePose outputs 33 body joints. In the course pipeline these are saved as a (T, 33, 4) array: T frames, 33 joints, 4 values (x,y,z,visibility) each.'},
+  {label:'SMPL Regression',info:'A 33→24 joint mapping + Procrustes alignment converts MediaPipe joints to SMPL pose parameters θ ∈ ℝ⁷². See App 18 (MediaPipe→SMPL Bridge) for details.'},
+  {label:'468 Face Landmarks',info:'FaceMesh 468 points are saved separately as (T, 468, 3). The lip region (landmarks 61,146,91,181,84,17,314,405,321,375,78,191,80,81,82,13,312,311,310,415,308) feeds the lip-sync module.'},
+  {label:'Downstream',info:'Pose joints → ControlNet skeleton overlay → AnimateDiff conditioned generation. Face landmarks → lip viseme extraction → blendshape animation → temporal smoothing → final render.'}
+];
+var flowCanvas=document.getElementById('flowCanvas');var flowStep=0;
+function resizeFlow(){
+  var dpr=window.devicePixelRatio||1;
+  var W=flowCanvas.parentElement.getBoundingClientRect().width;
+  flowCanvas.width=Math.round(W*dpr);flowCanvas.height=Math.round(180*dpr);
+  flowCanvas.style.width=W+'px';flowCanvas.style.height='180px';drawFlow();
+}
+function drawFlow(){
+  var dpr=window.devicePixelRatio||1;var W=flowCanvas.width/dpr,H=flowCanvas.height/dpr;
+  var ctx=flowCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var N=FLOW.length;var bw=Math.min(100,(W-30)/N-4);var bh=48;var gap=Math.max(4,(W-30-bw*N)/(N-1));
+  var startX=(W-(bw*N+gap*(N-1)))/2;var by=H/2-bh/2;
+  FLOW.forEach(function(s,i){
+    var x=startX+i*(bw+gap);var active=i===flowStep;var done=i<flowStep;
+    ctx.fillStyle=active?'rgba(26,123,107,.15)':done?'rgba(26,123,107,.06)':'rgba(230,221,208,.3)';
+    ctx.strokeStyle=active?'#1A7B6B':done?'#1A7B6B88':'#E6DDD0';ctx.lineWidth=active?2.5:1.2;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle=active?'#1A7B6B':done?'#1A7B6B':'#8A95A2';
+    ctx.font=(active?'700 ':'600 ')+'9px DM Sans,sans-serif';ctx.textAlign='center';
+    var words=s.label.split(' ');words.forEach(function(w,wi){ctx.fillText(w,x+bw/2,by+16+(wi*11));});
+    if(i<N-1){ctx.strokeStyle=done?'#1A7B6B88':'#E6DDD0';ctx.lineWidth=1.2;var ax=x+bw+2;ctx.beginPath();ctx.moveTo(ax,by+bh/2);ctx.lineTo(ax+gap-4,by+bh/2);ctx.stroke();ctx.fillStyle=done?'#1A7B6B88':'#E6DDD0';ctx.beginPath();ctx.moveTo(ax+gap,by+bh/2);ctx.lineTo(ax+gap-6,by+bh/2-4);ctx.lineTo(ax+gap-6,by+bh/2+4);ctx.closePath();ctx.fill();}
+  });
+  document.getElementById('flowInfo').textContent=FLOW[flowStep].info;
+  document.getElementById('flowLabel').textContent='Step '+(flowStep+1)+' of '+FLOW.length;
+}
+window.flowNext=function(){flowStep=Math.min(FLOW.length-1,flowStep+1);drawFlow();};
+window.flowReset=function(){flowStep=0;drawFlow();};
+
+window.addEventListener('resize',function(){resizePipe();resizeLand();resizeFlow();});
+resizePipe();resizeLand();resizeFlow();
+})();
+</script>
+</body>
+</html>

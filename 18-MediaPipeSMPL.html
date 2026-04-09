@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediaPipe → SMPL Bridge — Joint Mapping and Pose Regression</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--teal)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--teal);background:var(--teal-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--teal-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--teal)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:560px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--teal);opacity:.2}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--teal);background:var(--bg)}
+.step-dot--purple{border-color:var(--purple)}.step-dot--accent{border-color:var(--accent)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--teal);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--purple{border-left-color:var(--purple)}.eq-box--accent{border-left-color:var(--accent)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--teal{background:var(--teal);color:#fff}.btn--teal:hover{filter:brightness(1.1)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.cmp-table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:.87rem}
+.cmp-table th{background:var(--bg-alt);font-weight:700;padding:.65rem 1rem;text-align:left;border-bottom:2px solid var(--border)}
+.cmp-table td{padding:.6rem 1rem;border-bottom:1px solid var(--border)}
+.cmp-table tr:last-child td{border-bottom:none}
+.cmp-table td:first-child{font-family:'Fira Code',monospace;font-size:.82rem;color:var(--teal)}
+.cmp-table td:nth-child(2){color:var(--text-2);font-size:.82rem}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">MP→SMPL Bridge</div>
+  <div class="links">
+    <a href="#ch1">01 Joint Map</a>
+    <a href="#ch2">02 Procrustes</a>
+    <a href="#ch3">03 Regression</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>MediaPipe → SMPL <em>Bridge</em></h1>
+  <p class="subtitle">MediaPipe outputs 33 screen-space 2D landmarks; SMPL requires 24 3D joints in a normalized T-pose space. This bridge applies Procrustes alignment and inverse-kinematics (θ regression) to close the gap.</p>
+  <div class="pill-row">
+    <span class="pill pill--teal">33 → 24 joint map</span>
+    <span class="pill pill--accent">Procrustes align</span>
+    <span class="pill pill--purple">θ ∈ ℝ⁷² regression</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">33 → 24 Joint Mapping</h2></div>
+  <p class="ch-sub">MediaPipe Holistic outputs 33 pose landmarks indexed 0–32. SMPL has 24 joints with a different naming and hierarchy. Not all MediaPipe landmarks map to a SMPL joint — some are discarded and some SMPL joints (finger roots, jaw) have no MediaPipe equivalent.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Joint Mapping Explorer</div>
+    <div class="sim-desc">Click a SMPL joint (right skeleton) to highlight the corresponding MediaPipe landmark (left skeleton). Grey = no direct correspondence.</div>
+    <div class="sim-canvas-wrap"><canvas id="mapCanvas" style="height:340px"></canvas></div>
+    <div id="mapInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.6">Click a joint on the SMPL skeleton (right) to see its MediaPipe correspondence.</div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Mapping Table (subset)</h3>
+    <p>Key joint correspondences used in this course's pipeline (full mapping has 14 direct matches):</p>
+    <table class="cmp-table">
+      <thead><tr><th>SMPL joint (idx)</th><th>MediaPipe landmark (idx)</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Pelvis (0)</td><td>avg(23,24)</td><td>Midpoint of hips</td></tr>
+        <tr><td>L_Hip (1)</td><td>23 LEFT_HIP</td><td>Direct</td></tr>
+        <tr><td>R_Hip (2)</td><td>24 RIGHT_HIP</td><td>Direct</td></tr>
+        <tr><td>L_Knee (4)</td><td>25 LEFT_KNEE</td><td>Direct</td></tr>
+        <tr><td>R_Knee (5)</td><td>26 RIGHT_KNEE</td><td>Direct</td></tr>
+        <tr><td>L_Ankle (7)</td><td>27 LEFT_ANKLE</td><td>Direct</td></tr>
+        <tr><td>R_Ankle (8)</td><td>28 RIGHT_ANKLE</td><td>Direct</td></tr>
+        <tr><td>L_Shoulder (16)</td><td>11 LEFT_SHOULDER</td><td>Direct</td></tr>
+        <tr><td>R_Shoulder (17)</td><td>12 RIGHT_SHOULDER</td><td>Direct</td></tr>
+        <tr><td>L_Elbow (18)</td><td>13 LEFT_ELBOW</td><td>Direct</td></tr>
+        <tr><td>R_Elbow (19)</td><td>14 RIGHT_ELBOW</td><td>Direct</td></tr>
+        <tr><td>L_Wrist (20)</td><td>15 LEFT_WRIST</td><td>Direct</td></tr>
+        <tr><td>R_Wrist (21)</td><td>16 RIGHT_WRIST</td><td>Direct</td></tr>
+        <tr><td>Head (15)</td><td>avg(0,7,8)</td><td>Nose + ear midpoint</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Procrustes Alignment</h2></div>
+  <p class="ch-sub">MediaPipe landmarks are in pixel-space coordinates (0–1 normalised, depth from monocular estimate). SMPL joints live in a metric 3D space centred at the pelvis, scaled so shoulder-width ≈ 0.4 m. Procrustes alignment finds the optimal Rotation R, scale s, and translation t to align the two point sets.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Procrustes Alignment Steps</div>
+    <div class="sim-desc">Click through each step to see how two noisy point sets are brought into correspondence.</div>
+    <div class="sim-canvas-wrap"><canvas id="procCanvas" style="height:260px"></canvas></div>
+    <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+      <button class="btn btn--teal" onclick="procNext()">Next Step ›</button>
+      <button class="btn btn--ghost" onclick="procReset()">Reset</button>
+      <span id="procStepLabel" style="font-size:.85rem;font-weight:600;color:var(--teal);padding:.55rem 0">Step 1 of 4</span>
+    </div>
+    <div id="procInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--accent"></span>
+    <h3>Procrustes Algorithm</h3>
+    <div class="eq-box eq-box--accent">
+      <span class="eq-label">Optimal rotation via SVD</span>
+      <span class="mono">1. Centre: X̄ = X - mean(X), Ȳ = Y - mean(Y)</span><br>
+      <span class="mono">2. Cross-covariance: H = X̄ᵀ Ȳ</span><br>
+      <span class="mono">3. SVD: H = U Σ Vᵀ</span><br>
+      <span class="mono">4. Rotation: R = V Uᵀ  (det check for reflection)</span><br>
+      <span class="mono">5. Scale: s = trace(Σ) / trace(X̄ᵀX̄)</span><br>
+      <span class="mono">6. Translation: t = mean(Y) - s·R·mean(X)</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Pose Regression (θ from Joints)</h2></div>
+  <p class="ch-sub">After Procrustes alignment we have SMPL joint positions in 3D. The final step recovers the SMPL pose parameters θ ∈ ℝ⁷² (24 joints × 3 axis-angle) via inverse kinematics. This is an optimisation problem — find θ such that the SMPL forward pass reproduces the observed joints.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">IK Loss Optimisation</div>
+    <div class="sim-desc">Adjust the regularisation weight λ and see how it balances joint accuracy vs. pose naturalness (prior). Lower λ = closer to observed joints, higher λ = more natural pose.</div>
+    <div class="sim-canvas-wrap"><canvas id="ikCanvas" style="height:240px"></canvas></div>
+    <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-top:.5rem">
+      <label style="font-size:.82rem;font-weight:600;color:var(--text-2)">λ (regularisation): <span id="lambdaVal">0.01</span></label>
+      <input type="range" id="lambdaSlider" min="0" max="100" step="1" value="20" oninput="updateIK()" style="flex:1;min-width:80px;accent-color:var(--teal)">
+    </div>
+    <div id="ikInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>Optimisation Objective</h3>
+    <div class="eq-box eq-box--purple">
+      <span class="eq-label">IK loss function</span>
+      <span class="mono">L(θ) = L_joints + λ·L_prior + μ·L_limit</span><br><br>
+      <span class="mono">L_joints = Σᵢ wᵢ ||J_pred(θ)ᵢ − J_obs,ᵢ||²</span><br>
+      <span class="mono">           (joint position reconstruction error)</span><br><br>
+      <span class="mono">L_prior = ||θ||²  (L2 regularisation → small rotations)</span><br><br>
+      <span class="mono">L_limit = Σⱼ max(0, θⱼ − θ_max,ⱼ)²</span><br>
+      <span class="mono">          + Σⱼ max(0, θ_min,ⱼ − θⱼ)²</span><br>
+      <span class="mono">           (joint angle limit penalty)</span>
+    </div>
+  </div>
+
+  <div class="callout callout--teal fade-up">
+    <div class="callout-title">Implementation approach</div>
+    In practice this bridge is often replaced by a pretrained regressor such as HMR2 or ViTPose that directly outputs SMPL θ from a single image without iterative optimisation. The course uses the optimisation-based approach to build intuition for the loss landscape before introducing learned regressors.
+  </div>
+</div>
+</section>
+
+<footer class="footer">MediaPipe → SMPL Bridge · Interactive Guide</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ─── Joint map canvas ─── */
+var mapCanvas=document.getElementById('mapCanvas');
+// 24 SMPL joints (simplified 2D positions, normalized 0-1)
+var SMPL_JOINTS=[
+  {n:'Pelvis',   x:.5,  y:.5,  mp:null},
+  {n:'L_Hip',    x:.42, y:.55, mp:'23 L.Hip'},
+  {n:'R_Hip',    x:.58, y:.55, mp:'24 R.Hip'},
+  {n:'Spine1',   x:.5,  y:.44, mp:null},
+  {n:'L_Knee',   x:.42, y:.67, mp:'25 L.Knee'},
+  {n:'R_Knee',   x:.58, y:.67, mp:'26 R.Knee'},
+  {n:'Spine2',   x:.5,  y:.38, mp:null},
+  {n:'L_Ankle',  x:.42, y:.79, mp:'27 L.Ankle'},
+  {n:'R_Ankle',  x:.58, y:.79, mp:'28 R.Ankle'},
+  {n:'Spine3',   x:.5,  y:.32, mp:null},
+  {n:'L_Foot',   x:.4,  y:.86, mp:null},
+  {n:'R_Foot',   x:.6,  y:.86, mp:null},
+  {n:'Neck',     x:.5,  y:.25, mp:null},
+  {n:'L_Collar', x:.43, y:.27, mp:null},
+  {n:'R_Collar', x:.57, y:.27, mp:null},
+  {n:'Head',     x:.5,  y:.16, mp:'0,7,8 avg'},
+  {n:'L_Shoul',  x:.36, y:.3,  mp:'11 L.Shoul'},
+  {n:'R_Shoul',  x:.64, y:.3,  mp:'12 R.Shoul'},
+  {n:'L_Elbow',  x:.3,  y:.44, mp:'13 L.Elbow'},
+  {n:'R_Elbow',  x:.7,  y:.44, mp:'14 R.Elbow'},
+  {n:'L_Wrist',  x:.26, y:.56, mp:'15 L.Wrist'},
+  {n:'R_Wrist',  x:.74, y:.56, mp:'16 R.Wrist'},
+  {n:'L_Hand',   x:.23, y:.63, mp:null},
+  {n:'R_Hand',   x:.77, y:.63, mp:null}
+];
+// SMPL bone pairs
+var S_BONES=[[0,1],[0,2],[0,3],[3,6],[6,9],[9,12],[12,15],[1,4],[4,7],[7,10],[2,5],[5,8],[8,11],[9,13],[9,14],[13,16],[14,17],[16,18],[17,19],[18,20],[19,21],[20,22],[21,23]];
+// MediaPipe 33 joints (simplified positions)
+var MP_JOINTS=[
+  {n:'Nose',      x:.5,  y:.15},{n:'L.Eye.In',  x:.47, y:.14},{n:'L.Eye',    x:.45, y:.14},
+  {n:'L.Eye.Out', x:.43, y:.14},{n:'R.Eye.In',  x:.53, y:.14},{n:'R.Eye',    x:.55, y:.14},
+  {n:'R.Eye.Out', x:.57, y:.14},{n:'L.Ear',     x:.4,  y:.16},{n:'R.Ear',    x:.6,  y:.16},
+  {n:'L.Mouth',   x:.47, y:.19},{n:'R.Mouth',   x:.53, y:.19},{n:'L.Shoul',  x:.37, y:.3},
+  {n:'R.Shoul',   x:.63, y:.3}, {n:'L.Elbow',   x:.31, y:.44},{n:'R.Elbow',  x:.69, y:.44},
+  {n:'L.Wrist',   x:.27, y:.57},{n:'R.Wrist',   x:.73, y:.57},{n:'L.Pinky',  x:.24, y:.61},
+  {n:'R.Pinky',   x:.76, y:.61},{n:'L.Index',   x:.25, y:.62},{n:'R.Index',  x:.75, y:.62},
+  {n:'L.Thumb',   x:.27, y:.61},{n:'R.Thumb',   x:.73, y:.61},{n:'L.Hip',    x:.43, y:.54},
+  {n:'R.Hip',     x:.57, y:.54},{n:'L.Knee',    x:.42, y:.67},{n:'R.Knee',   x:.58, y:.67},
+  {n:'L.Ankle',   x:.42, y:.79},{n:'R.Ankle',   x:.58, y:.79},{n:'L.Heel',   x:.41, y:.82},
+  {n:'R.Heel',    x:.59, y:.82},{n:'L.FootIdx', x:.41, y:.87},{n:'R.FootIdx',x:.59, y:.87}
+];
+var MP_BONES=[[11,13],[13,15],[12,14],[14,16],[11,12],[23,24],[23,25],[25,27],[24,26],[26,28],[11,23],[12,24],[0,7],[0,8]];
+// SMPL → MP index map
+var S2MP={1:23,2:24,4:25,5:26,7:27,8:28,15:-1,16:11,17:12,18:13,19:14,20:15,21:16};
+
+var activeSmpl=-1;
+function resizeMap(){
+  var dpr=window.devicePixelRatio||1;var W=mapCanvas.parentElement.getBoundingClientRect().width;
+  mapCanvas.width=Math.round(W*dpr);mapCanvas.height=Math.round(340*dpr);
+  mapCanvas.style.width=W+'px';mapCanvas.style.height='340px';drawMap();
+}
+function drawMap(){
+  var dpr=window.devicePixelRatio||1;var W=mapCanvas.width/dpr,H=mapCanvas.height/dpr;
+  var ctx=mapCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var halfW=W/2;var pad=18;var usableW=halfW-pad*2;var usableH=H-36;var topY=18;
+  // Labels
+  ctx.fillStyle='#8A95A2';ctx.font='600 10px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('MediaPipe (33)',halfW*0.5,13);ctx.fillText('SMPL (24)',halfW*1.5,13);
+  function mp2s(j){return{x:pad+j.x*usableW,y:topY+j.y*usableH};}
+  function sm2s(j){return{x:halfW+pad+j.x*usableW,y:topY+j.y*usableH};}
+  // MP bones
+  ctx.strokeStyle='rgba(26,123,107,.22)';ctx.lineWidth=1.2;
+  MP_BONES.forEach(function(b){var a=mp2s(MP_JOINTS[b[0]]),bb=mp2s(MP_JOINTS[b[1]]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(bb.x,bb.y);ctx.stroke();});
+  // SMPL bones
+  ctx.strokeStyle='rgba(107,82,168,.22)';ctx.lineWidth=1.2;
+  S_BONES.forEach(function(b){var a=sm2s(SMPL_JOINTS[b[0]]),bb=sm2s(SMPL_JOINTS[b[1]]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(bb.x,bb.y);ctx.stroke();});
+  // Active highlight line
+  if(activeSmpl>=0){
+    var mpIdx=S2MP[activeSmpl];var sm=sm2s(SMPL_JOINTS[activeSmpl]);
+    if(mpIdx!==undefined&&mpIdx>=0){var mp=mp2s(MP_JOINTS[mpIdx]);
+      ctx.strokeStyle='rgba(26,123,107,.5)';ctx.lineWidth=2;ctx.setLineDash([4,3]);
+      ctx.beginPath();ctx.moveTo(sm.x,sm.y);ctx.lineTo(mp.x,mp.y);ctx.stroke();ctx.setLineDash([]);
+    }
+  }
+  // MP joints
+  MP_JOINTS.forEach(function(j,i){var p=mp2s(j);
+    ctx.fillStyle='rgba(26,123,107,.5)';ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();
+  });
+  // SMPL joints
+  SMPL_JOINTS.forEach(function(j,i){var p=sm2s(j);
+    var hasMp=S2MP[i]!==undefined&&S2MP[i]>=0;
+    var act=i===activeSmpl;
+    ctx.fillStyle=act?'#6B52A8':hasMp?'rgba(107,82,168,.6)':'rgba(140,149,162,.5)';
+    ctx.beginPath();ctx.arc(p.x,p.y,act?5.5:3.5,0,Math.PI*2);ctx.fill();
+    if(act){ctx.strokeStyle='#6B52A8';ctx.lineWidth=1.5;ctx.stroke();
+      ctx.fillStyle='#6B52A8';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='left';
+      ctx.fillText(j.n,p.x+7,p.y+4);}
+  });
+}
+mapCanvas.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var W=mapCanvas.width/dpr,H=mapCanvas.height/dpr;
+  var halfW=W/2;var pad=18;var usableW=halfW-pad*2;var usableH=H-36;var topY=18;
+  var rect=mapCanvas.getBoundingClientRect();var mx=(e.clientX-rect.left)*(W/rect.width);var my=(e.clientY-rect.top)*(H/rect.height);
+  var best=-1,bd=999;
+  SMPL_JOINTS.forEach(function(j,i){var px=halfW+pad+j.x*usableW;var py=topY+j.y*usableH;var d=Math.hypot(mx-px,my-py);if(d<bd&&d<18){bd=d;best=i;}});
+  if(best>=0){
+    activeSmpl=best;var j=SMPL_JOINTS[best];var mpIdx=S2MP[best];
+    var mpStr=mpIdx!==undefined?(mpIdx>=0?'→ MP '+mpIdx+' ('+MP_JOINTS[mpIdx].n+')':'→ computed (average of multiple)'):'No direct MP correspondence';
+    document.getElementById('mapInfo').textContent='SMPL joint '+best+' ('+j.n+'): θ indices ['+best*3+', '+best*3+'+1, '+best*3+'+2]. '+mpStr;
+    drawMap();
+  }
+});
+
+/* ─── Procrustes canvas ─── */
+var procCanvas=document.getElementById('procCanvas');
+var procStep=0;
+var PROC_STEPS=[
+  {label:'Step 1 — Raw alignment: MediaPipe in pixel space',
+   info:'MediaPipe landmarks are in normalised screen coords (0→1). Without any alignment, the two point sets are misaligned in scale, position and orientation.'},
+  {label:'Step 2 — Centre both clouds',
+   info:'Subtract the centroid from both point sets so they share the same centre of mass. Centroid = mean of all joint positions (weighted equally or by confidence).'},
+  {label:'Step 3 — Compute optimal rotation (SVD)',
+   info:'The cross-covariance matrix H = X̄ᵀ Ȳ is decomposed via SVD. R = VUᵀ gives the rotation that minimises sum-of-squared distances between corresponding points.'},
+  {label:'Step 4 — Apply R, s, t — aligned!',
+   info:'Apply the optimal rotation R, scale s, and translation t. The aligned MediaPipe joints now sit in the same coordinate frame as SMPL joints, ready for θ regression.'}
+];
+window.procNext=function(){if(procStep<PROC_STEPS.length-1)procStep++;drawProc();};
+window.procReset=function(){procStep=0;drawProc();};
+function drawProc(){
+  document.getElementById('procStepLabel').textContent='Step '+(procStep+1)+' of '+PROC_STEPS.length;
+  document.getElementById('procInfo').textContent=PROC_STEPS[procStep].info;
+  var dpr=window.devicePixelRatio||1;var W=procCanvas.width/dpr,H=procCanvas.height/dpr;
+  var ctx=procCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var cx=W/2;var cy=H/2;var r=Math.min(W,H)*0.35;
+  // Simplified 7-point "skeleton" source (MediaPipe-like, poorly scaled)
+  var MP7_RAW=[[0,-.8],[-.4,-.3],[.4,-.3],[-.5,.2],[.5,.2],[-.45,.9],[.45,.9]];
+  // SMPL target (already in right space)
+  var SM7=[[0,-.7],[-.35,-.1],[.35,-.1],[-.4,.35],[.4,.35],[-.38,.9],[.38,.9]];
+  var SM7_BONES=[[0,1],[0,2],[1,3],[2,4],[3,5],[4,6]];
+  function toScreen(pts,ox,oy,sc){return pts.map(function(p){return[ox+p[0]*sc,oy+p[1]*sc];});}
+  function drawSkel(pts,bones,col,dotR){
+    ctx.strokeStyle=col;ctx.lineWidth=1.5;
+    bones.forEach(function(b){ctx.beginPath();ctx.moveTo(pts[b[0]][0],pts[b[0]][1]);ctx.lineTo(pts[b[1]][0],pts[b[1]][1]);ctx.stroke();});
+    ctx.fillStyle=col;pts.forEach(function(p){ctx.beginPath();ctx.arc(p[0],p[1],dotR,0,Math.PI*2);ctx.fill();});
+  }
+  var smScreen=toScreen(SM7,cx,cy,r*0.55);
+  // Step 0: show raw misaligned MP (shifted, scaled differently)
+  var mpRaw=toScreen(MP7_RAW.map(function(p){return[p[0]*0.5+0.7,p[1]*0.7+0.4];}),cx*0.6,cy*0.5,r*0.55);
+  var mpCent=toScreen(MP7_RAW,cx,cy,r*0.42);
+  var mpRot=toScreen(SM7.map(function(p){return[p[0]*0.98+.02,p[1]*1.02];}),cx,cy,r*.56);
+  var mpFinal=toScreen(SM7.map(function(p){return[p[0]+.015,p[1]+.01];}),cx,cy,r*0.55);
+  // Target (SMPL) always shown
+  drawSkel(smScreen,SM7_BONES,'rgba(107,82,168,.35)',3);
+  if(procStep===0)drawSkel(mpRaw,SM7_BONES,'rgba(26,123,107,.7)',4);
+  else if(procStep===1)drawSkel(mpCent,SM7_BONES,'rgba(26,123,107,.7)',4);
+  else if(procStep===2){drawSkel(mpCent,SM7_BONES,'rgba(26,123,107,.3)',3);drawSkel(mpRot,SM7_BONES,'rgba(191,74,36,.7)',4);}
+  else drawSkel(mpFinal,SM7_BONES,'rgba(26,123,107,.9)',4);
+  // Labels
+  ctx.fillStyle='rgba(107,82,168,.6)';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('SMPL target',smScreen[0][0],smScreen[0][1]-14);
+  var label=procStep===0?'MediaPipe raw':procStep===1?'MediaPipe centred':procStep===2?'After rotation':'Aligned!';
+  var lx=procStep===0?mpRaw[0][0]:procStep===2?mpRot[0][0]:cx;
+  var ly=procStep===0?mpRaw[0][1]-14:procStep===2?mpRot[0][1]-14:mpCent[0][1]-14;
+  ctx.fillStyle=procStep===2?'rgba(191,74,36,.7)':'rgba(26,123,107,.7)';ctx.fillText(label,lx,ly);
+}
+function resizeProc(){var dpr=window.devicePixelRatio||1;var W=procCanvas.parentElement.getBoundingClientRect().width;procCanvas.width=Math.round(W*dpr);procCanvas.height=Math.round(260*dpr);procCanvas.style.width=W+'px';procCanvas.style.height='260px';drawProc();}
+
+/* ─── IK canvas ─── */
+var ikCanvas=document.getElementById('ikCanvas');
+function resizeIK(){var dpr=window.devicePixelRatio||1;var W=ikCanvas.parentElement.getBoundingClientRect().width;ikCanvas.width=Math.round(W*dpr);ikCanvas.height=Math.round(240*dpr);ikCanvas.style.width=W+'px';ikCanvas.style.height='240px';drawIK();}
+window.updateIK=function(){var v=parseInt(document.getElementById('lambdaSlider').value);document.getElementById('lambdaVal').textContent=(v/2000).toFixed(4);drawIK();};
+function drawIK(){
+  var lam=parseInt(document.getElementById('lambdaSlider').value)/2000;
+  var dpr=window.devicePixelRatio||1;var W=ikCanvas.width/dpr,H=ikCanvas.height/dpr;
+  var ctx=ikCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var padL=44;var padR=20;var padT=16;var padB=32;var gW=W-padL-padR;var gH=H-padT-padB;
+  var N=80;var best=1/(1+lam*200);
+  // Three curves: L_joints (decreasing with more overfit), L_prior (increasing with less reg), total
+  ctx.strokeStyle='var(--border,#E6DDD0)';ctx.lineWidth=1;
+  var xs=[0,0.25,0.5,0.75,1.0];
+  xs.forEach(function(v){var x=padL+v*gW;ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,padT+gH);ctx.stroke();});
+  [0,.5,1].forEach(function(v){var y=padT+(1-v)*gH;ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(padL+gW,y);ctx.stroke();});
+  // Axes labels
+  ctx.fillStyle='#8A95A2';ctx.font='500 9px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('λ→',padL+gW/2,H-2);ctx.textAlign='right';
+  ctx.fillText('loss',padL-4,padT+gH/2+4);
+  // Curves
+  function drawCurve(fn,col,lw){ctx.strokeStyle=col;ctx.lineWidth=lw||1.8;ctx.beginPath();for(var i=0;i<=N;i++){var t=i/N;var x=padL+t*gW;var y=padT+(1-Math.max(0,Math.min(1,fn(t))))*gH;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();}
+  drawCurve(function(t){return 0.9/(1+t*15);}, 'rgba(26,123,107,.8)');
+  drawCurve(function(t){return t*0.7+0.05;}, 'rgba(191,74,36,.8)');
+  drawCurve(function(t){return 0.9/(1+t*15)+t*0.7+0.05;}, '#6B52A8',2.2);
+  // Current lambda marker
+  var curX=padL+lam*200/1*gW*10;curX=Math.min(padL+gW,curX);
+  ctx.strokeStyle='rgba(107,82,168,.7)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(curX,padT);ctx.lineTo(curX,padT+gH);ctx.stroke();ctx.setLineDash([]);
+  // Legend
+  var ld=[[' L_joints','rgba(26,123,107,.8)'],[' L_prior','rgba(191,74,36,.8)'],[' Total L','#6B52A8']];
+  var lx=padL+10;var ly=padT+10;ctx.font='600 9px DM Sans,sans-serif';
+  ld.forEach(function(d,i){ctx.strokeStyle=d[1];ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(lx,ly+i*14);ctx.lineTo(lx+14,ly+i*14);ctx.stroke();ctx.fillStyle=d[1];ctx.textAlign='left';ctx.fillText(d[0],lx+16,ly+4+i*14);});
+  document.getElementById('ikInfo').textContent='λ='+lam.toFixed(4)+': '+(lam<0.002?'Very low regularisation — near-perfect joint fit but may produce unnatural poses (e.g. limbs bend backwards).'
+    :lam<0.02?'Balanced — good joint accuracy while keeping poses within natural range.'
+    :'High regularisation — pose stays natural/smooth but joint positions may not match observations closely.');
+}
+
+window.addEventListener('resize',function(){resizeMap();resizeProc();resizeIK();});
+resizeMap();resizeProc();resizeIK();
+procStep=0;drawProc();
+document.getElementById('lambdaVal').textContent=(20/2000).toFixed(4);
+})();
+</script>
+</body>
+</html>

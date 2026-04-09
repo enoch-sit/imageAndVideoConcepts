@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AnimateDiff — Temporal Motion Modules</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--teal)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--teal);background:var(--teal-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--teal-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--teal)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:560px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--teal);opacity:.2}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--teal);background:var(--bg)}
+.step-dot--accent{border-color:var(--accent)}.step-dot--purple{border-color:var(--purple)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--teal);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--accent{border-left-color:var(--accent)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--teal{background:var(--teal);color:#fff}.btn--teal:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.slider-group{display:flex;align-items:center;gap:.6rem;flex:1;min-width:200px}
+.slider-group label{font-size:.82rem;font-weight:600;color:var(--text-2);white-space:nowrap}
+.slider-group input[type=range]{flex:1;height:6px;-webkit-appearance:none;appearance:none;background:var(--border);border-radius:3px;outline:none}
+.slider-group input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--teal);cursor:pointer;border:2px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.slider-val{font-family:'Fira Code',monospace;font-size:.85rem;color:var(--teal);min-width:2.5ch;text-align:right}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">AnimateDiff Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Motion Module</a>
+    <a href="#ch2">02 Temporal Attn</a>
+    <a href="#ch3">03 Pipeline</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>AnimateDiff — <em>Temporal</em><br>Motion Modules</h1>
+  <p class="subtitle">How AnimateDiff inserts temporal self-attention blocks into a frozen Stable Diffusion U-Net to generate coherent video, without modifying the base image model.</p>
+  <div class="pill-row">
+    <span class="pill pill--teal">Frozen SD Backbone</span>
+    <span class="pill pill--accent">Temporal Self-Attention</span>
+    <span class="pill pill--purple">16-Frame Clips</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">The Motion Module Concept</h2></div>
+  <p class="ch-sub">AnimateDiff's core idea: freeze the entire SD U-Net, then insert "motion modules" — temporal self-attention layers — at the same resolution levels as the spatial attention. The motion modules are the only parameters trained.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Interactive: U-Net Block with Motion Module</div>
+    <div class="sim-desc">Click a layer to see what it processes. The motion module inflates the 2D attention to attend across the time dimension.</div>
+    <div class="sim-canvas-wrap"><canvas id="mmCanvas" style="height:260px"></canvas></div>
+    <div id="mmInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Single-Image → Multi-Frame Inflation</h3>
+    <p>For image generation, the U-Net processes tensors of shape (B, C, H, W). For video, the batch dimension is repurposed as the frame dimension. Each "video batch" has shape (B·F, C, H, W) where F is the number of frames (16). Spatial attention operates on (B·F, HW, C) — each frame independently — while the motion module reshapes to (B·HW, F, C) to let attention flow across frames at each spatial position.</p>
+    <div class="eq-box">
+      <span class="eq-label">Tensor reshaping for temporal attention</span>
+      <span class="mono">Spatial:  (B·F, H·W, C) → attend across space</span><br>
+      <span class="mono">Temporal: (B·H·W, F, C) → attend across frames</span><br>
+      <span class="mono">F = 16 frames (AnimateDiff default)</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Temporal Self-Attention</h2></div>
+  <p class="ch-sub">The key component of each motion module is temporal self-attention: at each spatial position (h,w), the F feature vectors (one per frame) attend to each other using standard multi-head attention with rotary positional embeddings along the time axis.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Frame-to-Frame Attention Visualiser</div>
+    <div class="sim-desc">Drag the frame slider to see which other frames it attends to. Brighter = stronger attention weight (illustrative).</div>
+    <div class="sim-canvas-wrap"><canvas id="attnCanvas" style="height:180px"></canvas></div>
+    <div class="slider-group" style="margin-top:.5rem">
+      <label for="frameSlider">Query Frame</label>
+      <input type="range" id="frameSlider" min="0" max="15" step="1" value="7">
+      <span class="slider-val" id="frameVal">7</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--accent"></span>
+    <h3>Rotary Position Embedding (RoPE) along Time</h3>
+    <p>Unlike spatial 2D position embeddings, the temporal axis uses rotary positional embeddings (RoPE-1D) applied to the Q and K vectors. This allows the motion module to generalise to different frame counts at inference — it was trained on 16 frames but can generate longer clips by extending the time axis.</p>
+  </div>
+
+  <div class="callout callout--teal fade-up">
+    <div class="callout-title">AnimateDiff-Lightning variant</div>
+    AnimateDiff-Lightning applies the same adversarial distillation from SANA-Sprint to the temporal motion modules: using a video discriminator, the 16-step video denoising is compressed to 1–2 steps. This is what enables near-real-time video preview generation in this course's pipeline.
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Full Generation Pipeline</h2></div>
+  <p class="ch-sub">How AnimateDiff fits into the broader SD ecosystem — combining with ControlNet, LoRA styles, and IP-Adapter to achieve controlled video generation.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Pipeline Steps</div>
+    <div class="sim-desc">Click Next to walk through the full AnimateDiff inference pipeline.</div>
+    <div class="sim-canvas-wrap"><canvas id="pipeCanvas" style="height:200px"></canvas></div>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <button class="btn btn--teal" onclick="pipeNext()">Next &rsaquo;</button>
+      <button class="btn btn--ghost" onclick="pipeReset()">Reset</button>
+      <span id="pipeStepLabel" style="font-size:.85rem;color:var(--text-2)">Step 1 of 6</span>
+    </div>
+    <div id="pipeInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>Composability</h3>
+    <ul>
+      <li><strong>+ ControlNet</strong>: per-frame skeleton/edge ControlNet ensures the video follows a specific pose sequence (used for human animation in this course)</li>
+      <li><strong>+ LoRA</strong>: style LoRA weights (applied to frozen SD spatial layers) control the visual look without affecting temporal coherence</li>
+      <li><strong>+ IP-Adapter</strong>: image prompt adapter conditions on a reference face/body image to maintain identity across frames</li>
+    </ul>
+    <div class="eq-box eq-box--accent">
+      <span class="eq-label">Module combination pattern</span>
+      <span class="mono">SD U-Net (frozen) + LoRA (spatial) + MotionModule (temporal) + ControlNet (spatial)</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<footer class="footer">AnimateDiff Interactive Guide · Guo et al. 2023</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var chs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;chs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ── Motion Module Canvas ── */
+var mmCanvas=document.getElementById('mmCanvas');
+var MM_BLOCKS=[
+  {label:'ResNet Block',sub:'(frozen)',color:'#8A95A2',info:'ResNet blocks handle feature extraction — convolution + group norm + activation. These are identical to SD 1.5 and are completely frozen during AnimateDiff training. They process each frame independently: shape (B·F, C, H, W).'},
+  {label:'Spatial Attn',sub:'(frozen)',color:'#6B52A8',info:'Spatial self-attention and cross-attention (with CLIP text embedding). Frozen. Processes each frame independently as a 2D grid of tokens. Shape: (B·F, H·W, C). Text conditioning happens here exactly as in SD 1.5.'},
+  {label:'Motion Module',sub:'(trainable)',color:'#1A7B6B',info:'The only trainable component. Temporal self-attention across the F=16 frame axis. Reshapes to (B·H·W, F, C), applies multi-head self-attention with rotary time embedding (RoPE-1D), then reshapes back. Learns consistent motion between frames.'},
+  {label:'Output',sub:'next block',color:'#BF4A24',info:'The output feature map (B·F, C, H, W) is passed to the next U-Net block. Both spatial and temporal information has been processed. The frozen spatial layers ensure image quality; the trainable motion modules ensure temporal consistency.'}
+];
+
+mmCanvas.addEventListener('click',function(e){
+  var rect=mmCanvas.getBoundingClientRect();
+  var mx=e.clientX-rect.left;
+  var W=mmCanvas.parentElement.getBoundingClientRect().width;
+  var bw=Math.min(140,(W-40)/4);
+  var gap=(W-40-bw*4)/3;
+  var startX=(W-(bw*4+gap*3))/2;
+  MM_BLOCKS.forEach(function(b,i){
+    var bx=startX+i*(bw+gap);
+    if(mx>=bx&&mx<=bx+bw){
+      document.getElementById('mmInfo').textContent=b.info;
+      drawMM(i);
+    }
+  });
+});
+
+function resizeMM(){
+  var dpr=window.devicePixelRatio||1;
+  var W=mmCanvas.parentElement.getBoundingClientRect().width;
+  mmCanvas.width=Math.round(W*dpr);mmCanvas.height=Math.round(260*dpr);
+  mmCanvas.style.width=W+'px';mmCanvas.style.height='260px';
+  drawMM(-1);
+}
+function drawMM(activeIdx){
+  var dpr=window.devicePixelRatio||1;
+  var W=mmCanvas.width/dpr,H=mmCanvas.height/dpr;
+  var ctx=mmCanvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  var bw=Math.min(140,(W-40)/4);
+  var bh=68;
+  var gap=(W-40-bw*4)/3;
+  var startX=(W-(bw*4+gap*3))/2;
+  var by=H/2-bh/2-10;
+  MM_BLOCKS.forEach(function(b,i){
+    var x=startX+i*(bw+gap);
+    var isActive=i===activeIdx;
+    ctx.save();
+    ctx.fillStyle=b.color+'18';
+    ctx.strokeStyle=isActive?b.color+'cc':'#E6DDD0';
+    ctx.lineWidth=isActive?2.5:1.5;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,8);ctx.fill();ctx.stroke();
+    ctx.fillStyle=b.color;ctx.font='600 11px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText(b.label,x+bw/2,by+bh/2-6);
+    ctx.fillStyle=b.color+'aa';ctx.font='500 9px DM Sans,sans-serif';
+    ctx.fillText(b.sub,x+bw/2,by+bh/2+10);
+    ctx.restore();
+    if(i<3){
+      ctx.strokeStyle='#E6DDD0';ctx.lineWidth=1.5;
+      var ax=x+bw+4;
+      ctx.beginPath();ctx.moveTo(ax,by+bh/2);ctx.lineTo(ax+gap-8,by+bh/2);ctx.stroke();
+      ctx.fillStyle='#E6DDD0';ctx.beginPath();ctx.moveTo(ax+gap-4,by+bh/2);ctx.lineTo(ax+gap-10,by+bh/2-4);ctx.lineTo(ax+gap-10,by+bh/2+4);ctx.closePath();ctx.fill();
+    }
+  });
+  ctx.fillStyle='#8A95A2';ctx.font='10px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('← Click blocks to learn more →',W/2,H-10);
+}
+document.getElementById('mmInfo').textContent='Click a block to understand its role. ResNet and Spatial Attention layers are frozen. Only the Motion Module is trained.';
+window.addEventListener('resize',resizeMM);
+resizeMM();
+
+/* ── Attention canvas ── */
+var attnCanvas=document.getElementById('attnCanvas');
+function resizeAttn(){
+  var dpr=window.devicePixelRatio||1;
+  var W=attnCanvas.parentElement.getBoundingClientRect().width;
+  attnCanvas.width=Math.round(W*dpr);attnCanvas.height=Math.round(180*dpr);
+  attnCanvas.style.width=W+'px';attnCanvas.style.height='180px';
+  drawAttn();
+}
+function drawAttn(){
+  var dpr=window.devicePixelRatio||1;
+  var W=attnCanvas.width/dpr,H=attnCanvas.height/dpr;
+  var ctx=attnCanvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  var F=16;
+  var qFrame=parseInt(document.getElementById('frameSlider').value);
+  var bw=Math.floor((W-40)/F);
+  var bh=32;
+  var startX=20;
+  var by=H/2-bh/2;
+  // Compute attention weights (Gaussian decay from query frame)
+  var weights=[];
+  var sigma=5;
+  var sum=0;
+  for(var i=0;i<F;i++){sum+=Math.exp(-0.5*Math.pow((i-qFrame)/sigma,2));}
+  for(var i=0;i<F;i++){weights.push(Math.exp(-0.5*Math.pow((i-qFrame)/sigma,2))/sum);}
+  var maxW=weights[qFrame];
+  // Draw frames
+  for(var i=0;i<F;i++){
+    var x=startX+i*bw;
+    var a=weights[i]/maxW;
+    var isQ=i===qFrame;
+    ctx.fillStyle=isQ?'rgba(191,74,36,.85)':('rgba(26,123,107,'+a.toFixed(2)+')');
+    ctx.strokeStyle=isQ?'#BF4A24':'#1A7B6B';ctx.lineWidth=isQ?2:1;
+    ctx.fillRect(x,by+(1-a)*bh*.6,bw-2,bh*(0.4+a*0.6));
+    ctx.strokeRect(x,by+(1-a)*bh*.6,bw-2,bh*(0.4+a*0.6));
+    ctx.fillStyle=isQ?'#fff':'#1C2A38';ctx.font=(isQ?'700 ':'500 ')+'9px DM Sans,sans-serif';
+    ctx.textAlign='center';ctx.fillText(i,x+bw/2-1,H-6);
+  }
+  ctx.fillStyle='#5A6878';ctx.font='10px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('Frame index (0–15)',W/2,H-B+2);
+  ctx.textAlign='left';ctx.fillText('Query: frame '+qFrame,startX,18);
+}
+document.getElementById('frameSlider').addEventListener('input',function(){
+  document.getElementById('frameVal').textContent=this.value;
+  drawAttn();
+});
+// fix typo
+var B=6;
+window.addEventListener('resize',resizeAttn);
+resizeAttn();
+
+/* ── Pipe canvas ── */
+var pipeCanvas=document.getElementById('pipeCanvas');
+var pipeStep=0;
+var PIPE=[
+  {label:'Text Encode',info:'CLIP text encoder converts the prompt into 77×768 token embeddings. In AnimateDiff, each frame uses the same text embedding — there is no per-frame text conditioning variation.'},
+  {label:'Sample Noise',info:'Sample a latent noise tensor of shape (F, 4, H/8, W/8) = (16, 4, 64, 64). Each of the 16 frames starts from independent Gaussian noise.'},
+  {label:'Denoise ×T',info:'The full U-Net + motion module stack runs T=16 denoising steps. At each step: (1) spatial self-attention and cross-attention per frame (frozen), (2) motion module temporal attention across frames (trainable). ControlNet conditions (if used) are injected here.'},
+  {label:'ControlNet',info:'If ControlNet is active, the per-frame control images (pose, edge, depth) are independently processed by the ControlNet encoder and added to the frozen U-Net decoder at each denoising step.'},
+  {label:'VAE Decode',info:'The denoised latent tensor (16, 4, 64, 64) is decoded frame-by-frame by the VAE decoder to produce (16, 3, 512, 512) RGB video frames (at 512×512). The VAE is shared with SD 1.5 and operates independently per frame.'},
+  {label:'Assemble GIF/MP4',info:'The 16 decoded RGB frames at 8fps are assembled by ffmpeg or imageio into a GIF or MP4. Total generation time: ~3s (AnimateDiff-Lightning, 1 step) or ~20s (full 16-step), on an H100.'}
+];
+function resizePipe(){
+  var dpr=window.devicePixelRatio||1;
+  var W=pipeCanvas.parentElement.getBoundingClientRect().width;
+  pipeCanvas.width=Math.round(W*dpr);pipeCanvas.height=Math.round(200*dpr);
+  pipeCanvas.style.width=W+'px';pipeCanvas.style.height='200px';
+  drawPipe();
+}
+function drawPipe(){
+  var dpr=window.devicePixelRatio||1;
+  var W=pipeCanvas.width/dpr,H=pipeCanvas.height/dpr;
+  var ctx=pipeCanvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  var N=PIPE.length;
+  var bw=Math.min(100,(W-30)/N);
+  var bh=48;
+  var gap=(W-30-bw*N)/(N-1);
+  var startX=15;
+  var by=H/2-bh/2;
+  PIPE.forEach(function(p,i){
+    var x=startX+i*(bw+gap);
+    var done=i<pipeStep;var active=i===pipeStep;
+    ctx.fillStyle=active?'rgba(26,123,107,.15)':done?'rgba(26,123,107,.06)':'rgba(230,221,208,.3)';
+    ctx.strokeStyle=active?'#1A7B6B':done?'#1A7B6B88':'#E6DDD0';
+    ctx.lineWidth=active?2.5:1.2;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle=active?'#1A7B6B':done?'#1A7B6B':'#8A95A2';
+    ctx.font=(active?'700 ':'600 ')+'9px DM Sans,sans-serif';ctx.textAlign='center';
+    var words=p.label.split(' ');
+    ctx.fillText(words[0],x+bw/2,by+bh/2-(words.length>1?4:0));
+    if(words[1])ctx.fillText(words[1],x+bw/2,by+bh/2+9);
+    if(i<N-1){
+      ctx.strokeStyle=done?'#1A7B6B88':'#E6DDD0';ctx.lineWidth=1.2;
+      var ax=x+bw+2;
+      ctx.beginPath();ctx.moveTo(ax,by+bh/2);ctx.lineTo(ax+gap-6,by+bh/2);ctx.stroke();
+      ctx.fillStyle=done?'#1A7B6B88':'#E6DDD0';
+      ctx.beginPath();ctx.moveTo(ax+gap-2,by+bh/2);ctx.lineTo(ax+gap-8,by+bh/2-4);ctx.lineTo(ax+gap-8,by+bh/2+4);ctx.closePath();ctx.fill();
+    }
+  });
+  document.getElementById('pipeInfo').textContent=PIPE[pipeStep].info;
+  document.getElementById('pipeStepLabel').textContent='Step '+(pipeStep+1)+' of '+PIPE.length;
+}
+window.pipeNext=function(){pipeStep=Math.min(PIPE.length-1,pipeStep+1);drawPipe();};
+window.pipeReset=function(){pipeStep=0;drawPipe();};
+window.addEventListener('resize',function(){resizeMM();resizeAttn();resizePipe();});
+resizePipe();
+})();
+</script>
+</body>
+</html>

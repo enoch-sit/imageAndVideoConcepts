@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Whisper — Speech Recognition & Forced Alignment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--accent)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--accent);background:var(--accent-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--accent-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:580px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--accent);opacity:.22}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--accent);background:var(--bg)}
+.step-dot--teal{border-color:var(--teal)}.step-dot--purple{border-color:var(--purple)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--accent);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--teal{border-left-color:var(--teal)}.eq-box--purple{border-left-color:var(--purple)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--accent{background:var(--accent);color:#fff}.btn--accent:hover{filter:brightness(1.1)}
+.btn--teal{background:var(--teal);color:#fff}.btn--teal:hover{filter:brightness(1.1)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">Whisper Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Mel</a>
+    <a href="#ch2">02 Architecture</a>
+    <a href="#ch3">03 Timestamps</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>Whisper — <em>Speech Recognition</em><br>&amp; Timestamp Extraction</h1>
+  <p class="subtitle">OpenAI Whisper (2022) is a large-scale, weakly-supervised ASR model trained on 680 000 hours of labelled audio. For the lip-sync pipeline, we use its <em>word-level timestamp</em> mode (whisper_timestamped / faster-whisper) to feed phoneme-aligned text into MFA.</p>
+  <div class="pill-row">
+    <span class="pill pill--accent">80-bin log-mel</span>
+    <span class="pill pill--teal">Encoder-decoder Transformer</span>
+    <span class="pill pill--purple">Word timestamps</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">Mel Spectrogram Input</h2></div>
+  <p class="ch-sub">Whisper standardises audio to 16 kHz mono and computes an 80-bin log-mel spectrogram. A fixed 30-second chunk window is used: short clips are zero-padded, long recordings are processed in overlapping 30s windows. This gives a 3 000-frame ×80-bin input tensor.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">From Audio to Mel Spectrogram</div>
+    <div class="sim-desc">Click through the preprocessing steps to see how raw audio transforms into the Whisper input tensor.</div>
+    <div class="sim-canvas-wrap"><canvas id="melCanvas" style="height:200px"></canvas></div>
+    <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+      <button class="btn btn--accent" onclick="melNext()">Next ›</button>
+      <button class="btn btn--ghost" onclick="melReset()">Reset</button>
+      <span id="melLabel" style="font-size:.85rem;font-weight:600;color:var(--accent);padding:.55rem 0"></span>
+    </div>
+    <div id="melInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>STFT Parameters</h3>
+    <p>Whisper uses a 25 ms Hann window with 10 ms hop length. At 16 kHz this gives 400-sample windows with 160-sample hops. The 30-second chunk contains exactly 3 000 frames (30 × 100 frames/s). Each frame is a 201-point FFT, mapped to 80 mel bins via a mel filterbank.</p>
+    <div class="eq-box">
+      <span class="eq-label">Key STFT values</span>
+      <span class="mono">sample rate  : 16 000 Hz</span><br>
+      <span class="mono">n_fft        : 400  (25 ms)</span><br>
+      <span class="mono">hop_length   : 160  (10 ms)</span><br>
+      <span class="mono">n_mels       : 80</span><br>
+      <span class="mono">chunk_length : 30 s → T = 3 000 frames</span><br>
+      <span class="mono">input shape  : (80, 3000)</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Encoder–Decoder Transformer</h2></div>
+  <p class="ch-sub">The encoder processes the fixed 3 000-frame mel spectrogram; the decoder auto-regressively generates text tokens (and optionally timestamp tokens). Whisper's decoder is the unique piece — it uses special &lt;|timestamp|&gt; tokens interleaved with word tokens to output timing information.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Whisper Architecture Click-through</div>
+    <div class="sim-desc">Click through to see how the mel spectrogram flows through the encoder and decoder.</div>
+    <div class="sim-canvas-wrap"><canvas id="archCanvas" style="height:220px"></canvas></div>
+    <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+      <button class="btn btn--accent" onclick="archNext()">Next ›</button>
+      <button class="btn btn--ghost" onclick="archReset()">Reset</button>
+      <span id="archLabel" style="font-size:.85rem;font-weight:600;color:var(--accent);padding:.55rem 0"></span>
+    </div>
+    <div id="archInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Encoder: 2-layer Conv stem + Transformer</h3>
+    <p>Two 1-D convolution layers with GELU reduce the 3 000 time steps to 1 500, then a N-layer Transformer adds positional embeddings and applies self-attention. The encoder output is a 1 500×d_model sequence of contextualised audio features. Whisper medium uses 24 layers, d_model=1024.</p>
+    <div class="eq-box eq-box--teal">
+      <span class="eq-label">Encoder sizes (Whisper model family)</span>
+      <span class="mono">tiny  : 4L ×384d   — 39M params</span><br>
+      <span class="mono">base  : 6L ×512d   — 74M params</span><br>
+      <span class="mono">small : 12L×768d   — 244M params</span><br>
+      <span class="mono">medium: 24L×1024d  — 769M params</span><br>
+      <span class="mono">large : 32L×1280d  — 1550M params</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>Decoder: Auto-regressive with timestamp tokens</h3>
+    <p>The decoder uses cross-attention over encoder outputs. In standard ASR mode it outputs word tokens. In timestamp mode, the decoder alternates between &lt;|t_start|&gt; &lt;word&gt; &lt;|t_end|&gt; triplets. Timestamps are quantised to 20 ms bins (0–30 s, 1 500 bins). This is the foundation for word-level timing.</p>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Word Timestamps → MFA Input</h2></div>
+  <p class="ch-sub">Whisper's native timestamps are word-level. For phoneme-level alignment we use whisper_timestamped or faster-whisper, which apply Dynamic Time Warping (DTW) on the cross-attention weights to refine sub-word timing. The output feeds directly into MFA (App 23).</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Timestamp Output Visualiser</div>
+    <div class="sim-desc">Interactive word-level timeline. Click a word box to see its timestamp and how it maps to audio frames.</div>
+    <div class="sim-canvas-wrap"><canvas id="timeCanvas" style="height:200px"></canvas></div>
+    <div id="timeInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65">Click a word to see its timing detail.</div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>DTW Timestamp Refinement</h3>
+    <p>Cross-attention weights in each decoder layer form a T_dec × 1500 matrix linking output tokens to encoder frames. DTW finds the optimal monotonic path through this matrix, giving a fine-grained token→frame alignment. Converted from frames (10ms/frame) to seconds.</p>
+    <div class="eq-box">
+      <span class="eq-label">DTW alignment</span>
+      <span class="mono">A[i,j] = cross_attn_weight[token_i, frame_j]</span><br>
+      <span class="mono">path   = DTW(A)  — monotonic alignment path</span><br>
+      <span class="mono">t_word = path[token_start] × 0.01  — seconds</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Output Format for MFA</h3>
+    <p>Whisper outputs a JSON list of word dicts with keys: <span class="mono">word</span>, <span class="mono">start</span>, <span class="mono">end</span>, <span class="mono">probability</span>. We convert this to a plain text file (words on newlines) and a corresponding audio file segment — the two inputs MFA requires for forced phoneme alignment.</p>
+    <div class="eq-box eq-box--teal">
+      <span class="eq-label">Whisper → MFA hand-off</span>
+      <span class="mono">Whisper output:  [{"word":"Hello","start":0.14,"end":0.54},...]</span><br>
+      <span class="mono">MFA input file:  hello world this is a test</span><br>
+      <span class="mono">MFA audio:       same 16 kHz mono WAV segment</span><br>
+      <span class="mono">MFA output:      phoneme-level TextGrid &amp; JSON</span>
+    </div>
+  </div>
+
+  <div class="callout callout--accent fade-up">
+    <div class="callout-title">Note on Whisper vs DeepSpeech2</div>
+    Whisper is used here purely to get word-level timestamps for MFA. DeepSpeech2 (used by SadTalker) is a CTC-based model optimised for 29-dimensional phoneme probability output at each frame — ideal for direct audio-to-motion regression. Whisper is much larger but produces more reliable transcriptions for diverse speakers and accents.
+  </div>
+</div>
+</section>
+
+<footer class="footer">Whisper Interactive Guide · OpenAI, 2022</footer>
+
+<script>
+(function(){
+'use strict';
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+var rng=mulberry32(0x5EED1234);
+
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ─── Mel canvas ─── */
+var melCanvas=document.getElementById('melCanvas');var melStep=0;
+var MEL=[
+  {label:'Step 1 — Raw 16 kHz audio',info:'Raw audio waveform at 16 kHz. Each 30-second segment contains 480 000 samples. Short clips are right-padded with zeros to reach 30s.'},
+  {label:'Step 2 — STFT frames (400-pt Hann window)',info:'Short-Time Fourier Transform with a 400-sample (25ms) Hann window and 160-sample (10ms) hop. Each frame produces 201 FFT magnitude values. 30s → 3000 frames.'},
+  {label:'Step 3 — Mel filterbank (80 bins)',info:'The 201 FFT bins are compressed to 80 mel-scale frequency bins using a triangular filterbank. Mel scale emphasises lower frequencies where speech intelligibility is concentrated.'},
+  {label:'Step 4 — Log-magnitude normalisation',info:'Log is applied to mel magnitudes: log_mel = log10(clamp(mel,1e-10)) × 10. Then globally normalised to max 0 dB. Final tensor shape: (80, 3000) — the Whisper encoder input.'}
+];
+window.melNext=function(){if(melStep<MEL.length-1)melStep++;drawMel();};
+window.melReset=function(){melStep=0;drawMel();};
+function drawMel(){
+  document.getElementById('melLabel').textContent=MEL[melStep].label;
+  document.getElementById('melInfo').textContent=MEL[melStep].info;
+  var dpr=window.devicePixelRatio||1;var W=melCanvas.width/dpr,H=melCanvas.height/dpr;
+  var ctx=melCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var margin=12;var area_w=W-margin*2;var area_h=H-margin*2;
+  if(melStep===0){
+    // Raw waveform
+    ctx.strokeStyle='#BF4A24';ctx.lineWidth=1.5;ctx.beginPath();
+    var steps=area_w;var midY=margin+area_h/2;var rng2=mulberry32(0x1234);
+    for(var i=0;i<steps;i++){var y=midY+(rng2()-.5)*area_h*.7*(0.5+0.5*Math.sin(i*0.08));if(i===0)ctx.moveTo(margin+i,y);else ctx.lineTo(margin+i,y);}
+    ctx.stroke();
+    ctx.fillStyle='#5A6878';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='left';ctx.fillText('480 000 samples @ 16 kHz',margin+6,margin+14);
+  } else if(melStep===1){
+    // STFT frames
+    var N_frames=Math.floor(area_w/3);var rng2=mulberry32(0xABCD);
+    for(var f=0;f<N_frames;f++){
+      var height=(rng2()*.7+.15)*area_h;var x=margin+f*3+1;
+      ctx.fillStyle='rgba(191,74,36,'+( 0.25+rng2()*0.5)+')';ctx.fillRect(x,margin+area_h-height,2,height);
+    }
+    ctx.fillStyle='#5A6878';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='left';ctx.fillText('3000 frames × 201 FFT bins',margin+6,margin+14);
+  } else if(melStep===2){
+    // Mel spectrogram
+    var n_mels=80;var n_t=Math.floor(area_w/3);var cell_h=Math.max(1,area_h/n_mels);var cell_w=3;
+    var rng2=mulberry32(0xFEDC);
+    for(var t=0;t<n_t;t++){for(var m=0;m<n_mels;m++){
+      var val=rng2();var emphasis=m<20?1.4:m<50?1.0:0.6;val=Math.min(1,val*emphasis);
+      ctx.fillStyle='rgba(191,74,36,'+val.toFixed(2)+')';ctx.fillRect(margin+t*cell_w,margin+area_h-m*cell_h-cell_h,cell_w,cell_h);
+    }}
+    ctx.fillStyle='#FAF6EE';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='left';ctx.fillText('80 mel bins × 3000 frames',margin+6,margin+14);
+  } else {
+    // Log-normalised
+    var n_mels=80;var n_t=Math.floor(area_w/3);var cell_h=Math.max(1,area_h/n_mels);var cell_w=3;
+    var rng2=mulberry32(0x7777);
+    for(var t=0;t<n_t;t++){for(var m=0;m<n_mels;m++){
+      var val=rng2();var emphasis=m<25?1.5:m<55?1.1:0.5;val=Math.min(1,val*emphasis);
+      var r=Math.round(191+(1-val)*40);var g=Math.round(74+(1-val)*80);var b=Math.round(36+(1-val)*100);
+      ctx.fillStyle='rgb('+r+','+g+','+b+')';ctx.fillRect(margin+t*cell_w,margin+area_h-m*cell_h-cell_h,cell_w,cell_h);
+    }}
+    ctx.fillStyle='#FAF6EE';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='left';ctx.fillText('log-mel (80×3000) — Whisper encoder input',margin+6,margin+14);
+  }
+}
+function resizeMel(){var dpr=window.devicePixelRatio||1;var W=melCanvas.parentElement.getBoundingClientRect().width;melCanvas.width=Math.round(W*dpr);melCanvas.height=Math.round(200*dpr);melCanvas.style.width=W+'px';melCanvas.style.height='200px';drawMel();}
+
+/* ─── Arch canvas ─── */
+var archCanvas=document.getElementById('archCanvas');var archStep=0;
+var ARCH=[
+  {label:'Step 1 — Input (80×3000 mel)',info:'The 80-bin log-mel spectrogram, shape (80, 3000), is the sole input to the Whisper encoder. It is not chunked further; the model always sees exactly 30 seconds (zero-padded if shorter).'},
+  {label:'Step 2 — 2-layer Conv stem',info:'Two Conv1D layers with GELU activation halve the temporal dimension from 3000 to 1500. This is Whisper\'s "stem": it locally compresses temporal resolution before self-attention.'},
+  {label:'Step 3 — Transformer encoder',info:'N-layer sinusoidal-position-aware Transformer self-attention. Output: (1500, d_model). For Whisper medium, N=24, d_model=1024. This is the audio representation used by the decoder.'},
+  {label:'Step 4 — Decoder cross-attention',info:'The decoder auto-regressively generates tokens. At each step it attends to the 1500 encoder frames via cross-attention. The cross-attention weight matrix (T_dec×1500) is later used by DTW for timestamp extraction.'},
+  {label:'Step 5 — Timestamp tokens output',info:'In timestamp mode the decoder generates <|t_start|> TOKEN <|t_end|> triplets. 1500 bins cover 30 s at 20ms/bin. Final output: list of (word, start_sec, end_sec) — input to MFA.'}
+];
+window.archNext=function(){if(archStep<ARCH.length-1)archStep++;drawArch();};
+window.archReset=function(){archStep=0;drawArch();};
+function drawArch(){
+  document.getElementById('archLabel').textContent=ARCH[archStep].label;
+  document.getElementById('archInfo').textContent=ARCH[archStep].info;
+  var dpr=window.devicePixelRatio||1;var W=archCanvas.width/dpr,H=archCanvas.height/dpr;
+  var ctx=archCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var N=ARCH.length;var bw=Math.min(110,(W-32)/N-8);var bh=60;var gap=Math.max(8,(W-32-bw*N)/(N-1));
+  var sx=(W-(bw*N+gap*(N-1)))/2;var by=(H-bh)/2;
+  ARCH.forEach(function(p,i){
+    var x=sx+i*(bw+gap);var act=i===archStep;var done=i<archStep;
+    ctx.fillStyle=act?'rgba(191,74,36,.18)':done?'rgba(191,74,36,.08)':'rgba(230,221,208,.35)';
+    ctx.strokeStyle=act?'#BF4A24':done?'rgba(191,74,36,.5)':'#E6DDD0';ctx.lineWidth=act?2.5:1.2;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,8);ctx.fill();ctx.stroke();
+    ctx.fillStyle=act?'#BF4A24':done?'rgba(191,74,36,.55)':'#5A6878';ctx.font=(act?'700 ':'500 ')+'8.5px DM Sans,sans-serif';ctx.textAlign='center';
+    var short=p.label.replace('Step '+(i+1)+' — ','');var words=short.split(' ');
+    var mid=Math.ceil(words.length/2);ctx.fillText(words.slice(0,mid).join(' '),x+bw/2,by+bh/2-4);ctx.fillText(words.slice(mid).join(' '),x+bw/2,by+bh/2+9);
+    if(i<N-1){ctx.strokeStyle=done?'rgba(191,74,36,.4)':'rgba(230,221,208,.7)';ctx.lineWidth=1.5;var ax=x+bw+1;ctx.beginPath();ctx.moveTo(ax+1,by+bh/2);ctx.lineTo(ax+gap-2,by+bh/2);ctx.stroke();}
+  });
+}
+function resizeArch(){var dpr=window.devicePixelRatio||1;var W=archCanvas.parentElement.getBoundingClientRect().width;archCanvas.width=Math.round(W*dpr);archCanvas.height=Math.round(220*dpr);archCanvas.style.width=W+'px';archCanvas.style.height='220px';drawArch();}
+
+/* ─── Timestamp canvas ─── */
+var timeCanvas=document.getElementById('timeCanvas');
+var WORDS=[
+  {w:'Hello',s:0.14,e:0.54},{w:'world',s:0.58,e:1.02},{w:'this',s:1.08,e:1.34},{w:'is',s:1.38,e:1.54},
+  {w:'a',s:1.56,e:1.66},{w:'test',s:1.70,e:2.18},{w:'of',s:2.22,e:2.42},{w:'Whisper',s:2.46,e:3.10},
+  {w:'word',s:3.16,e:3.62},{w:'timestamps',s:3.68,e:4.50}
+];
+var activeWord=-1;
+function resizeTime(){var dpr=window.devicePixelRatio||1;var W=timeCanvas.parentElement.getBoundingClientRect().width;timeCanvas.width=Math.round(W*dpr);timeCanvas.height=Math.round(200*dpr);timeCanvas.style.width=W+'px';timeCanvas.style.height='200px';drawTime();}
+function drawTime(){
+  var dpr=window.devicePixelRatio||1;var W=timeCanvas.width/dpr,H=timeCanvas.height/dpr;
+  var ctx=timeCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var margin=14;var total_dur=5.0;var barH=44;var yB=H/2-barH/2;
+  // timeline axis
+  ctx.fillStyle='rgba(230,221,208,.5)';ctx.fillRect(margin,yB-20,W-margin*2,barH+40);
+  // time markers
+  for(var t=0;t<=5;t++){
+    var tx=margin+(t/total_dur)*(W-margin*2);
+    ctx.strokeStyle='rgba(230,221,208,.8)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(tx,yB-20);ctx.lineTo(tx,yB+barH+20);ctx.stroke();
+    ctx.fillStyle='#8A95A2';ctx.font='500 8px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText(t+'s',tx,yB-25);
+  }
+  WORDS.forEach(function(wd,i){
+    var x1=margin+(wd.s/total_dur)*(W-margin*2);var x2=margin+(wd.e/total_dur)*(W-margin*2);var act=i===activeWord;
+    ctx.fillStyle=act?'rgba(191,74,36,.85)':'rgba(191,74,36,.35)';
+    ctx.strokeStyle=act?'#BF4A24':'rgba(191,74,36,.5)';ctx.lineWidth=act?2:1;
+    ctx.beginPath();ctx.roundRect(x1+1,yB,Math.max(x2-x1-2,4),barH,4);ctx.fill();ctx.stroke();
+    ctx.fillStyle=act?'#FAF6EE':'#1C2A38';ctx.font=(act?'700 ':'500 ')+'8px DM Sans,sans-serif';ctx.textAlign='center';
+    var label=wd.w;if(ctx.measureText(label).width>x2-x1-4)label=label.substring(0,3)+'…';
+    ctx.fillText(label,(x1+x2)/2,yB+barH/2+3);
+  });
+}
+timeCanvas.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var W=timeCanvas.width/dpr,H=timeCanvas.height/dpr;
+  var margin=14;var total_dur=5.0;var barH=44;var yB=H/2-barH/2;
+  var rect=timeCanvas.getBoundingClientRect();var mx=(e.clientX-rect.left)*(W/rect.width);var my=(e.clientY-rect.top)*(H/rect.height);
+  if(my<yB||my>yB+barH){return;}
+  var found=-1;
+  WORDS.forEach(function(wd,i){var x1=margin+(wd.s/total_dur)*(W-margin*2);var x2=margin+(wd.e/total_dur)*(W-margin*2);if(mx>=x1&&mx<=x2)found=i;});
+  activeWord=found;drawTime();
+  if(found>=0){var wd=WORDS[found];document.getElementById('timeInfo').textContent='"'+wd.w+'" — start: '+wd.s.toFixed(2)+'s, end: '+wd.e.toFixed(2)+'s, duration: '+((wd.e-wd.s)*1000).toFixed(0)+'ms. Mapped to frame range '+Math.round(wd.s*100)+'-'+Math.round(wd.e*100)+' (at 10ms/frame). This boundary is passed to MFA as context for phoneme alignment.';}
+  else document.getElementById('timeInfo').textContent='Click a word box to see its timing.';
+});
+
+window.addEventListener('resize',function(){resizeMel();resizeArch();resizeTime();});
+resizeMel();resizeArch();resizeTime();
+drawMel();drawArch();drawTime();
+})();
+</script>
+</body>
+</html>

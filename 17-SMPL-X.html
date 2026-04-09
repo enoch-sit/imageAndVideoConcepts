@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMPL-X — Extended Body Model with Hands and Expressions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--purple)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--purple);background:var(--purple-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--purple-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--purple)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:560px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--purple);opacity:.2}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--purple);background:var(--bg)}
+.step-dot--teal{border-color:var(--teal)}.step-dot--accent{border-color:var(--accent)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--purple);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--teal{border-left-color:var(--teal)}.eq-box--accent{border-left-color:var(--accent)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--purple{background:var(--purple);color:#fff}.btn--purple:hover{filter:brightness(1.1)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.slider-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-top:.5rem}
+.slider-row label{font-size:.82rem;font-weight:600;color:var(--text-2);white-space:nowrap}
+input[type=range]{flex:1;min-width:80px;accent-color:var(--purple)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.cmp-table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:.88rem}
+.cmp-table th{background:var(--bg-alt);font-weight:700;padding:.65rem 1rem;text-align:left;border-bottom:2px solid var(--border)}
+.cmp-table td{padding:.6rem 1rem;border-bottom:1px solid var(--border)}
+.cmp-table tr:last-child td{border-bottom:none}
+.cmp-table td:first-child{font-weight:600;color:var(--text-2)}
+.hi-purple{color:var(--purple);font-weight:700}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">SMPL-X Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Extensions</a>
+    <a href="#ch2">02 Expressions</a>
+    <a href="#ch3">03 SMPL vs SMPL-X</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>SMPL-X — Body, <em>Hands &amp; Face</em><br>in One Model</h1>
+  <p class="subtitle">SMPL-X extends SMPL with detailed hand articulation via PCA finger poses and face expression control via 100-dimensional expression coefficients (ψ), all in a single differentiable model.</p>
+  <div class="pill-row">
+    <span class="pill pill--purple">ψ ∈ ℝ¹⁰⁰ Expressions</span>
+    <span class="pill pill--teal">θ_hand via 10D PCA</span>
+    <span class="pill pill--accent">10475 Vertices</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">What SMPL-X Adds</h2></div>
+  <p class="ch-sub">SMPL-X ("eXpressive") extends SMPL (6890 vertices, 24 joints) to include fully articulated hands and facial expressions. The mesh grows to 10475 vertices and the joint set expands to 54 joints (24 body + 15 left hand + 15 right hand).</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">SMPL-X Parameter Space Map</div>
+    <div class="sim-desc">Click each block to explore what each parameter group controls in SMPL-X.</div>
+    <div class="sim-canvas-wrap"><canvas id="mapCanvas" style="height:220px"></canvas></div>
+    <div id="mapInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65">Click a parameter block above to see details.</div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Joint Hierarchy Expansion</h3>
+    <p>SMPL-X adds 30 joints for hands (15 per hand). Each finger has 3 knuckle joints (MCP, PIP, DIP) plus the fingertip. The thumb has 4 joints. These 15 joints × 3 axis-angle values = 45 values per hand, but SMPL-X compresses this via PCA — just 10 components per hand capture 98% of natural hand pose variation.</p>
+    <div class="eq-box">
+      <span class="eq-label">Hand pose compression</span>
+      <span class="mono">θ_hand_raw ∈ ℝ⁴⁵  (15 joints × 3 = 45 rot values)</span><br>
+      <span class="mono">θ_hand_pca ∈ ℝ¹⁰  (10 PCA components per hand)</span><br>
+      <span class="mono">θ_hand_raw = V_hand · θ_hand_pca + μ_hand</span><br>
+      <span class="mono">V_hand ∈ ℝ^(45×10)  — PCA basis vectors from hand scans</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Face Geometry — FLAME Head Model</h3>
+    <p>The face region of SMPL-X incorporates vertices from the FLAME head model. The face has 5023 vertices. These are controlled by the same β shape coefficients (body shape affects face size), plus the jaw joint (θ_jaw ∈ ℝ³) and expression PCA coefficients ψ (see Chapter 2).</p>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Expression Coefficients ψ</h2></div>
+  <p class="ch-sub">ψ ∈ ℝ¹⁰⁰ controls the facial expression of the SMPL-X head. Each component adds a blend shape displacement to face vertices — similar to how ARKit blendshapes work but in a linear PCA space rather than named semantic shapes.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Expression Morph Viewer</div>
+    <div class="sim-desc">Drag sliders to see how the first two expression PCA components affect a simplified face outline. ψ₀ ≈ intensity/openness, ψ₁ ≈ asymmetric stretch.</div>
+    <div class="sim-canvas-wrap"><canvas id="exprCanvas" style="height:260px"></canvas></div>
+    <div class="slider-row">
+      <label>ψ₀ (expression intensity): <span id="psi0Val">0.0</span></label>
+      <input type="range" id="psi0Slider" min="-3" max="3" step="0.1" value="0" oninput="updateExpr()">
+    </div>
+    <div class="slider-row">
+      <label>ψ₁ (asymmetric): <span id="psi1Val">0.0</span></label>
+      <input type="range" id="psi1Slider" min="-3" max="3" step="0.1" value="0" oninput="updateExpr()">
+    </div>
+    <div id="exprInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--accent"></span>
+    <h3>ψ vs ARKit Blendshapes</h3>
+    <p>ARKit (and Metahuman) uses 52 named blendshapes (jawOpen, eyeBlinkLeft, etc.) specifically designed for face rendering pipelines. SMPL-X's ψ is a lower-level statistical representation from 3D scan PCA and is not named semantically. In this course's pipeline, we convert SMPL-X ψ → ARKit blendshapes via a learned regression (App 25: Viseme→Blendshapes).</p>
+    <div class="eq-box eq-box--accent">
+      <span class="eq-label">Expression blend shapes</span>
+      <span class="mono">face_vertices_expr = face_vertices + Σᵢ ψᵢ · Eᵢ</span><br>
+      <span class="mono">Eᵢ ∈ ℝ^(5023×3)  — i-th expression basis (per face vertex)</span><br>
+      <span class="mono">ψ ∈ ℝ¹⁰⁰  — expression PCA coefficients</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">SMPL vs SMPL-X Comparison</h2></div>
+  <p class="ch-sub">Choosing between SMPL and SMPL-X depends on whether you need detailed hand or face expression control. SMPL is faster and simpler; SMPL-X is more expressive but has more parameters to optimize and a more complex mesh.</p>
+
+  <table class="cmp-table fade-up">
+    <thead><tr><th>Property</th><th>SMPL</th><th>SMPL-X</th></tr></thead>
+    <tbody>
+      <tr><td>Mesh vertices</td><td>6,890</td><td class="hi-purple">10,475</td></tr>
+      <tr><td>Body joints</td><td>24</td><td class="hi-purple">54 (24+15+15)</td></tr>
+      <tr><td>Shape β</td><td>ℝ¹⁰</td><td class="hi-purple">ℝ¹⁰</td></tr>
+      <tr><td>Pose θ_body</td><td>ℝ⁷²</td><td class="hi-purple">ℝ⁶³ (21 joints × 3)</td></tr>
+      <tr><td>Pose θ_jaw</td><td>—</td><td class="hi-purple">ℝ³</td></tr>
+      <tr><td>Pose θ_hands</td><td>—</td><td class="hi-purple">ℝ¹⁰ PCA per hand</td></tr>
+      <tr><td>Expression ψ</td><td>—</td><td class="hi-purple">ℝ¹⁰⁰</td></tr>
+      <tr><td>Face model</td><td>Simplified blobs</td><td class="hi-purple">FLAME (5023 face verts)</td></tr>
+      <tr><td>Total params</td><td>82</td><td class="hi-purple">189 (β+θ+ψ+jaw+hands)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout--purple fade-up">
+    <div class="callout-title">Course usage context</div>
+    SMPL-X is used in this course for the full talking-head pipeline: β+θ drives body pose for ControlNet conditioning, θ_jaw drives lip open/close during speech, and ψ drives the 100-dim expression coefficients that are converted to ARKit blendshapes for the final face renderer. The 10-dim hand PCA is typically ignored (set to zero) for face-only clips.
+  </div>
+</div>
+</section>
+
+<footer class="footer">SMPL-X Interactive Guide · MPI-IS / Max Planck Institute, 2019</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ── Parameter Map canvas ── */
+var mapCanvas=document.getElementById('mapCanvas');
+var PARAMS=[
+  {label:'β (shape)',sub:'ℝ¹⁰',color:'#BF4A24',info:'Shape coefficients — same as SMPL. Control overall body size, BMI, limb proportions via PCA from 3D body scans. β=0 gives the neutral population-mean body shape. SMPL-X body shape also affects head proportions.'},
+  {label:'θ_body',sub:'ℝ⁶³',color:'#1A7B6B',info:'Body pose (21 joints × 3 axis-angle) — same kinematic tree as SMPL minus the wrist, which is now a separate joint for hand attachment. Controls all major body limb/spine rotations.'},
+  {label:'θ_jaw',sub:'ℝ³',color:'#1A7B6B',info:'Jaw joint rotation (1 joint × 3 axis-angle). Controls mouth open/close and lateral jaw movement during speech. This directly drives lip-sync in the course pipeline when output from the phoneme-to-jaw regression.'},
+  {label:'θ_hands',sub:'2×ℝ¹⁰',color:'#2e8b6b',info:'Hand pose via 10-dim PCA per hand. Decompresses to 45 raw axis-angle values (15-joint × 3) per hand. The 10 PCA components cover 98% of natural hand poses from a large hand scan dataset.'},
+  {label:'ψ (expr)',sub:'ℝ¹⁰⁰',color:'#6B52A8',info:'Face expression PCA coefficients. 100 components derived from FLAME expression blend shapes. Controls all face deformations: mouth open, lip corners, cheek puff, nose wrinkle, forehead crease, etc. Used in lip-sync pipeline.'}
+];
+var activeParam=-1;
+function resizeMap(){
+  var dpr=window.devicePixelRatio||1;var W=mapCanvas.parentElement.getBoundingClientRect().width;
+  mapCanvas.width=Math.round(W*dpr);mapCanvas.height=Math.round(220*dpr);
+  mapCanvas.style.width=W+'px';mapCanvas.style.height='220px';drawMap();
+}
+function drawMap(){
+  var dpr=window.devicePixelRatio||1;var W=mapCanvas.width/dpr,H=mapCanvas.height/dpr;
+  var ctx=mapCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var N=PARAMS.length;var bw=Math.min(110,(W-30)/N-4);var bh=68;var gap=Math.max(4,(W-30-bw*N)/(N-1));
+  var startX=(W-(bw*N+gap*(N-1)))/2;var by=H/2-bh/2;
+  PARAMS.forEach(function(p,i){
+    var x=startX+i*(bw+gap);var act=i===activeParam;
+    ctx.fillStyle=act?p.color+'33':'rgba(230,221,208,.35)';
+    ctx.strokeStyle=act?p.color:'#E6DDD0';ctx.lineWidth=act?2.5:1.2;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,8);ctx.fill();ctx.stroke();
+    ctx.fillStyle=act?p.color:'#5A6878';
+    ctx.font=(act?'700 ':'600 ')+'10px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText(p.label,x+bw/2,by+28);
+    ctx.fillStyle=act?p.color:'#8A95A2';ctx.font='500 9px Fira Code,monospace';
+    ctx.fillText(p.sub,x+bw/2,by+44);
+    if(i<N-1){ctx.strokeStyle='#E6DDD0';ctx.lineWidth=1;var ax=x+bw+1;ctx.beginPath();ctx.moveTo(ax,by+bh/2);ctx.lineTo(ax+gap-3,by+bh/2);ctx.stroke();}
+  });
+}
+mapCanvas.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var W=mapCanvas.width/dpr,H=mapCanvas.height/dpr;
+  var N=PARAMS.length;var bw=Math.min(110,(W-30)/N-4);var bh=68;var gap=Math.max(4,(W-30-bw*N)/(N-1));
+  var startX=(W-(bw*N+gap*(N-1)))/2;var by=H/2-bh/2;
+  var rect=mapCanvas.getBoundingClientRect();var mx=(e.clientX-rect.left)*(W/rect.width);var my=(e.clientY-rect.top)*(H/rect.height);
+  for(var i=0;i<N;i++){var x=startX+i*(bw+gap);if(mx>=x&&mx<=x+bw&&my>=by&&my<=by+bh){activeParam=i;drawMap();document.getElementById('mapInfo').textContent=PARAMS[i].info;return;}}
+});
+
+/* ── Expression canvas ── */
+var exprCanvas=document.getElementById('exprCanvas');
+function resizeExpr(){
+  var dpr=window.devicePixelRatio||1;var W=exprCanvas.parentElement.getBoundingClientRect().width;
+  exprCanvas.width=Math.round(W*dpr);exprCanvas.height=Math.round(260*dpr);
+  exprCanvas.style.width=W+'px';exprCanvas.style.height='260px';drawExpr();
+}
+window.updateExpr=function(){
+  document.getElementById('psi0Val').textContent=parseFloat(document.getElementById('psi0Slider').value).toFixed(1);
+  document.getElementById('psi1Val').textContent=parseFloat(document.getElementById('psi1Slider').value).toFixed(1);
+  drawExpr();
+};
+function drawExpr(){
+  var psi0=parseFloat(document.getElementById('psi0Slider').value);
+  var psi1=parseFloat(document.getElementById('psi1Slider').value);
+  var dpr=window.devicePixelRatio||1;var W=exprCanvas.width/dpr,H=exprCanvas.height/dpr;
+  var ctx=exprCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var cx=W/2;var cy=H*0.45;
+  var rx=Math.min(W*0.22,90);var ry=rx*1.28;
+
+  // Face outline
+  ctx.strokeStyle='rgba(107,82,168,.6)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.stroke();
+
+  // Eyes
+  var eyeOpenL=0.065+psi0*0.01+psi1*0.008;var eyeOpenR=0.065+psi0*0.01-psi1*0.008;
+  var eyeLx=cx-rx*0.38;var eyeRx=cx+rx*0.38;var eyeY=cy-ry*0.20;
+  ctx.strokeStyle='#6B52A8';ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.ellipse(eyeLx,eyeY,rx*0.18,ry*Math.max(0.01,eyeOpenL),0,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(eyeRx,eyeY,rx*0.18,ry*Math.max(0.01,eyeOpenR),0,0,Math.PI*2);ctx.stroke();
+
+  // Mouth — ψ₀ opens mouth, ψ₁ tilts corners
+  var mouthW=rx*0.38;var mouthY=cy+ry*0.3;
+  var mOpenAmt=ry*(0.04+Math.max(0,psi0)*0.05);
+  var cornerTilt=psi1*ry*0.035;
+  var mLeft=cx-mouthW;var mRight=cx+mouthW;
+  var cornerLY=mouthY-cornerTilt;var cornerRY=mouthY+cornerTilt;
+  // Upper lip
+  ctx.strokeStyle='#6B52A8';ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.moveTo(mLeft,cornerLY);ctx.bezierCurveTo(mLeft+mouthW*0.5,mouthY-mOpenAmt*0.2,mRight-mouthW*0.5,mouthY-mOpenAmt*0.2,mRight,cornerRY);ctx.stroke();
+  // Lower lip
+  ctx.beginPath();ctx.moveTo(mLeft,cornerLY);ctx.bezierCurveTo(mLeft+mouthW*0.5,mouthY+mOpenAmt,mRight-mouthW*0.5,mouthY+mOpenAmt,mRight,cornerRY);ctx.stroke();
+
+  // Nose
+  ctx.strokeStyle='rgba(107,82,168,.5)';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(cx,cy-ry*0.05);ctx.lineTo(cx-rx*0.08,cy+ry*0.1);ctx.lineTo(cx+rx*0.08,cy+ry*0.1);ctx.stroke();
+
+  // Eyebrows — raise with psi0
+  var browY=eyeY-ry*(0.12+psi0*0.02);
+  ctx.strokeStyle='rgba(107,82,168,.55)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(eyeLx-rx*0.2,browY+psi1*ry*0.01);ctx.lineTo(eyeLx+rx*0.2,browY-psi1*ry*0.01);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(eyeRx-rx*0.2,browY+psi1*ry*0.01);ctx.lineTo(eyeRx+rx*0.2,browY-psi1*ry*0.01);ctx.stroke();
+
+  ctx.fillStyle='#6B52A8';ctx.font='700 10px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('ψ=('+(psi0>0?'+':'')+psi0.toFixed(1)+', '+(psi1>0?'+':'')+psi1.toFixed(1)+')',cx,H-8);
+
+  document.getElementById('exprInfo').textContent='ψ₀='+(psi0>0?'+':'')+psi0.toFixed(1)+' drives expression intensity — mouth open amount and eye aperture. ψ₁='+(psi1>0?'+':'')+psi1.toFixed(1)+' drives asymmetric expressions like a one-sided smile. In the actual SMPL-X model these are full 5023-vertex displacement fields derived from FLAME expression blend shapes.';
+}
+
+window.addEventListener('resize',function(){resizeMap();resizeExpr();});
+resizeMap();resizeExpr();
+})();
+</script>
+</body>
+</html>

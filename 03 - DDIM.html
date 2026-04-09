@@ -1,0 +1,1220 @@
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DDIM Sampling — Interactive Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&amp;family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Fira+Code:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+:root {
+  --bg: #FAF6EE;
+  --bg-alt: #F3EDE2;
+  --surface: #FFFFFF;
+  --text: #1C2A38;
+  --text-2: #5A6878;
+  --text-3: #8A95A2;
+  --accent: #BF4A24;
+  --accent-glow: rgba(191,74,36,0.12);
+  --teal: #1A7B6B;
+  --teal-glow: rgba(26,123,107,0.12);
+  --purple: #6B52A8;
+  --purple-glow: rgba(107,82,168,0.10);
+  --border: #E6DDD0;
+  --code-bg: #F5EEE3;
+  --shadow: 0 2px 20px rgba(28,42,56,0.06);
+  --shadow-lg: 0 8px 40px rgba(28,42,56,0.10);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'Fira Code', monospace;
+}
+.dark {
+  --bg: #141820;
+  --bg-alt: #1A1F2A;
+  --surface: #1E2430;
+  --text: #E4E0D8;
+  --text-2: #9CA6B4;
+  --text-3: #636E7D;
+  --accent: #E0673F;
+  --accent-glow: rgba(224,103,63,0.15);
+  --teal: #3CC9B2;
+  --teal-glow: rgba(60,201,178,0.12);
+  --purple: #9B84D0;
+  --purple-glow: rgba(155,132,208,0.12);
+  --border: #2A3040;
+  --code-bg: #1A1F2A;
+  --shadow: 0 2px 20px rgba(0,0,0,0.20);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.30);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{
+  font-family:var(--font-body);
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+/* ─── NAV ─── */
+.topnav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:0.75rem 1.5rem;
+  display:flex;align-items:center;gap:1rem;
+  background:rgba(250,246,238,0.85);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+  transition:background 0.3s;
+}
+.dark .topnav{background:rgba(20,24,32,0.85)}
+.topnav .logo{
+  font-family:var(--font-display);font-weight:700;font-size:1.15rem;
+  color:var(--accent);white-space:nowrap;letter-spacing:-0.02em;
+}
+.topnav .links{display:flex;gap:0.25rem;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.topnav .links a{
+  font-size:0.82rem;font-weight:500;color:var(--text-2);
+  text-decoration:none;padding:0.35rem 0.7rem;border-radius:6px;
+  transition:all 0.2s;white-space:nowrap;
+}
+.topnav .links a:hover,.topnav .links a.active{
+  color:var(--accent);background:var(--accent-glow);
+}
+/* ─── LAYOUT ─── */
+.container{max-width:820px;margin:0 auto;padding:0 1.5rem}
+.spacer{height:5rem}
+.spacer-sm{height:3rem}
+/* ─── HERO ─── */
+.hero{
+  padding:7rem 1.5rem 4rem;
+  text-align:center;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%,var(--accent-glow),transparent),
+    radial-gradient(ellipse 60% 40% at 80% 100%,var(--teal-glow),transparent),
+    var(--bg);
+}
+.hero h1{
+  font-family:var(--font-display);
+  font-size:clamp(2.4rem,6vw,3.8rem);
+  font-weight:700;line-height:1.15;
+  color:var(--text);letter-spacing:-0.03em;
+  margin-bottom:1rem;
+}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero .subtitle{
+  font-size:1.1rem;color:var(--text-2);
+  max-width:560px;margin:0 auto 2rem;line-height:1.7;
+}
+.hero .pill-row{display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap}
+.pill{
+  display:inline-flex;align-items:center;gap:0.35rem;
+  font-size:0.78rem;font-weight:600;letter-spacing:0.03em;
+  padding:0.4rem 0.85rem;border-radius:20px;
+  text-transform:uppercase;
+}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}
+.pill--teal{background:var(--teal-glow);color:var(--teal)}
+.pill--purple{background:var(--purple-glow);color:var(--purple)}
+/* ─── CHAPTER ─── */
+.chapter{
+  padding:4rem 0 2rem;
+  border-top:1px solid var(--border);
+}
+.chapter-head{
+  display:flex;align-items:baseline;gap:1rem;
+  margin-bottom:0.5rem;flex-wrap:wrap;
+}
+.ch-num{
+  font-family:var(--font-display);font-size:3.5rem;font-weight:700;
+  line-height:1;color:var(--accent);opacity:0.25;
+}
+.ch-title{
+  font-family:var(--font-display);font-size:clamp(1.6rem,4vw,2.2rem);
+  font-weight:700;line-height:1.2;letter-spacing:-0.02em;
+}
+.ch-sub{
+  font-size:0.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6;
+}
+/* ─── STEP BLOCKS ─── */
+.step{
+  position:relative;
+  padding-left:2.2rem;
+  margin-bottom:2.5rem;
+}
+.step::before{
+  content:'';position:absolute;left:0.45rem;top:2rem;bottom:-1.5rem;
+  width:2px;background:var(--border);
+}
+.step:last-child::before{display:none}
+.step-dot{
+  position:absolute;left:0;top:0.35rem;
+  width:1rem;height:1rem;border-radius:50%;
+  border:2px solid var(--accent);background:var(--bg);
+}
+.step-dot--teal{border-color:var(--teal)}
+.step-dot--purple{border-color:var(--purple)}
+.step h3{
+  font-family:var(--font-display);font-size:1.25rem;font-weight:600;
+  margin-bottom:0.5rem;line-height:1.35;
+}
+.step p,.step ul{margin-bottom:0.75rem;color:var(--text)}
+.step ul{padding-left:1.2rem}
+.step li{margin-bottom:0.3rem}
+/* ─── EQUATION ─── */
+.eq-box{
+  background:var(--code-bg);
+  border-left:3px solid var(--accent);
+  padding:1rem 1.25rem;
+  margin:1rem 0 1.25rem;
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  overflow-x:auto;
+  font-size:0.95rem;
+}
+.eq-box--teal{border-left-color:var(--teal)}
+.eq-box--purple{border-left-color:var(--purple)}
+.eq-label{
+  display:block;font-size:0.72rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:0.06em;
+  color:var(--text-3);margin-bottom:0.4rem;
+}
+/* ─── CALLOUT ─── */
+.callout{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:1.25rem 1.5rem;
+  margin:1.5rem 0;
+  box-shadow:var(--shadow);
+}
+.callout--accent{border-left:4px solid var(--accent)}
+.callout--teal{border-left:4px solid var(--teal)}
+.callout .callout-title{
+  font-weight:700;font-size:0.88rem;
+  text-transform:uppercase;letter-spacing:0.04em;
+  margin-bottom:0.4rem;
+}
+.callout--accent .callout-title{color:var(--accent)}
+.callout--teal .callout-title{color:var(--teal)}
+/* ─── SIM CONTAINER ─── */
+.sim-wrap{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:1.5rem;
+  margin:2rem 0;
+  box-shadow:var(--shadow-lg);
+}
+.sim-title{
+  font-family:var(--font-display);font-size:1.15rem;font-weight:600;
+  margin-bottom:0.25rem;
+}
+.sim-desc{font-size:0.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{
+  position:relative;width:100%;
+  background:var(--bg-alt);
+  border-radius:var(--radius-sm);
+  overflow:hidden;
+  margin-bottom:1rem;
+}
+.sim-canvas-wrap canvas{display:block;width:100%;height:360px}
+.sim-controls{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center}
+.btn{
+  font-family:var(--font-body);font-size:0.82rem;font-weight:600;
+  padding:0.55rem 1.1rem;border-radius:8px;border:none;
+  cursor:pointer;transition:all 0.15s;
+  display:inline-flex;align-items:center;gap:0.3rem;
+}
+.btn--accent{background:var(--accent);color:#fff}
+.btn--accent:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn--teal{background:var(--teal);color:#fff}
+.btn--teal:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}
+.btn--ghost:hover{background:var(--border);color:var(--text)}
+.slider-group{display:flex;align-items:center;gap:0.6rem;flex:1;min-width:200px}
+.slider-group label{font-size:0.82rem;font-weight:600;color:var(--text-2);white-space:nowrap}
+.slider-group input[type=range]{
+  flex:1;height:6px;-webkit-appearance:none;appearance:none;
+  background:var(--border);border-radius:3px;outline:none;
+}
+.slider-group input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--accent);cursor:pointer;border:2px solid var(--surface);
+  box-shadow:0 1px 4px rgba(0,0,0,0.15);
+}
+.slider-val{
+  font-family:var(--font-mono);font-size:0.82rem;font-weight:500;
+  color:var(--accent);min-width:3ch;text-align:right;
+}
+/* ─── LEGEND ─── */
+.legend{display:flex;gap:1.25rem;margin:0.75rem 0;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;color:var(--text-2)}
+.legend-swatch{width:14px;height:4px;border-radius:2px}
+.legend-swatch--ddpm{background:var(--purple)}
+.legend-swatch--ddim{background:var(--teal)}
+.legend-swatch--ref{background:var(--text-3);opacity:0.5}
+/* ─── SPEED VIS ─── */
+.speed-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin:1rem 0}
+@media(max-width:560px){.speed-grid{grid-template-columns:1fr}}
+.speed-card{
+  background:var(--code-bg);border-radius:var(--radius-sm);
+  padding:1.1rem 1.25rem;text-align:center;
+}
+.speed-card .label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-3);margin-bottom:0.5rem}
+.speed-card .big{font-family:var(--font-display);font-size:2.2rem;font-weight:700;line-height:1.1}
+.speed-card .unit{font-size:0.82rem;color:var(--text-2)}
+.speed-bar-wrap{margin:0.75rem 0}
+.speed-bar-label{display:flex;justify-content:space-between;font-size:0.78rem;font-weight:600;margin-bottom:0.3rem}
+.speed-bar-track{height:10px;background:var(--code-bg);border-radius:5px;overflow:hidden;position:relative}
+.speed-bar-fill{height:100%;border-radius:5px;transition:width 1.5s cubic-bezier(0.22,1,0.36,1)}
+.speed-bar-fill--ddpm{background:var(--purple)}
+.speed-bar-fill--ddim{background:var(--teal)}
+/* ─── COMPRESSION VIS ─── */
+.compress-vis{
+  display:flex;align-items:center;justify-content:center;
+  gap:1rem;margin:1.5rem 0;flex-wrap:wrap;
+}
+.compress-box{
+  display:flex;flex-direction:column;align-items:center;gap:0.4rem;
+}
+.compress-grid{
+  display:grid;border:2px solid var(--border);border-radius:4px;
+  overflow:hidden;
+}
+.compress-grid div{background:var(--accent);opacity:0.25}
+.compress-arrow{font-size:1.8rem;color:var(--text-3);font-weight:300}
+.compress-label{font-family:var(--font-mono);font-size:0.72rem;color:var(--text-2)}
+/* ─── FOOTER ─── */
+.footer{
+  text-align:center;padding:3rem 1.5rem;
+  color:var(--text-3);font-size:0.82rem;
+  border-top:1px solid var(--border);margin-top:2rem;
+}
+/* ─── ANIM ─── */
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity 0.7s ease,transform 0.7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+/* ─── RESPONSIVE ─── */
+@media(max-width:640px){
+  .topnav{padding:0.6rem 1rem}
+  .topnav .links a{font-size:0.75rem;padding:0.3rem 0.5rem}
+  .hero{padding:6rem 1rem 3rem}
+  .container{padding:0 1rem}
+  .sim-wrap{padding:1rem}
+  .sim-canvas-wrap canvas{height:280px}
+  .step{padding-left:1.8rem}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ NAV ═══════════════ -->
+<nav class="topnav" id="topnav">
+  <div class="logo">DDIM Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Deterministic</a>
+    <a href="#ch2">02 Fewer Steps</a>
+    <a href="#ch3">03 Speed</a>
+  </div>
+</nav>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<header class="hero">
+  <h1>From Noise to Image:<br><em>Understanding DDIM Sampling</em></h1>
+  <p class="subtitle">
+    An interactive, step-by-step exploration of how DDIM turns the stochastic diffusion process
+    into a fast, deterministic, and reproducible generation pipeline.
+  </p>
+  <div class="pill-row">
+    <span class="pill pill--accent">Deterministic ODE</span>
+    <span class="pill pill--teal">20–50 Steps</span>
+    <span class="pill pill--purple">Consumer Hardware</span>
+  </div>
+</header>
+
+<div class="spacer"></div>
+
+<!-- ═══════════════ CHAPTER 1 ═══════════════ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head">
+    <span class="ch-num">01</span>
+    <h2 class="ch-title">Stochastic → Deterministic</h2>
+  </div>
+  <p class="ch-sub">
+    DDIM sampling converts the stochastic reverse diffusion process into a deterministic
+    probability flow ODE, making generation reproducible from the same latent seed.
+  </p>
+
+  <!-- Step 1.1 -->
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>The DDPM Reverse Process</h3>
+    <p>
+      DDPM (Denoising Diffusion Probabilistic Models) generates images by reversing a noise-adding
+      process. Starting from pure Gaussian noise $x_T$, it removes a small amount of noise at each
+      timestep. Each step is a <strong>stochastic Markov chain</strong>:
+    </p>
+    <div class="eq-box eq-box--purple">
+      <span class="eq-label">DDPM reverse step</span>
+      $$x_{t-1} = \frac{1}{\sqrt{\alpha_t}} \left( x_t - \frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_t}} \,\epsilon_\theta(x_t,t) \right) + \sigma_t \, z$$
+    </div>
+    <p>
+      Here $\epsilon_\theta(x_t,t)$ is the U-Net's predicted noise, and $z \sim \mathcal{N}(0,I)$
+      is <strong>fresh random noise injected at every step</strong>. The $\sigma_t z$ term
+      is what makes DDPM stochastic — running the same seed twice yields different images.
+    </p>
+  </div>
+
+  <!-- Step 1.2 -->
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>The DDIM Reformulation</h3>
+    <p>
+      Song et al. (2020) made a key observation: if we set $\sigma_t = 0$, we can reformulate
+      the reverse process as a <strong>deterministic</strong> update. First, predict the clean
+      image $\hat{x}_0$ at each step:
+    </p>
+    <div class="eq-box eq-box--teal">
+      <span class="eq-label">Clean image prediction</span>
+      $$\hat{x}_0 = \frac{x_t - \sqrt{1-\bar{\alpha}_t} \,\epsilon_\theta(x_t,t)}{\sqrt{\bar{\alpha}_t}}$$
+    </div>
+    <p>
+      Then the <strong>deterministic update</strong> becomes:
+    </p>
+    <div class="eq-box eq-box--teal">
+      <span class="eq-label">DDIM deterministic step</span>
+      $$x_{t-1} = \sqrt{\bar{\alpha}_{t-1}} \,\hat{x}_0 + \sqrt{1-\bar{\alpha}_{t-1}} \,\epsilon_\theta(x_t,t)$$
+    </div>
+    <p>
+      This is exactly the <strong>Euler discretization</strong> of the probability-flow ODE:
+    </p>
+    <div class="eq-box">
+      <span class="eq-label">Probability-flow ODE</span>
+      $$\frac{dx}{dt} = \mathbf{v}(x_t, t)$$
+    </div>
+    <p>
+      No stochastic term. The entire trajectory is a <em>smooth, deterministic flow</em> through
+      latent space — a single vector field guides $x_T$ all the way to $x_0$.
+    </p>
+  </div>
+
+  <!-- Step 1.3 -->
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Reproducibility Consequence</h3>
+    <p>
+      Because there is no injected noise, the mapping from latent code to output is
+      <strong>fully deterministic</strong>:
+    </p>
+    <div class="callout callout--teal">
+      <div class="callout-title">Key Insight</div>
+      Same latent seed $x_T \sim \mathcal{N}(0,I)$ + same model $\epsilon_\theta$
+      → identical ODE trajectory → <strong>pixel-identical output</strong> every run.
+    </div>
+    <p>
+      This enables seed-based workflows: you can share a seed to reproduce an exact image,
+      interpolate between seeds to morph between outputs, or build deterministic editing
+      pipelines — none of which are possible with stochastic DDPM.
+    </p>
+  </div>
+
+  <!-- ─── SIM 1 ─── -->
+  <div class="sim-wrap fade-up" id="sim1-wrap">
+    <div class="sim-title">Interactive: Trajectory Comparison</div>
+    <div class="sim-desc">
+      Click to generate paths from the same starting noise. DDPM paths scatter; DDIM paths overlap perfectly.
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-swatch legend-swatch--ddpm"></span> DDPM (stochastic)</span>
+      <span class="legend-item"><span class="legend-swatch legend-swatch--ddim"></span> DDIM (deterministic)</span>
+    </div>
+    <div class="sim-canvas-wrap">
+      <canvas id="trajCanvas"></canvas>
+    </div>
+    <div class="sim-controls">
+      <button class="btn btn--accent" id="btnDDPM">Run DDPM ×5</button>
+      <button class="btn btn--teal" id="btnDDIM">Run DDIM ×5</button>
+      <button class="btn btn--ghost" id="btnClear">Clear</button>
+    </div>
+  </div>
+</div>
+</section>
+
+<div class="spacer"></div>
+
+<!-- ═══════════════ CHAPTER 2 ═══════════════ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head">
+    <span class="ch-num">02</span>
+    <h2 class="ch-title">1 000 Steps → 20 Steps</h2>
+  </div>
+  <p class="ch-sub">
+    The ODE formulation reduces sampling from 1 000 stochastic steps to just 20–50 deterministic
+    steps with no measurable quality loss.
+  </p>
+
+  <!-- Step 2.1 -->
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>Why DDPM Needs ~1 000 Steps</h3>
+    <p>
+      Each noise injection $\sigma_t z$ accumulates variance. When you try to take <em>large</em>
+      steps (fewer total steps), the accumulated noise pushes the sample far off the data manifold.
+    </p>
+    <ul>
+      <li>Large $\Delta t$ → large noise per step → the sample drifts off-course</li>
+      <li>Quality metrics (FID, CLIP score) collapse rapidly below ~500 steps</li>
+      <li>DDPM is fundamentally limited by this variance-accumulation problem</li>
+    </ul>
+  </div>
+
+  <!-- Step 2.2 -->
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>The ODE Advantage</h3>
+    <p>
+      With no injected variance, the ODE path is the <em>mean trajectory</em> of the original SDE.
+      The U-Net learns a smooth vector field $\mathbf{v}(x_t,t)$ that remains accurate even with
+      coarse timesteps.
+    </p>
+    <div class="callout callout--teal">
+      <div class="callout-title">Mathematical Justification</div>
+      The probability-flow ODE has the <strong>same marginal distributions</strong> $p_t(x)$
+      as the original SDE, but follows a single deterministic trajectory instead of averaging
+      over noise. You can skip large chunks of the path and still land accurately.
+    </div>
+  </div>
+
+  <!-- Step 2.3 -->
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Empirical Discretization &amp; Modern Schedulers</h3>
+    <p>
+      DDIM uses <strong>non-Markovian sampling</strong> with arbitrarily large $\Delta t$
+      (e.g., stride = 20–50). Modern schedulers push this further:
+    </p>
+    <ul>
+      <li><strong>DPM++ 2M Karras</strong> — second-order multi-step solver</li>
+      <li><strong>Euler a</strong> — adaptive Euler with ancestral sampling</li>
+      <li>Quality stays within <strong>0.1–0.5 FID</strong> of full 1 000-step DDPM</li>
+    </ul>
+  </div>
+
+  <!-- ─── SIM 2 ─── -->
+  <div class="sim-wrap fade-up" id="sim2-wrap">
+    <div class="sim-title">Interactive: Step Count Explorer</div>
+    <div class="sim-desc">
+      Drag the slider to change the number of sampling steps. Watch how DDPM deviates from the true
+      ODE path while DDIM stays on track — especially at low step counts.
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-swatch legend-swatch--ref"></span> True ODE path</span>
+      <span class="legend-item"><span class="legend-swatch legend-swatch--ddpm"></span> DDPM approximation</span>
+      <span class="legend-item"><span class="legend-swatch legend-swatch--ddim"></span> DDIM approximation</span>
+    </div>
+    <div class="sim-canvas-wrap">
+      <canvas id="stepCanvas"></canvas>
+    </div>
+    <div class="sim-controls">
+      <div class="slider-group">
+        <label>Steps</label>
+        <input type="range" id="stepSlider" min="3" max="200" value="50">
+        <span class="slider-val" id="stepVal">50</span>
+      </div>
+      <button class="btn btn--ghost" id="btnReseed">New Noise Seed</button>
+    </div>
+  </div>
+</div>
+</section>
+
+<div class="spacer"></div>
+
+<!-- ═══════════════ CHAPTER 3 ═══════════════ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head">
+    <span class="ch-num">03</span>
+    <h2 class="ch-title">Fast Enough for Everyone</h2>
+  </div>
+  <p class="ch-sub">
+    Following a smooth ODE path — instead of adding random noise at every step — is what
+    makes Stable Diffusion fast enough to run on consumer hardware.
+  </p>
+
+  <!-- Step 3.1 -->
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>The Computational Bottleneck</h3>
+    <p>
+      Each diffusion step requires one full <strong>U-Net forward pass</strong>, which constitutes
+      ~90% of total inference runtime. The number of steps directly controls how long generation takes.
+    </p>
+  </div>
+
+  <!-- Step 3.2 -->
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Step Reduction Impact</h3>
+    <div class="speed-grid">
+      <div class="speed-card">
+        <div class="label">DDPM (1 000 steps)</div>
+        <div class="big" style="color:var(--purple)">30–60 s</div>
+        <div class="unit">on RTX 4090 (512×512)</div>
+      </div>
+      <div class="speed-card">
+        <div class="label">DDIM / ODE (20–50 steps)</div>
+        <div class="big" style="color:var(--teal)">1–3 s</div>
+        <div class="unit">20–50× wall-clock speedup</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3.3 -->
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Latent Space Synergy</h3>
+    <p>
+      Stable Diffusion compounds the speedup by running diffusion in a
+      <strong>compressed latent space</strong>. A VAE encoder maps
+      $512 \times 512 \times 3$ pixel images to $64 \times 64 \times 4$ latents
+      — an <strong>8× spatial compression</strong>:
+    </p>
+    <div class="compress-vis">
+      <div class="compress-box">
+        <div class="compress-grid" id="gridLarge" style="grid-template-columns:repeat(16,4px);grid-template-rows:repeat(16,4px);gap:1px"></div>
+        <span class="compress-label">512 × 512 × 3</span>
+      </div>
+      <span class="compress-arrow">→</span>
+      <div class="compress-box">
+        <div class="compress-grid" id="gridSmall" style="grid-template-columns:repeat(8,4px);grid-template-rows:repeat(8,4px);gap:1px"></div>
+        <span class="compress-label">64 × 64 × 4</span>
+      </div>
+    </div>
+    <p>
+      Combined with ODE sampling, total inference drops to <strong>~0.5–2 s</strong>
+      on mid-range GPUs and Apple Silicon.
+    </p>
+    <div class="callout callout--accent">
+      <div class="callout-title">Why This Matters</div>
+      <ul>
+        <li>No random noise → aggressive step schedules are stable (no variance explosion)</li>
+        <li>Trajectory stays coherent across large $\Delta t$ jumps → fewer U-Net evaluations needed</li>
+        <li>Enables real-time consumer deployment: DDPM was research-lab only; DDIM + latent space gave us Stable Diffusion — the first practical consumer text-to-image model</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─── SIM 3 ─── -->
+  <div class="sim-wrap fade-up" id="sim3-wrap">
+    <div class="sim-title">Interactive: Speed Race</div>
+    <div class="sim-desc">
+      Watch DDPM and DDIM race to generate an image. Each block = one U-Net forward pass.
+    </div>
+    <div class="speed-bar-wrap">
+      <div class="speed-bar-label">
+        <span style="color:var(--purple)">DDPM · <span id="ddpmCount">0</span> / 1000 steps</span>
+        <span id="ddpmTime" style="color:var(--text-3)">0.0 s</span>
+      </div>
+      <div class="speed-bar-track"><div class="speed-bar-fill speed-bar-fill--ddpm" id="ddpmBar" style="width:0%"></div></div>
+    </div>
+    <div class="speed-bar-wrap">
+      <div class="speed-bar-label">
+        <span style="color:var(--teal)">DDIM · <span id="ddimCount">0</span> / 25 steps</span>
+        <span id="ddimTime" style="color:var(--text-3)">0.0 s</span>
+      </div>
+      <div class="speed-bar-track"><div class="speed-bar-fill speed-bar-fill--ddim" id="ddimBar" style="width:0%"></div></div>
+    </div>
+    <div style="margin-top:1rem">
+      <div class="sim-controls">
+        <button class="btn btn--accent" id="btnRace">Start Race</button>
+        <button class="btn btn--ghost" id="btnResetRace">Reset</button>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<div class="spacer-sm"></div>
+
+<footer class="footer">
+  <p>An interactive guide to DDIM sampling · Based on Song et al. 2020</p>
+</footer>
+
+<!-- ═══════════════ SCRIPT ═══════════════ -->
+<script>
+(function () {
+  'use strict';
+
+  /* ──────────────── Dark Mode ──────────────── */
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.classList.add('dark');
+  }
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+    if (e.matches) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  });
+
+  /* ──────────────── KaTeX ──────────────── */
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof renderMathInElement === 'function') {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false }
+        ],
+        throwOnError: false
+      });
+    }
+    initScrollAnimations();
+    initTrajectorySimulation();
+    initStepExplorer();
+    initSpeedRace();
+    initCompressionGrids();
+    initNavHighlight();
+  });
+
+  /* ──────────────── Scroll Animations ──────────────── */
+  function initScrollAnimations() {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.fade-up').forEach(function (el) {
+      observer.observe(el);
+    });
+  }
+
+  /* ──────────────── Nav Highlight ──────────────── */
+  function initNavHighlight() {
+    var links = document.querySelectorAll('.topnav .links a');
+    var sections = document.querySelectorAll('.chapter');
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          var id = entry.target.getAttribute('id');
+          links.forEach(function (l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { threshold: 0.2, rootMargin: '-80px 0px -50% 0px' });
+    sections.forEach(function (s) { observer.observe(s); });
+  }
+
+  /* ──────────────── Utilities ──────────────── */
+  function mulberry32(a) {
+    return function () {
+      a |= 0;
+      a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function gaussianPair(rng) {
+    var u1 = rng();
+    var u2 = rng();
+    while (u1 === 0) { u1 = rng(); }
+    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  }
+
+  function getCanvasCtx(canvas) {
+    var rect = canvas.getBoundingClientRect();
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return { ctx: ctx, w: rect.width, h: rect.height };
+  }
+
+  function getCSSVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  /* ──────────────────────────────────────────────
+     SIMULATION 1 — Trajectory Comparison
+  ────────────────────────────────────────────── */
+  function initTrajectorySimulation() {
+    var canvas = document.getElementById('trajCanvas');
+    if (!canvas) return;
+    var paths = [];
+    var animating = false;
+    var animQueue = [];
+    var currentAnim = null;
+
+    function draw() {
+      var info = getCanvasCtx(canvas);
+      var ctx = info.ctx;
+      var w = info.w;
+      var h = info.h;
+
+      var purple = getCSSVar('--purple') || '#6B52A8';
+      var teal = getCSSVar('--teal') || '#1A7B6B';
+      var bgAlt = getCSSVar('--bg-alt') || '#F3EDE2';
+      var border = getCSSVar('--border') || '#E6DDD0';
+      var txt3 = getCSSVar('--text-3') || '#8A95A2';
+      var txt = getCSSVar('--text') || '#1C2A38';
+
+      // Background
+      ctx.fillStyle = bgAlt;
+      ctx.fillRect(0, 0, w, h);
+
+      // Grid
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 0.5;
+      var gridSize = 30;
+      for (var gx = gridSize; gx < w; gx += gridSize) {
+        ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke();
+      }
+      for (var gy = gridSize; gy < h; gy += gridSize) {
+        ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke();
+      }
+
+      // Start & end points
+      var sx = w * 0.12;
+      var sy = h * 0.5;
+      var ex = w * 0.88;
+      var ey = h * 0.5;
+
+      // Start circle
+      ctx.beginPath();
+      ctx.arc(sx, sy, 10, 0, Math.PI * 2);
+      ctx.fillStyle = txt3;
+      ctx.globalAlpha = 0.2;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = txt3;
+      ctx.stroke();
+
+      // End target
+      ctx.beginPath();
+      ctx.arc(ex, ey, 10, 0, Math.PI * 2);
+      ctx.fillStyle = teal;
+      ctx.globalAlpha = 0.15;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = teal;
+      ctx.stroke();
+
+      // Labels
+      ctx.font = '600 11px ' + getCSSVar('--font-mono');
+      ctx.fillStyle = txt3;
+      ctx.textAlign = 'center';
+      ctx.fillText('x_T (noise)', sx, sy + 26);
+      ctx.fillStyle = teal;
+      ctx.fillText('x_0 (clean)', ex, ey + 26);
+
+      // Draw stored paths
+      paths.forEach(function (p) {
+        var color = p.type === 'ddpm' ? purple : teal;
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = p.type === 'ddpm' ? 0.45 : 0.7;
+        ctx.lineWidth = p.type === 'ddpm' ? 1.8 : 2.5;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        var drawLen = Math.floor(p.points.length * p.progress);
+        for (var i = 0; i < drawLen; i++) {
+          var px = sx + (ex - sx) * p.points[i].x;
+          var py = sy + (h * 0.35) * p.points[i].y;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // End dot
+        if (drawLen > 0) {
+          var last = drawLen - 1;
+          var lpx = sx + (ex - sx) * p.points[last].x;
+          var lpy = sy + (h * 0.35) * p.points[last].y;
+          ctx.beginPath();
+          ctx.arc(lpx, lpy, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
+        }
+      });
+
+      // Counter
+      var ddpmCount = paths.filter(function (p) { return p.type === 'ddpm'; }).length;
+      var ddimCount = paths.filter(function (p) { return p.type === 'ddim'; }).length;
+      ctx.font = '500 11px ' + getCSSVar('--font-body');
+      ctx.textAlign = 'right';
+      ctx.fillStyle = purple;
+      ctx.fillText('DDPM runs: ' + ddpmCount, w - 12, 20);
+      ctx.fillStyle = teal;
+      ctx.fillText('DDIM runs: ' + ddimCount, w - 12, 36);
+      ctx.fillStyle = txt;
+    }
+
+    function generatePath(type, seed) {
+      var rng = mulberry32(seed);
+      var steps = 80;
+      var pts = [{ x: 0, y: 0 }];
+      var cx = 0;
+      var cy = 0;
+      for (var i = 1; i <= steps; i++) {
+        var t = i / steps;
+        cx = t;
+        if (type === 'ddpm') {
+          var noise = gaussianPair(rng) * 0.08;
+          cy = cy * 0.92 + noise;
+        } else {
+          cy = 0;
+        }
+        pts.push({ x: cx, y: cy });
+      }
+      return pts;
+    }
+
+    function animatePaths(newPaths) {
+      newPaths.forEach(function (p) {
+        p.progress = 0;
+        paths.push(p);
+      });
+      animating = true;
+      var startTime = performance.now();
+      var duration = 1200;
+      function tick(now) {
+        var elapsed = now - startTime;
+        var frac = Math.min(elapsed / duration, 1);
+        var ease = 1 - Math.pow(1 - frac, 3);
+        newPaths.forEach(function (p) { p.progress = ease; });
+        draw();
+        if (frac < 1) {
+          currentAnim = requestAnimationFrame(tick);
+        } else {
+          newPaths.forEach(function (p) { p.progress = 1; });
+          draw();
+          animating = false;
+          if (animQueue.length > 0) {
+            animQueue.shift()();
+          }
+        }
+      }
+      currentAnim = requestAnimationFrame(tick);
+    }
+
+    function enqueue(fn) {
+      if (animating) {
+        animQueue.push(fn);
+      } else {
+        fn();
+      }
+    }
+
+    document.getElementById('btnDDPM').addEventListener('click', function () {
+      enqueue(function () {
+        var newP = [];
+        for (var i = 0; i < 5; i++) {
+          newP.push({ type: 'ddpm', points: generatePath('ddpm', Date.now() + i * 7919), progress: 0 });
+        }
+        animatePaths(newP);
+      });
+    });
+
+    document.getElementById('btnDDIM').addEventListener('click', function () {
+      enqueue(function () {
+        var newP = [];
+        for (var i = 0; i < 5; i++) {
+          newP.push({ type: 'ddim', points: generatePath('ddim', 42), progress: 0 });
+        }
+        animatePaths(newP);
+      });
+    });
+
+    document.getElementById('btnClear').addEventListener('click', function () {
+      if (currentAnim) cancelAnimationFrame(currentAnim);
+      paths.length = 0;
+      animQueue.length = 0;
+      animating = false;
+      draw();
+    });
+
+    window.addEventListener('resize', function () { draw(); });
+    draw();
+  }
+
+  /* ──────────────────────────────────────────────
+     SIMULATION 2 — Step Count Explorer
+  ────────────────────────────────────────────── */
+  function initStepExplorer() {
+    var canvas = document.getElementById('stepCanvas');
+    if (!canvas) return;
+    var slider = document.getElementById('stepSlider');
+    var valDisplay = document.getElementById('stepVal');
+    var noiseSeed = 12345;
+
+    function truePath(t) {
+      return {
+        x: t,
+        y: 0.35 * Math.sin(t * Math.PI * 2.2) * (1 - t * 0.5)
+      };
+    }
+
+    function draw() {
+      var info = getCanvasCtx(canvas);
+      var ctx = info.ctx;
+      var w = info.w;
+      var h = info.h;
+      var numSteps = parseInt(slider.value, 10);
+      valDisplay.textContent = numSteps;
+
+      var purple = getCSSVar('--purple') || '#6B52A8';
+      var teal = getCSSVar('--teal') || '#1A7B6B';
+      var bgAlt = getCSSVar('--bg-alt') || '#F3EDE2';
+      var border = getCSSVar('--border') || '#E6DDD0';
+      var txt3 = getCSSVar('--text-3') || '#8A95A2';
+
+      var pad = { l: 40, r: 30, t: 30, b: 40 };
+      var pw = w - pad.l - pad.r;
+      var ph = h - pad.t - pad.b;
+
+      ctx.fillStyle = bgAlt;
+      ctx.fillRect(0, 0, w, h);
+
+      // Grid
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 0.5;
+      for (var gx = pad.l; gx <= w - pad.r; gx += 40) {
+        ctx.beginPath(); ctx.moveTo(gx, pad.t); ctx.lineTo(gx, h - pad.b); ctx.stroke();
+      }
+      for (var gy = pad.t; gy <= h - pad.b; gy += 40) {
+        ctx.beginPath(); ctx.moveTo(pad.l, gy); ctx.lineTo(w - pad.r, gy); ctx.stroke();
+      }
+
+      // Axis labels
+      ctx.font = '500 10px ' + getCSSVar('--font-mono');
+      ctx.fillStyle = txt3;
+      ctx.textAlign = 'center';
+      ctx.fillText('t = T (noise)', pad.l + 30, h - pad.b + 25);
+      ctx.fillText('t = 0 (clean)', w - pad.r - 30, h - pad.b + 25);
+
+      function toCanvas(pt) {
+        return {
+          x: pad.l + pt.x * pw,
+          y: pad.t + ph * 0.5 - pt.y * ph * 0.8
+        };
+      }
+
+      // Draw true path (reference)
+      ctx.strokeStyle = txt3;
+      ctx.globalAlpha = 0.35;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      for (var i = 0; i <= 200; i++) {
+        var t = i / 200;
+        var pt = toCanvas(truePath(t));
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+
+      // DDPM approximation
+      var rng = mulberry32(noiseSeed);
+      var ddpmPts = [truePath(0)];
+      var cx = truePath(0).x;
+      var cy = truePath(0).y;
+      var stepSize = 1 / numSteps;
+      for (var si = 1; si <= numSteps; si++) {
+        var targetT = si * stepSize;
+        var target = truePath(targetT);
+        var dirX = target.x - cx;
+        var dirY = target.y - cy;
+        var noiseMag = 0.12 * Math.sqrt(stepSize) * (1 + stepSize * 2);
+        cx += dirX + gaussianPair(rng) * noiseMag;
+        cy += dirY + gaussianPair(rng) * noiseMag;
+        ddpmPts.push({ x: cx, y: cy });
+      }
+
+      // Draw DDPM
+      ctx.strokeStyle = purple;
+      ctx.lineWidth = 2.2;
+      ctx.globalAlpha = 0.7;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ddpmPts.forEach(function (p, idx) {
+        var cp = toCanvas(p);
+        if (idx === 0) ctx.moveTo(cp.x, cp.y);
+        else ctx.lineTo(cp.x, cp.y);
+      });
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // DDPM markers
+      ddpmPts.forEach(function (p) {
+        var cp = toCanvas(p);
+        ctx.beginPath();
+        ctx.arc(cp.x, cp.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = purple;
+        ctx.fill();
+      });
+
+      // DDIM approximation
+      var ddimPts = [];
+      for (var sj = 0; sj <= numSteps; sj++) {
+        ddimPts.push(truePath(sj / numSteps));
+      }
+
+      // Draw DDIM
+      ctx.strokeStyle = teal;
+      ctx.lineWidth = 2.5;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ddimPts.forEach(function (p, idx) {
+        var cp = toCanvas(p);
+        if (idx === 0) ctx.moveTo(cp.x, cp.y);
+        else ctx.lineTo(cp.x, cp.y);
+      });
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // DDIM markers
+      ddimPts.forEach(function (p) {
+        var cp = toCanvas(p);
+        ctx.beginPath();
+        ctx.arc(cp.x, cp.y, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = teal;
+        ctx.fill();
+      });
+
+      // Endpoint error
+      var ddpmEnd = ddpmPts[ddpmPts.length - 1];
+      var trueEnd = truePath(1);
+      var errorDDPM = Math.sqrt(Math.pow(ddpmEnd.x - trueEnd.x, 2) + Math.pow(ddpmEnd.y - trueEnd.y, 2));
+      var ddimEnd = ddimPts[ddimPts.length - 1];
+      var errorDDIM = Math.sqrt(Math.pow(ddimEnd.x - trueEnd.x, 2) + Math.pow(ddimEnd.y - trueEnd.y, 2));
+
+      ctx.font = '600 11px ' + getCSSVar('--font-body');
+      ctx.textAlign = 'right';
+      ctx.fillStyle = purple;
+      ctx.fillText('DDPM endpoint error: ' + errorDDPM.toFixed(4), w - pad.r, pad.t + 16);
+      ctx.fillStyle = teal;
+      ctx.fillText('DDIM endpoint error: ' + errorDDIM.toFixed(4), w - pad.r, pad.t + 32);
+    }
+
+    slider.addEventListener('input', draw);
+
+    document.getElementById('btnReseed').addEventListener('click', function () {
+      noiseSeed = Math.floor(Math.random() * 100000);
+      draw();
+    });
+
+    window.addEventListener('resize', draw);
+    draw();
+  }
+
+  /* ──────────────────────────────────────────────
+     SIMULATION 3 — Speed Race
+  ────────────────────────────────────────────── */
+  function initSpeedRace() {
+    var btnRace = document.getElementById('btnRace');
+    var btnReset = document.getElementById('btnResetRace');
+    var ddpmBar = document.getElementById('ddpmBar');
+    var ddimBar = document.getElementById('ddimBar');
+    var ddpmCountEl = document.getElementById('ddpmCount');
+    var ddimCountEl = document.getElementById('ddimCount');
+    var ddpmTimeEl = document.getElementById('ddpmTime');
+    var ddimTimeEl = document.getElementById('ddimTime');
+    if (!btnRace) return;
+
+    var raceAnim = null;
+    var ddpmSteps = 1000;
+    var ddimSteps = 25;
+    var timePerStep = 0.03; // seconds per step on RTX 4090
+
+    function resetRace() {
+      if (raceAnim) cancelAnimationFrame(raceAnim);
+      raceAnim = null;
+      ddpmBar.style.width = '0%';
+      ddimBar.style.width = '0%';
+      ddpmBar.style.transition = 'none';
+      ddimBar.style.transition = 'none';
+      ddpmCountEl.textContent = '0';
+      ddimCountEl.textContent = '0';
+      ddpmTimeEl.textContent = '0.0 s';
+      ddimTimeEl.textContent = '0.0 s';
+      btnRace.disabled = false;
+    }
+
+    function startRace() {
+      resetRace();
+      btnRace.disabled = true;
+
+      // Remove transition for frame-by-frame update
+      ddpmBar.style.transition = 'none';
+      ddimBar.style.transition = 'none';
+
+      var ddpmProgress = 0;
+      var ddimProgress = 0;
+      var speed = 3; // steps per frame for DDPM
+      var ddimSpeed = 0.075; // steps per frame for DDIM (slower animation, same wall-clock proportion)
+
+      function tick() {
+        ddpmProgress = Math.min(ddpmProgress + speed, ddpmSteps);
+        ddimProgress = Math.min(ddimProgress + ddimSpeed, ddimSteps);
+
+        // Scale so DDIM finishes proportionally faster
+        var ddpmPct = (ddpmProgress / ddpmSteps) * 100;
+        var ddimPct = (ddimProgress / ddimSteps) * 100;
+
+        ddpmBar.style.width = ddpmPct + '%';
+        ddimBar.style.width = ddimPct + '%';
+        ddpmCountEl.textContent = Math.floor(ddpmProgress);
+        ddimCountEl.textContent = Math.floor(ddimProgress);
+        ddpmTimeEl.textContent = (ddpmProgress * timePerStep).toFixed(1) + ' s';
+        ddimTimeEl.textContent = (ddimProgress * timePerStep).toFixed(1) + ' s';
+
+        if (ddpmProgress < ddpmSteps || ddimProgress < ddimSteps) {
+          raceAnim = requestAnimationFrame(tick);
+        } else {
+          btnRace.disabled = false;
+        }
+      }
+      raceAnim = requestAnimationFrame(tick);
+    }
+
+    btnRace.addEventListener('click', startRace);
+    btnReset.addEventListener('click', resetRace);
+  }
+
+  /* ──────────────── Compression Grids ──────────────── */
+  function initCompressionGrids() {
+    var large = document.getElementById('gridLarge');
+    var small = document.getElementById('gridSmall');
+    if (!large || !small) return;
+    for (var i = 0; i < 256; i++) {
+      var d = document.createElement('div');
+      d.style.opacity = (0.15 + Math.random() * 0.55).toString();
+      large.appendChild(d);
+    }
+    for (var j = 0; j < 64; j++) {
+      var d2 = document.createElement('div');
+      d2.style.opacity = (0.25 + Math.random() * 0.6).toString();
+      small.appendChild(d2);
+    }
+  }
+
+})();
+</script>
+
+
+
+</body></html>

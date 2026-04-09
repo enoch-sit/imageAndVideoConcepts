@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temporal Smoothing for Blendshapes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--teal)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--teal);background:var(--teal-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--teal-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--teal)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:580px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--teal);opacity:.22}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--teal);background:var(--bg)}
+.step-dot--accent{border-color:var(--accent)}.step-dot--purple{border-color:var(--purple)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--teal);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--accent{border-left-color:var(--accent)}.eq-box--purple{border-left-color:var(--purple)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--teal{background:var(--teal);color:#fff}.btn--teal:hover{filter:brightness(1.1)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.slider-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:.5rem}
+.slider-row label{font-size:.82rem;font-weight:600;white-space:nowrap}
+.slider-row input[type=range]{flex:1;min-width:100px;accent-color:var(--teal)}
+.slider-row .val{font-family:'Fira Code',monospace;font-size:.82rem;color:var(--teal);min-width:3rem;text-align:right}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">Temporal Smoothing Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Problem</a>
+    <a href="#ch2">02 Gaussian / SG</a>
+    <a href="#ch3">03 One-Euro</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>Temporal <em>Smoothing</em><br>for Blendshapes</h1>
+  <p class="subtitle">Raw phoneme-driven blendshape sequences have abrupt step changes at every phoneme boundary, producing an unnatural "puppet" jitter. Temporal smoothing filters the signal to remove high-frequency artefacts while preserving the intended motion amplitude.</p>
+  <div class="pill-row">
+    <span class="pill pill--teal">Signal filtering</span>
+    <span class="pill pill--accent">Gaussian / Savitzky-Golay</span>
+    <span class="pill pill--purple">One-Euro adaptive filter</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">The Problem: Jitter from Step Changes</h2></div>
+  <p class="ch-sub">Phoneme-aligned blendshape weights change instantaneously at each phoneme boundary. Even with half-cosine coarticulation blending at ±30 ms, the resulting signal still has abrupt transitions. Compare the raw and smoothed signals below.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Raw vs Smoothed Blendshape Signal</div>
+    <div class="sim-desc">Orange = raw step-change signal. Teal = Gaussian-smoothed (σ = 3 frames). Click "Animate" to watch the signal evolve.</div>
+    <div class="sim-canvas-wrap"><canvas id="rawCvs" style="height:180px"></canvas></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="btn btn--teal" id="animBtn" onclick="toggleAnim()">Animate</button>
+      <button class="btn btn--ghost" onclick="resetAnim()">Reset</button>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Why It Matters</h3>
+    <p>At 25 fps a phoneme lasts 3–8 frames. Without smoothing, every frame transition is a potential discontinuity visible as a sudden jaw snap or lip flutter. The human visual system is acutely sensitive to facial jitter, far more so than to equivalent motion in limbs.</p>
+    <div class="eq-box">
+      <span class="eq-label">Discontinuity at phoneme boundary (no smoothing)</span>
+      <span class="mono">frame 10: jawOpen=0.85   (vowel "aa")</span><br>
+      <span class="mono">frame 11: jawOpen=0.15   (stop "dd") ← Δ = 0.70 in one frame</span><br>
+      <span class="mono">frame 12: jawOpen=0.85   (vowel "aa" again)</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Gaussian & Savitzky-Golay Filters</h2></div>
+  <p class="ch-sub">The simplest approach: convolve the blendshape time-series with a symmetric kernel. A Gaussian kernel produces smooth but slightly blurred peaks. Savitzky-Golay fits a local polynomial — it preserves peak height better while still removing high-frequency noise.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Kernel Shape + Filtered Output</div>
+    <div class="sim-desc">Adjust σ (Gaussian) or polynomial order / window to see how the filter kernel changes and how the output signal changes.</div>
+    <div class="slider-row">
+      <label>σ (frames):</label>
+      <input type="range" id="sigSlider" min="1" max="8" step=".5" value="3" oninput="updateSG()">
+      <span class="val" id="sigVal">3</span>
+    </div>
+    <div class="slider-row">
+      <label>S-G window (frames):</label>
+      <input type="range" id="winSlider" min="3" max="15" step="2" value="7" oninput="updateSG()">
+      <span class="val" id="winVal">7</span>
+    </div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">
+      <button class="btn btn--ghost" id="modeGauss" onclick="setSGMode('gauss')" style="border:2px solid var(--teal);color:var(--teal)">Gaussian</button>
+      <button class="btn btn--ghost" id="modeSG" onclick="setSGMode('sg')">Savitzky-Golay (linear fit)</button>
+    </div>
+    <div class="sim-canvas-wrap"><canvas id="sgCvs" style="height:240px"></canvas></div>
+    <div id="sgInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="eq-box eq-box--accent fade-up">
+    <span class="eq-label">Gaussian 1-D convolution</span>
+    <span class="mono">G(k) = exp(−k²/(2σ²))   k ∈ [−⌈3σ⌉, +⌈3σ⌉]</span><br>
+    <span class="mono">bs_smooth[t] = Σ_k G(k)·bs_raw[t+k]  /  Σ_k G(k)</span>
+  </div>
+  <div class="eq-box eq-box--purple fade-up">
+    <span class="eq-label">Savitzky-Golay (polynomial least-squares)</span>
+    <span class="mono">For each window of W frames, fit a polynomial y=a₀+a₁t+a₂t²+…</span><br>
+    <span class="mono">bs_sg[t] = ŷ(t)  — evaluated at centre of the window</span>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">One-Euro Adaptive Filter</h2></div>
+  <p class="ch-sub">Gaussian smoothing adds latency proportional to σ. For realtime applications the One-Euro filter adapts its cut-off frequency to instantaneous signal speed: slow movements get heavy smoothing, fast movements get almost none, minimising perceived lag.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">One-Euro Filter Response</div>
+    <div class="sim-desc">Adjust min_cutoff (Hz) and beta. Compare against fixed Gaussian σ=3. One-Euro tracks fast transitions better but still smooths slow drift.</div>
+    <div class="slider-row">
+      <label>min_cutoff (Hz):</label>
+      <input type="range" id="mcSlider" min=".5" max="10" step=".5" value="1" oninput="updateOneEuro()">
+      <span class="val" id="mcVal">1.0</span>
+    </div>
+    <div class="slider-row">
+      <label>beta:</label>
+      <input type="range" id="betaSlider" min="0" max="2" step=".1" value="0.5" oninput="updateOneEuro()">
+      <span class="val" id="betaVal">0.5</span>
+    </div>
+    <div class="sim-canvas-wrap"><canvas id="oeCvs" style="height:200px"></canvas></div>
+    <div id="oeInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="eq-box eq-box--teal fade-up">
+    <span class="eq-label">One-Euro derivation (1 blendshape channel at 25 fps)</span>
+    <span class="mono">d_hat[t] = α_d · (x[t]−x_hat[t−1]) + (1−α_d) · d_hat[t−1]</span><br>
+    <span class="mono">cutoff[t] = min_cutoff + beta · |d_hat[t]|</span><br>
+    <span class="mono">α(fc) = 2πfc / (2πfc + fps)    (low-pass coefficient)</span><br>
+    <span class="mono">x_hat[t] = α(cutoff[t]) · x[t] + (1−α(cutoff[t])) · x_hat[t−1]</span>
+  </div>
+
+  <div class="callout callout--teal fade-up">
+    <div class="callout-title">Recommended defaults for 25 fps lip sync</div>
+    One-Euro: min_cutoff=1.5 Hz, beta=0.4. Gaussian: σ=2–3 frames. In practice, Gaussian is applied offline (post-processing on the full sequence) while One-Euro is used for real-time inference where causal filtering is required.
+  </div>
+</div>
+</section>
+
+<footer class="footer">Temporal Smoothing for Blendshapes — Interactive Guide</footer>
+
+<script>
+(function(){
+'use strict';
+
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ─── Seeded RNG ─── */
+function mulberry32(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+var rng=mulberry32(42);
+
+/* ─── Generate raw blendshape signal (N frames) ─── */
+var N=80;var RAW=[];
+var BREAKS=[0,12,20,28,40,50,60,68,80];var LEVELS=[.05,.8,.15,.45,.9,.1,.6,.2,.05];
+for(var i=0;i<N;i++){
+  var seg=0;for(var s=0;s<BREAKS.length-1;s++)if(i>=BREAKS[s])seg=s;
+  RAW[i]=Math.max(0,Math.min(1,LEVELS[seg]+(rng()-.5)*.12));
+}
+
+/* ─── Gaussian convolve ─── */
+function gaussFilter(sig,sigma){
+  var half=Math.ceil(3*sigma);var kernel=[];var sum=0;
+  for(var k=-half;k<=half;k++){var v=Math.exp(-k*k/(2*sigma*sigma));kernel.push(v);sum+=v;}
+  var out=[];
+  for(var t=0;t<sig.length;t++){var acc=0;var s2=0;kernel.forEach(function(v,ki){var idx=t+(ki-half);if(idx>=0&&idx<sig.length){acc+=v*sig[idx];s2+=v;}});out.push(acc/s2);}
+  return out;
+}
+
+/* ─── Savitzky-Golay (linear polynomial, window W) ─── */
+function sgFilter(sig,W){
+  var hw=Math.floor(W/2);var out=[];
+  for(var t=0;t<sig.length;t++){
+    var xs=[],ys=[];for(var k=-hw;k<=hw;k++){var idx=t+k;if(idx>=0&&idx<sig.length){xs.push(k);ys.push(sig[idx]);}}
+    // linear fit
+    var sumt=0,sumts=0,sumy=0,sumty=0;for(var i2=0;i2<xs.length;i2++){sumt+=xs[i2];sumts+=xs[i2]*xs[i2];sumy+=ys[i2];sumty+=xs[i2]*ys[i2];}
+    var n=xs.length;var denom=n*sumts-sumt*sumt;var a0=(denom!==0)?(sumy*sumts-sumt*sumty)/denom:sumy/n;
+    out.push(Math.max(0,Math.min(1,a0)));
+  }return out;
+}
+
+/* ─── One-Euro filter ─── */
+function oneEuroFilter(sig,fps,minCutoff,beta){
+  var d_cutoff=1;var alpha_d=function(fc){return(2*Math.PI*fc)/(2*Math.PI*fc+fps);};
+  var x_hat=sig[0];var d_hat=0;var out=[sig[0]];
+  for(var t=1;t<sig.length;t++){
+    d_hat=alpha_d(d_cutoff)*(sig[t]-x_hat)+(1-alpha_d(d_cutoff))*d_hat;
+    var fc=minCutoff+beta*Math.abs(d_hat);var al=alpha_d(fc);
+    x_hat=al*sig[t]+(1-al)*x_hat;out.push(Math.max(0,Math.min(1,x_hat)));
+  }return out;
+}
+
+/* ─── RAW vs smooth canvas ─── */
+var rawCvs=document.getElementById('rawCvs');var animT=0;var animRunning=false;var animId=null;
+var smoothed3=gaussFilter(RAW,3);
+function resizeRaw(){var dpr=window.devicePixelRatio||1;var W=rawCvs.parentElement.getBoundingClientRect().width;rawCvs.width=Math.round(W*dpr);rawCvs.height=Math.round(180*dpr);rawCvs.style.width=W+'px';rawCvs.style.height='180px';}
+function drawRaw(showUpto){
+  var dpr=window.devicePixelRatio||1;var W=rawCvs.width/dpr,H=rawCvs.height/dpr;
+  var ctx=rawCvs.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var m=20,bH=H-m*2;var step=(W-m*2)/(N-1);
+  if(showUpto===undefined)showUpto=N-1;
+  // Grid
+  for(var g=0;g<=4;g++){var gy=m+bH-bH*g/4;ctx.strokeStyle='rgba(230,221,208,.5)';ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(m,gy);ctx.lineTo(W-m,gy);ctx.stroke();ctx.fillStyle='#AAA';ctx.font='7px DM Sans,sans-serif';ctx.textAlign='right';ctx.fillText((g*25)+'%',m-2,gy+3);}
+  // Raw
+  ctx.strokeStyle='rgba(191,74,36,.65)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.beginPath();
+  for(var t=0;t<=showUpto;t++){var x=m+t*step;var y=m+bH*(1-RAW[t]);if(t===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();ctx.setLineDash([]);
+  // Smoothed
+  ctx.strokeStyle='#1A7B6B';ctx.lineWidth=2.5;ctx.beginPath();
+  for(var t=0;t<=showUpto;t++){var x=m+t*step;var y=m+bH*(1-smoothed3[t]);if(t===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();
+  // Playhead
+  if(showUpto<N-1){ctx.strokeStyle='rgba(107,82,168,.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(m+showUpto*step,m);ctx.lineTo(m+showUpto*step,m+bH);ctx.stroke();}
+  // Legend
+  ctx.fillStyle='rgba(191,74,36,.65)';ctx.fillRect(W-90,6,18,2);ctx.fillStyle='#5A6878';ctx.font='600 8px DM Sans,sans-serif';ctx.textAlign='left';ctx.fillText('raw',W-68,10);
+  ctx.fillStyle='#1A7B6B';ctx.fillRect(W-90,16,18,2);ctx.fillText('σ=3 smoothed',W-68,20);
+}
+window.toggleAnim=function(){animRunning=!animRunning;document.getElementById('animBtn').textContent=animRunning?'Pause':'Animate';if(animRunning)stepAnim();};
+window.resetAnim=function(){animRunning=false;document.getElementById('animBtn').textContent='Animate';animT=0;if(animId)cancelAnimationFrame(animId);drawRaw(0);};
+function stepAnim(){drawRaw(animT);animT++;if(animT>=N){animRunning=false;document.getElementById('animBtn').textContent='Animate';return;}if(animRunning)animId=requestAnimationFrame(stepAnim);}
+
+/* ─── Gaussian / SG canvas ─── */
+var sgCvs=document.getElementById('sgCvs');var sgMode='gauss';
+window.setSGMode=function(m){sgMode=m;document.getElementById('modeGauss').style.border=m==='gauss'?'2px solid var(--teal)':'1px solid var(--border)';document.getElementById('modeSG').style.border=m==='sg'?'2px solid var(--teal)':'1px solid var(--border)';updateSG();};
+window.updateSG=function(){
+  var sig=parseFloat(document.getElementById('sigSlider').value);var win=parseInt(document.getElementById('winSlider').value);
+  if(win%2===0)win++;
+  document.getElementById('sigVal').textContent=sig;document.getElementById('winVal').textContent=win;
+  var filtered=sgMode==='gauss'?gaussFilter(RAW,sig):sgFilter(RAW,win);
+  resizeSG();drawSG(filtered,sig,win);
+};
+function resizeSG(){var dpr=window.devicePixelRatio||1;var W=sgCvs.parentElement.getBoundingClientRect().width;sgCvs.width=Math.round(W*dpr);sgCvs.height=Math.round(240*dpr);sgCvs.style.width=W+'px';sgCvs.style.height='240px';}
+function drawSG(filtered,sig,win){
+  var dpr=window.devicePixelRatio||1;var W=sgCvs.width/dpr,H=sgCvs.height/dpr;
+  var ctx=sgCvs.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var kH=60;var kY=5;var bY=kH+15;var bH=H-bY-10;var m=20;var step=(W-m*2)/(N-1);
+  // Kernel panel
+  ctx.fillStyle='rgba(243,237,226,.6)';ctx.beginPath();ctx.roundRect(m,kY,W-m*2,kH-2,4);ctx.fill();
+  ctx.fillStyle='#8A95A2';ctx.font='500 8px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText(sgMode==='gauss'?('Gaussian kernel  σ=' + sig + ' frames'):('S-G linear kernel  W=' + win + ' frames'),W/2,kY+12);
+  // Kernel shape
+  var kernel=[];if(sgMode==='gauss'){var half=Math.ceil(3*sig);for(var k=-half;k<=half;k++)kernel.push(Math.exp(-k*k/(2*sig*sig)));}else{var hw=Math.floor(win/2);for(var k=-hw;k<=hw;k++)kernel.push(Math.max(0,1-Math.abs(k)/hw));}
+  var kmax=Math.max.apply(null,kernel);var kW=(W-m*2)/kernel.length;
+  kernel.forEach(function(v,ki){var kx=m+ki*kW;var kh2=v/kmax*(kH-20);ctx.fillStyle='rgba(26,123,107,.45)';ctx.fillRect(kx,kY+kH-kh2-3,Math.max(kW-.5,1),kh2);});
+  // Signal grid
+  for(var g=0;g<=4;g++){var gy=bY+bH-bH*g/4;ctx.strokeStyle='rgba(230,221,208,.5)';ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(m,gy);ctx.lineTo(W-m,gy);ctx.stroke();}
+  // Raw
+  ctx.strokeStyle='rgba(191,74,36,.4)';ctx.lineWidth=1.2;ctx.setLineDash([3,3]);ctx.beginPath();
+  RAW.forEach(function(v,t){var x=m+t*step;var y=bY+bH*(1-v);if(t===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();ctx.setLineDash([]);
+  // Filtered
+  ctx.strokeStyle='#1A7B6B';ctx.lineWidth=2.5;ctx.beginPath();
+  filtered.forEach(function(v,t){var x=m+t*step;var y=bY+bH*(1-v);if(t===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();
+  // Info
+  var err=0;RAW.forEach(function(v,i){err+=Math.abs(v-filtered[i]);});
+  document.getElementById('sgInfo').textContent=(sgMode==='gauss'?'Gaussian σ='+sig:('Savitzky-Golay W='+win))+' frames. Mean absolute deviation from raw: '+(err/N*100).toFixed(1)+'% (lower = more smoothing). Orange dashed = raw; teal = filtered.';
+}
+
+/* ─── One-Euro canvas ─── */
+var oeCvs=document.getElementById('oeCvs');
+window.updateOneEuro=function(){
+  var mc=parseFloat(document.getElementById('mcSlider').value);var beta=parseFloat(document.getElementById('betaSlider').value);
+  document.getElementById('mcVal').textContent=mc.toFixed(1);document.getElementById('betaVal').textContent=beta.toFixed(1);
+  resizeOE();drawOE(mc,beta);
+};
+function resizeOE(){var dpr=window.devicePixelRatio||1;var W=oeCvs.parentElement.getBoundingClientRect().width;oeCvs.width=Math.round(W*dpr);oeCvs.height=Math.round(200*dpr);oeCvs.style.width=W+'px';oeCvs.style.height='200px';}
+function drawOE(mc,beta){
+  var dpr=window.devicePixelRatio||1;var W=oeCvs.width/dpr,H=oeCvs.height/dpr;
+  var ctx=oeCvs.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var m=20;var bH=H-m*2;var step=(W-m*2)/(N-1);
+  var oe=oneEuroFilter(RAW,25,mc,beta);var gauss3=gaussFilter(RAW,3);
+  for(var g=0;g<=4;g++){var gy=m+bH-bH*g/4;ctx.strokeStyle='rgba(230,221,208,.5)';ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(m,gy);ctx.lineTo(W-m,gy);ctx.stroke();}
+  // Raw
+  ctx.strokeStyle='rgba(191,74,36,.3)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();RAW.forEach(function(v,t){var x=m+t*step;var y=m+bH*(1-v);if(t===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();ctx.setLineDash([]);
+  // Gaussian σ=3 comparison
+  ctx.strokeStyle='rgba(26,123,107,.4)';ctx.lineWidth=1.5;ctx.setLineDash([5,3]);ctx.beginPath();gauss3.forEach(function(v,t){var x=m+t*step;var y=m+bH*(1-v);if(t===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();ctx.setLineDash([]);
+  // One-Euro
+  ctx.strokeStyle='#6B52A8';ctx.lineWidth=2.5;ctx.beginPath();oe.forEach(function(v,t){var x=m+t*step;var y=m+bH*(1-v);if(t===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();
+  // Legend
+  ctx.fillStyle='rgba(191,74,36,.4)';ctx.fillRect(W-115,6,16,2);ctx.fillStyle='#5A6878';ctx.font='600 8px DM Sans,sans-serif';ctx.textAlign='left';ctx.fillText('raw',W-94,10);
+  ctx.fillStyle='rgba(26,123,107,.5)';ctx.fillRect(W-115,18,16,2);ctx.fillText('Gaussian σ=3',W-94,22);
+  ctx.fillStyle='#6B52A8';ctx.fillRect(W-115,30,16,2);ctx.fillText('One-Euro',W-94,34);
+  // Lag estimate at fast transitions
+  var lag=0;for(var t=1;t<N;t++){var rawDelta=Math.abs(RAW[t]-RAW[t-1]);if(rawDelta>0.3)lag+=Math.abs(oe[t]-RAW[t]);}
+  document.getElementById('oeInfo').textContent='One-Euro: min_cutoff='+mc.toFixed(1)+' Hz, beta='+beta.toFixed(1)+'. At fast transitions (Δ>0.3), mean lag from raw = '+(lag*100/N*4).toFixed(1)+'%. Lower beta = more smoothing on fast movements; higher beta = less lag. Purple = One-Euro; teal dashed = Gaussian σ=3 for comparison.';
+}
+
+/* Resize & init */
+function resizeAll(){resizeRaw();resizeSG();resizeOE();drawRaw(N-1);updateSG();updateOneEuro();}
+window.addEventListener('resize',resizeAll);
+resizeRaw();resizeSG();resizeOE();drawRaw(N-1);updateSG();updateOneEuro();
+})();
+</script>
+</body>
+</html>

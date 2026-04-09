@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MFA — Montreal Forced Aligner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--teal)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--teal);background:var(--teal-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--teal-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--teal)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:580px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--teal);opacity:.22}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--teal);background:var(--bg)}
+.step-dot--accent{border-color:var(--accent)}.step-dot--purple{border-color:var(--purple)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--teal);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--accent{border-left-color:var(--accent)}.eq-box--purple{border-left-color:var(--purple)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--teal{background:var(--teal);color:#fff}.btn--teal:hover{filter:brightness(1.1)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">MFA Guide</div>
+  <div class="links">
+    <a href="#ch1">01 HMM-GMM</a>
+    <a href="#ch2">02 TextGrid</a>
+    <a href="#ch3">03 Phoneme→Lip</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>MFA — <em>Montreal</em><br>Forced Aligner</h1>
+  <p class="subtitle">MFA (McAuliffe et al., 2017) performs forced phoneme alignment: given a transcript and its corresponding audio, it outputs precise start/end times for every phoneme. This produces the phoneme sequence with millisecond timing needed for phoneme-to-viseme mapping.</p>
+  <div class="pill-row">
+    <span class="pill pill--teal">HMM-GMM acoustic model</span>
+    <span class="pill pill--accent">Viterbi alignment</span>
+    <span class="pill pill--purple">TextGrid output</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">HMM-GMM Acoustic Model</h2></div>
+  <p class="ch-sub">MFA uses a Kaldi-based HMM-GMM acoustic model. Each phoneme is modelled as a 3-state HMM (beginning, middle, end) where each state emits frames according to a Gaussian Mixture Model over MFCC features. Viterbi decoding finds the most probable state sequence, producing phoneme-level boundaries.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Viterbi Alignment Visualiser</div>
+    <div class="sim-desc">Click through the alignment process from MFCC features to phoneme boundaries.</div>
+    <div class="sim-canvas-wrap"><canvas id="viterbiCanvas" style="height:220px"></canvas></div>
+    <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+      <button class="btn btn--teal" onclick="viterbiNext()">Next ›</button>
+      <button class="btn btn--ghost" onclick="viterbiReset()">Reset</button>
+      <span id="viterbiLabel" style="font-size:.85rem;font-weight:600;color:var(--teal);padding:.55rem 0"></span>
+    </div>
+    <div id="viterbiInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>MFCC Feature Extraction</h3>
+    <p>MFA computes 13 MFCCs + delta + delta-delta (39 features) at 10ms frame intervals. The acoustic model was trained on large English corpora (LibriSpeech + Common Voice). For each input speaker, MFA can optionally adapt the model with a brief adaptation pass.</p>
+    <div class="eq-box">
+      <span class="eq-label">MFA feature pipeline</span>
+      <span class="mono">audio (16kHz) → 25ms Hamming STFT → 40 mel bins</span><br>
+      <span class="mono">→ 13 MFCCs (DCT of log-mel) + Δ + ΔΔ = 39D</span><br>
+      <span class="mono">→ CMVN normalisation per utterance</span><br>
+      <span class="mono">→ 3-state HMM per phoneme × GMM emission model</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">TextGrid Output Format</h2></div>
+  <p class="ch-sub">MFA writes a Praat TextGrid file containing two tiers: a word tier (word-level intervals) and a phoneme tier (phoneme-level intervals). Each interval has start time, end time, and label. We convert this to JSON for downstream processing.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Interactive TextGrid Viewer</div>
+    <div class="sim-desc">Click a phoneme segment to highlight the corresponding word and see timing detail.</div>
+    <div class="sim-canvas-wrap"><canvas id="tgCanvas" style="height:220px"></canvas></div>
+    <div id="tgInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65">Click a phoneme segment to see detail.</div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--accent"></span>
+    <h3>TextGrid Structure</h3>
+    <div class="eq-box eq-box--accent">
+      <span class="eq-label">MFA TextGrid file example (Praat format)</span>
+      <span class="mono">File type = "ooTextFile"</span><br>
+      <span class="mono">Object class = "TextGrid"</span><br>
+      <span class="mono">intervals [1]:   xmin=0.14 xmax=0.54 text="HELLO"</span><br>
+      <span class="mono">intervals [1]:   xmin=0.14 xmax=0.28 text="HH"</span><br>
+      <span class="mono">intervals [2]:   xmin=0.28 xmax=0.37 text="AH0"</span><br>
+      <span class="mono">intervals [3]:   xmin=0.37 xmax=0.54 text="L OW1"</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>JSON Conversion for Pipeline</h3>
+    <div class="eq-box eq-box--purple">
+      <span class="eq-label">Converted JSON output for viseme mapping</span>
+      <span class="mono">[</span><br>
+      <span class="mono">  {"phoneme":"HH","start":0.14,"end":0.28},</span><br>
+      <span class="mono">  {"phoneme":"AH0","start":0.28,"end":0.37},</span><br>
+      <span class="mono">  {"phoneme":"L","start":0.37,"end":0.455},</span><br>
+      <span class="mono">  {"phoneme":"OW1","start":0.455,"end":0.54}</span><br>
+      <span class="mono">]</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Phoneme Set → Lip Sync Pipeline</h2></div>
+  <p class="ch-sub">MFA uses the CMU Pronouncing Dictionary phoneme set (ARPAbet): 39 phonemes covering all English sounds. These map 1-to-many to 15 viseme classes in App 24. Click a phoneme group to preview its viseme class.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">ARPAbet Phoneme Map</div>
+    <div class="sim-desc">Click a phoneme row to see its ARPAbet symbol, example word, and which viseme group it belongs to.</div>
+    <div class="sim-canvas-wrap"><canvas id="phonCanvas" style="height:320px"></canvas></div>
+    <div id="phonInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65">Click a phoneme row.</div>
+  </div>
+
+  <div class="callout callout--teal fade-up">
+    <div class="callout-title">How Whisper + MFA work together</div>
+    Whisper provides the transcript (Whisper transcribes better than MFA's built-in lexicon for spontaneous speech). MFA provides phoneme-level timing (Whisper's timestamps are word-level only). Together they give the phoneme sequence with timecodes needed for the viseme pipeline.
+  </div>
+</div>
+</section>
+
+<footer class="footer">MFA Interactive Guide · McAuliffe et al., 2017</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ─── Viterbi canvas ─── */
+var viterbiCanvas=document.getElementById('viterbiCanvas');var viterbiStep=0;
+var VIT=[
+  {label:'Step 1 — Audio + transcript inputs',info:'MFA takes two inputs: (1) the audio WAV file (16kHz mono), (2) the transcript text file with one sentence per line. The transcript was produced by Whisper (App 22). MFA also requires a lexicon (CMU dict) mapping words to phoneme sequences.'},
+  {label:'Step 2 — G2P: words → phoneme sequences',info:'MFA looks up each word in the CMU Pronouncing Dictionary (CMUdict). If a word is missing, it uses a Grapheme-to-Phoneme (G2P) neural model to predict its pronunciation in ARPAbet. "Hello" → HH AH0 L OW1.'},
+  {label:'Step 3 — HMM topology from transcript',info:'The phoneme sequence from step 2 determines the HMM chain: each phoneme becomes a 3-state HMM (Beg/Mid/End), each with a GMM emission model. The full utterance HMM is created by concatenating these phoneme HMMs in order.'},
+  {label:'Step 4 — Viterbi forced alignment',info:'Viterbi decoding finds the most probable state sequence through the concatenated HMM, given the MFCC features. "Forced" alignment means all phonemes must appear in order — unlike standard Viterbi which can skip phonemes. This ensures exact phoneme timing.'},
+  {label:'Step 5 — TextGrid output',info:'The Viterbi path is back-traced to determine which MFCC frames correspond to each HMM state. The 3 states per phoneme are merged into the phoneme\'s start/end times. Output: TextGrid file with word-tier and phoneme-tier timing boundaries.'}
+];
+window.viterbiNext=function(){if(viterbiStep<VIT.length-1)viterbiStep++;drawViterbi();};
+window.viterbiReset=function(){viterbiStep=0;drawViterbi();};
+function drawViterbi(){
+  document.getElementById('viterbiLabel').textContent=VIT[viterbiStep].label;
+  document.getElementById('viterbiInfo').textContent=VIT[viterbiStep].info;
+  var dpr=window.devicePixelRatio||1;var W=viterbiCanvas.width/dpr,H=viterbiCanvas.height/dpr;
+  var ctx=viterbiCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var N=VIT.length;var bw=Math.min(100,(W-28)/N-6);var bh=56;var gap=Math.max(6,(W-28-bw*N)/(N-1));
+  var sx=(W-(bw*N+gap*(N-1)))/2;var by=(H-bh)/2;
+  VIT.forEach(function(p,i){
+    var x=sx+i*(bw+gap);var act=i===viterbiStep;var done=i<viterbiStep;
+    ctx.fillStyle=act?'rgba(26,123,107,.18)':done?'rgba(26,123,107,.08)':'rgba(230,221,208,.35)';
+    ctx.strokeStyle=act?'#1A7B6B':done?'rgba(26,123,107,.5)':'#E6DDD0';ctx.lineWidth=act?2.5:1.2;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,8);ctx.fill();ctx.stroke();
+    ctx.fillStyle=act?'#1A7B6B':done?'rgba(26,123,107,.55)':'#5A6878';ctx.font=(act?'700 ':'500 ')+'8.5px DM Sans,sans-serif';ctx.textAlign='center';
+    var short=p.label.replace('Step '+(i+1)+' — ','');var words=short.split(' ');var mid=Math.ceil(words.length/2);
+    ctx.fillText(words.slice(0,mid).join(' '),x+bw/2,by+bh/2-4);ctx.fillText(words.slice(mid).join(' '),x+bw/2,by+bh/2+9);
+    if(i<N-1){ctx.strokeStyle=done?'rgba(26,123,107,.4)':'rgba(230,221,208,.7)';ctx.lineWidth=1.5;var ax=x+bw;ctx.beginPath();ctx.moveTo(ax+1,by+bh/2);ctx.lineTo(ax+gap-1,by+bh/2);ctx.stroke();}
+  });
+}
+function resizeViterbi(){var dpr=window.devicePixelRatio||1;var W=viterbiCanvas.parentElement.getBoundingClientRect().width;viterbiCanvas.width=Math.round(W*dpr);viterbiCanvas.height=Math.round(220*dpr);viterbiCanvas.style.width=W+'px';viterbiCanvas.style.height='220px';drawViterbi();}
+
+/* ─── TextGrid canvas ─── */
+var tgCanvas=document.getElementById('tgCanvas');
+// Simulated TextGrid: "Hello world"
+var TG_WORDS=[{w:'Hello',s:0.14,e:0.60},{w:'world',s:0.62,e:1.18},{w:'test',s:1.24,e:1.72}];
+var TG_PHONES=[
+  {p:'HH',s:0.14,e:0.22,wi:0},{p:'AH0',s:0.22,e:0.30,wi:0},{p:'L',s:0.30,e:0.44,wi:0},{p:'OW1',s:0.44,e:0.60,wi:0},
+  {p:'W',s:0.62,e:0.70,wi:1},{p:'ER1',s:0.70,e:0.84,wi:1},{p:'L',s:0.84,e:0.96,wi:1},{p:'D',s:0.96,e:1.18,wi:1},
+  {p:'T',s:1.24,e:1.34,wi:2},{p:'EH1',s:1.34,e:1.50,wi:2},{p:'S',s:1.50,e:1.62,wi:2},{p:'T',s:1.62,e:1.72,wi:2}
+];
+var activePH=-1;var total_dur=1.85;
+function resizeTG(){var dpr=window.devicePixelRatio||1;var W=tgCanvas.parentElement.getBoundingClientRect().width;tgCanvas.width=Math.round(W*dpr);tgCanvas.height=Math.round(220*dpr);tgCanvas.style.width=W+'px';tgCanvas.style.height='220px';drawTG();}
+var COLORS=['#1A7B6B','#BF4A24','#6B52A8'];
+function drawTG(){
+  var dpr=window.devicePixelRatio||1;var W=tgCanvas.width/dpr,H=tgCanvas.height/dpr;
+  var ctx=tgCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var m=14;var aw=W-m*2;var wh=44;var ph=44;var gap=16;var wy=H/2-wh-gap/2;var py=H/2+gap/2;
+  // Row labels
+  ctx.fillStyle='#8A95A2';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='right';
+  ctx.fillText('words',m-2,wy+wh/2+4);ctx.fillText('phones',m-2,py+ph/2+4);
+  // time axis
+  for(var t=0;t<=1.8;t+=0.3){var tx=m+(t/total_dur)*aw;ctx.strokeStyle='rgba(230,221,208,.6)';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(tx,wy-6);ctx.lineTo(tx,py+ph+6);ctx.stroke();
+    ctx.fillStyle='#AAB';ctx.font='500 8px DM Sans';ctx.textAlign='center';ctx.fillText(t.toFixed(1)+'s',tx,wy-8);}
+  TG_WORDS.forEach(function(wd,i){
+    var x1=m+(wd.s/total_dur)*aw;var x2=m+(wd.e/total_dur)*aw;var act=activePH>=0&&TG_PHONES[activePH].wi===i;
+    ctx.fillStyle=act?COLORS[i]+'44':'rgba(26,123,107,.12)';ctx.strokeStyle=act?COLORS[i]:'rgba(26,123,107,.5)';ctx.lineWidth=act?2:1;
+    ctx.beginPath();ctx.roundRect(x1+1,wy,x2-x1-2,wh,4);ctx.fill();ctx.stroke();
+    ctx.fillStyle=act?COLORS[i]:'#1C2A38';ctx.font='600 10px DM Sans';ctx.textAlign='center';ctx.fillText(wd.w,(x1+x2)/2,wy+wh/2+4);
+  });
+  TG_PHONES.forEach(function(ph_,i){
+    var x1=m+(ph_.s/total_dur)*aw;var x2=m+(ph_.e/total_dur)*aw;var act=i===activePH;var col=COLORS[ph_.wi];
+    ctx.fillStyle=act?col+'88':col+'22';ctx.strokeStyle=act?col:col+'66';ctx.lineWidth=act?2:1;
+    ctx.beginPath();ctx.roundRect(x1+1,py,x2-x1-2,ph,4);ctx.fill();ctx.stroke();
+    ctx.fillStyle=act?'#fff':col;ctx.font=(act?'700 ':'500 ')+'9px Fira Code,monospace';ctx.textAlign='center';ctx.fillText(ph_.p,(x1+x2)/2,py+ph/2+4);
+  });
+}
+tgCanvas.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var W=tgCanvas.width/dpr,H=tgCanvas.height/dpr;
+  var m=14;var aw=W-m*2;var ph=44;var py=H/2+8;
+  var rect=tgCanvas.getBoundingClientRect();var mx=(e.clientX-rect.left)*(W/rect.width);var my=(e.clientY-rect.top)*(H/rect.height);
+  if(my<py||my>py+ph){activePH=-1;drawTG();document.getElementById('tgInfo').textContent='Click a phoneme segment.';return;}
+  var found=-1;TG_PHONES.forEach(function(p,i){var x1=m+(p.s/total_dur)*aw;var x2=m+(p.e/total_dur)*aw;if(mx>=x1&&mx<=x2)found=i;});
+  activePH=found;drawTG();
+  if(found>=0){var p=TG_PHONES[found];var wd=TG_WORDS[p.wi];document.getElementById('tgInfo').textContent='"'+p.p+'" in "'+wd.w+'" — start: '+p.s.toFixed(3)+'s, end: '+p.e.toFixed(3)+'s, duration: '+((p.e-p.s)*1000).toFixed(0)+'ms. This phoneme event is passed to App 24 (Phoneme→Viseme) for viseme class assignment.';}
+});
+
+/* ─── Phoneme canvas ─── */
+var phonCanvas=document.getElementById('phonCanvas');
+var PHONS=[
+  {p:'AA,AE',ex:'"f(a)ther","b(a)t"',vis:'viseme 2 (lips apart, jaw open)',grp:'Vowels'},
+  {p:'AH0,AH1',ex:'"(u)s","str(u)t"',vis:'viseme 1 (rest / neutral)',grp:'Vowels'},
+  {p:'AW,AY',ex:'"c(ow)","fl(igh)t"',vis:'viseme 4 (rounded diphthong)',grp:'Diphthongs'},
+  {p:'B,P',ex:'"(b)ed","(p)et"',vis:'viseme 0 (bilabial closure)',grp:'Plosives'},
+  {p:'CH,JH,SH,ZH',ex:'"(ch)ur(ch)","(sh)oe"',vis:'viseme 6 (teeth near, lips parted)',grp:'Affricates'},
+  {p:'D,T,N,L',ex:'"(d)ay","(n)ow"',vis:'viseme 1 (tongue-alveolar, neutral-looking)',grp:'Alveolars'},
+  {p:'EH,EY',ex:'"b(e)t","s(ay)"',vis:'viseme 3 (lips spread)',grp:'Vowels'},
+  {p:'F,V',ex:'"(f)at","(v)an"',vis:'viseme 8 (upper teeth, lower lip)',grp:'Fricatives'},
+  {p:'G,K,NG',ex:'"(g)o","(k)ite"',vis:'viseme 1 (velar — no visible lip change)',grp:'Velars'},
+  {p:'HH',ex:'"(h)igh"',vis:'viseme 1 (open glottal — minimal lip change)',grp:'Fricatives'},
+  {p:'IH,IY',ex:'"b(i)t","b(ea)t"',vis:'viseme 3 (lips spread, teeth near)',grp:'Vowels'},
+  {p:'M',ex:'"(m)at"',vis:'viseme 0 (bilabial — lips closed)',grp:'Nasals'},
+  {p:'OW,OY',ex:'"g(o)","b(oy)"',vis:'viseme 4 (rounded, lips circle)',grp:'Vowels'},
+  {p:'R,ER1',ex:'"(r)ed","b(ir)d"',vis:'viseme 5 (retroflexed / rounded)',grp:'Liquids'},
+  {p:'S,Z',ex:'"(s)un","(z)ip"',vis:'viseme 7 (sibilant — teeth together)',grp:'Sibilants'},
+  {p:'TH,DH',ex:'"(th)in","(th)at"',vis:'viseme 9 (tongue between teeth)',grp:'Interdentals'},
+  {p:'UH,UW',ex:'"b(oo)k","n(ew)"',vis:'viseme 4 (rounded lips)',grp:'Vowels'},
+  {p:'W,Y',ex:'"(w)et","(y)es"',vis:'viseme 4 (semi-vowel rounded/spread)',grp:'Semi-vowels'}
+];
+var activePHON=-1;var GRP_COLORS={'Vowels':'#1A7B6B','Diphthongs':'#BF4A24','Plosives':'#6B52A8','Affricates':'#8A7A2A','Alveolars':'#2A6A8A','Fricatives':'#BF4A24','Velars':'#7B6B1A','Nasals':'#6B52A8','Liquids':'#1A7B6B','Sibilants':'#8A4A24','Interdentals':'#4A7B6B','Semi-vowels':'#6B52A8'};
+function resizePhon(){var dpr=window.devicePixelRatio||1;var W=phonCanvas.parentElement.getBoundingClientRect().width;phonCanvas.width=Math.round(W*dpr);phonCanvas.height=Math.round(320*dpr);phonCanvas.style.width=W+'px';phonCanvas.style.height='320px';drawPhon();}
+function drawPhon(){
+  var dpr=window.devicePixelRatio||1;var W=phonCanvas.width/dpr,H=phonCanvas.height/dpr;
+  var ctx=phonCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var rowH=(H-2)/PHONS.length;var COLS=[0,.22,.54,1.0].map(function(f){return f*W;});
+  ['ARPAbet','Example','Viseme group'].forEach(function(h,i){
+    ctx.fillStyle='rgba(230,221,208,.6)';ctx.fillRect(COLS[i],0,COLS[i+1]-COLS[i],16);
+    ctx.fillStyle='#5A6878';ctx.font='700 8px DM Sans,sans-serif';ctx.textAlign='left';ctx.fillText(h,COLS[i]+6,12);
+  });
+  PHONS.forEach(function(row,i){
+    var y=16+i*rowH;var act=i===activePHON;var col=GRP_COLORS[row.grp]||'#1A7B6B';
+    if(act){ctx.fillStyle=col+'22';ctx.fillRect(0,y,W,rowH);}
+    else if(i%2===0){ctx.fillStyle='rgba(243,237,226,.4)';ctx.fillRect(0,y,W,rowH);}
+    ctx.strokeStyle='rgba(230,221,208,.4)';ctx.lineWidth=0.5;ctx.strokeRect(0,y,W,rowH);
+    [row.p,row.ex,row.vis].forEach(function(val,c){
+      ctx.fillStyle=act?(c===0?col:'#1C2A38'):(c===0?col:'#5A6878');ctx.font=(c===0||(act&&c===2)?'700 ':'400 ')+'8.5px '+(c===0?'Fira Code,monospace':'DM Sans,sans-serif');
+      ctx.textAlign='left';ctx.fillText(val,COLS[c]+6,y+rowH*.65);
+    });
+  });
+}
+phonCanvas.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var W=phonCanvas.width/dpr,H=phonCanvas.height/dpr;
+  var rowH=(H-2)/PHONS.length;
+  var rect=phonCanvas.getBoundingClientRect();var my=(e.clientY-rect.top)*(H/rect.height);
+  var i=Math.floor((my-16)/rowH);
+  if(i>=0&&i<PHONS.length){activePHON=i;drawPhon();var row=PHONS[i];document.getElementById('phonInfo').textContent=row.p+' — Example: '+row.ex+'. Group: '+row.grp+'. → '+row.vis+'. These phoneme boundaries from MFA (in seconds) are passed directly to the Phoneme→Viseme mapper (App 24) to determine which of 15 viseme classes to activate at what time.';}
+});
+
+window.addEventListener('resize',function(){resizeViterbi();resizeTG();resizePhon();});
+resizeViterbi();resizeTG();resizePhon();
+drawViterbi();drawTG();drawPhon();
+})();
+</script>
+</body>
+</html>

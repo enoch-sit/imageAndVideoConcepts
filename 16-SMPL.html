@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMPL — Skinned Multi-Person Linear Body Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--accent)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--accent);background:var(--accent-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--accent-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:560px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--accent);opacity:.2}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--accent);background:var(--bg)}
+.step-dot--teal{border-color:var(--teal)}.step-dot--purple{border-color:var(--purple)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--accent);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--teal{border-left-color:var(--teal)}.eq-box--purple{border-left-color:var(--purple)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--accent{border-left:4px solid var(--accent)}.callout--purple{border-left:4px solid var(--purple)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--accent .callout-title{color:var(--accent)}.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--accent{background:var(--accent);color:#fff}.btn--accent:hover{filter:brightness(1.1)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.slider-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-top:.5rem}
+.slider-row label{font-size:.82rem;font-weight:600;color:var(--text-2);white-space:nowrap}
+input[type=range]{flex:1;min-width:80px;accent-color:var(--accent)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.cmp-table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:.88rem}
+.cmp-table th{background:var(--bg-alt);font-weight:700;padding:.65rem 1rem;text-align:left;border-bottom:2px solid var(--border)}
+.cmp-table td{padding:.6rem 1rem;border-bottom:1px solid var(--border)}
+.cmp-table tr:last-child td{border-bottom:none}
+.cmp-table td:first-child{font-weight:600;color:var(--text-2)}
+.hi-accent{color:var(--accent);font-weight:700}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">SMPL Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Shape (β)</a>
+    <a href="#ch2">02 Pose (θ)</a>
+    <a href="#ch3">03 LBS Formula</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>SMPL — <em>Skinned Multi-Person</em><br>Linear Body Model</h1>
+  <p class="subtitle">How SMPL represents any human body with just 82 numbers: 10 shape parameters (β) controlling body size/proportions and 72 pose parameters (θ) controlling joint rotations.</p>
+  <div class="pill-row">
+    <span class="pill pill--accent">β ∈ ℝ¹⁰ Shape</span>
+    <span class="pill pill--teal">θ ∈ ℝ⁷² Pose</span>
+    <span class="pill pill--purple">6890 Mesh Vertices</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">Shape Space — β Parameters</h2></div>
+  <p class="ch-sub">β is a 10-dimensional vector that captures body shape variation across a population. It is derived from PCA on a dataset of thousands of 3D body scans. β=0 gives the mean body; positive/negative values move along principal variation axes (height, weight, limb proportions, etc.).</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Shape Morph Explorer</div>
+    <div class="sim-desc">Drag sliders to change the first two shape principal components. The silhouette shows the resulting body shape change relative to the neutral SMPL template.</div>
+    <div class="sim-canvas-wrap"><canvas id="shapeCanvas" style="height:280px"></canvas></div>
+    <div class="slider-row">
+      <label>β₀ (height/mass): <span id="b0Val">0.0</span></label>
+      <input type="range" id="b0Slider" min="-3" max="3" step="0.1" value="0" oninput="updateShape()">
+    </div>
+    <div class="slider-row">
+      <label>β₁ (weight/lean): <span id="b1Val">0.0</span></label>
+      <input type="range" id="b1Slider" min="-3" max="3" step="0.1" value="0" oninput="updateShape()">
+    </div>
+    <div id="shapeInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Shape as PCA Coefficients</h3>
+    <p>SMPL's shape blend shapes are a set of 10 orthonormal basis vectors (each 6890×3 dimensional — one displacement vector per vertex). The β coefficients weight these bases:</p>
+    <div class="eq-box">
+      <span class="eq-label">Shape blend shape formula</span>
+      <span class="mono">T_shaped = T_mean + Σᵢ βᵢ · Sᵢ</span><br>
+      <br>
+      <span class="mono">T_mean ∈ ℝ^(6890×3)  — mean body template</span><br>
+      <span class="mono">Sᵢ ∈ ℝ^(6890×3)  — i-th shape basis vector</span><br>
+      <span class="mono">β ∈ ℝ¹⁰  — shape coefficients</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Pose Space — θ Parameters</h2></div>
+  <p class="ch-sub">θ ∈ ℝ⁷² encodes joint rotations as axis-angle vectors for 24 body joints (including the root). Each joint gets a 3D axis-angle vector (3 × 24 = 72 values). Axis-angle (r) is compact: the direction of r is the rotation axis and |r| is the angle in radians.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Skeleton Pose Viewer</div>
+    <div class="sim-desc">Click a joint to see its index and the 3D axis-angle representation. Drag the arm rotation slider to see how a single θ sub-vector changes the skeleton.</div>
+    <div class="sim-canvas-wrap"><canvas id="skelCanvas" style="height:280px"></canvas></div>
+    <div class="slider-row">
+      <label>Left arm rotation (θ₁₃.y): <span id="armVal">0°</span></label>
+      <input type="range" id="armSlider" min="-90" max="90" step="5" value="0" oninput="updateSkel()">
+    </div>
+    <div id="skelInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65">Click a joint above to see its index and description.</div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>24 Joint Hierarchy</h3>
+    <p>The 24 SMPL joints are organized in a kinematic tree from the pelvis root. Child joints inherit parent transforms. The 24 joints cover: pelvis (0), left/right legs (1-6), spine chain (6-9), shoulders/elbows/wrists (13-17,10-12), and hands (18-23).</p>
+    <div class="eq-box eq-box--teal">
+      <span class="eq-label">SMPL 24 joint labels</span>
+      <span class="mono">0:Pelvis  1:L_Hip  2:R_Hip  3:Spine1</span><br>
+      <span class="mono">4:L_Knee  5:R_Knee  6:Spine2  7:L_Ankle</span><br>
+      <span class="mono">8:R_Ankle 9:Spine3  10:L_Foot 11:R_Foot</span><br>
+      <span class="mono">12:Neck  13:L_Collar 14:R_Collar 15:Head</span><br>
+      <span class="mono">16:L_Shoulder 17:R_Shoulder 18:L_Elbow 19:R_Elbow</span><br>
+      <span class="mono">20:L_Wrist 21:R_Wrist 22:L_Hand 23:R_Hand</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Linear Blend Skinning (LBS)</h2></div>
+  <p class="ch-sub">Given shape (β) and pose (θ), SMPL produces a 3D mesh via Linear Blend Skinning: weighted blending of the 6890 vertices according to which joints they are "attached to" (skinning weights W).</p>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>The SMPL LBS Formula</h3>
+    <p>Every vertex v is transformed by a weighted average of joint transformation matrices, where the weights W ∈ ℝ^(6890×24) are fixed (learned from data). High weight near a joint = that joint dominates the vertex position.</p>
+    <div class="eq-box eq-box--purple">
+      <span class="eq-label">Full SMPL forward pass</span>
+      <span class="mono">T(β) = T_mean + Σ βᵢ Sᵢ + Σ B_p(θ)  (pose blends)</span><br>
+      <span class="mono">vᵢ' = (Σⱼ wᵢⱼ · Gⱼ(θ,J(β))) · vᵢ</span><br>
+      <br>
+      <span class="mono">wᵢⱼ = skinning weight of vertex i for joint j</span><br>
+      <span class="mono">Gⱼ = world transformation matrix of joint j</span><br>
+      <span class="mono">J(β) = joint positions derived from shape β</span>
+    </div>
+  </div>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">LBS Vertex Weighting Visualiser</div>
+    <div class="sim-desc">Each colour zone shows vertices dominated by a particular joint. The blending regions (multi-colour) show shared influence at elbows, knees and shoulders.</div>
+    <div class="sim-canvas-wrap"><canvas id="lbsCanvas" style="height:300px"></canvas></div>
+    <div id="lbsInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65">Hover over a body region to see its dominant joint and skinning weight range.</div>
+  </div>
+
+  <table class="cmp-table fade-up">
+    <thead><tr><th>Parameter</th><th>Symbol</th><th>Dimension</th><th>Controls</th></tr></thead>
+    <tbody>
+      <tr><td>Shape</td><td class="mono">β</td><td>ℝ¹⁰</td><td>Height, weight, proportions (PCA of population)</td></tr>
+      <tr><td>Pose</td><td class="mono">θ</td><td>ℝ⁷² (24×3)</td><td>Joint rotations (axis-angle per joint)</td></tr>
+      <tr><td>Translation</td><td class="mono">t</td><td>ℝ³</td><td>Global root translation in world coords</td></tr>
+      <tr><td>Vertices</td><td class="mono">V</td><td>ℝ^(6890×3)</td><td>Final mesh (output)</td></tr>
+      <tr><td>Skinning weights</td><td class="mono">W</td><td>ℝ^(6890×24)</td><td>Fixed (from training); not optimized at inference</td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<footer class="footer">SMPL Interactive Guide · MPI-IS / Max Planck Institute</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ── Shape canvas ── */
+var shapeCanvas=document.getElementById('shapeCanvas');
+function resizeShape(){
+  var dpr=window.devicePixelRatio||1;var W=shapeCanvas.parentElement.getBoundingClientRect().width;
+  shapeCanvas.width=Math.round(W*dpr);shapeCanvas.height=Math.round(280*dpr);
+  shapeCanvas.style.width=W+'px';shapeCanvas.style.height='280px';drawShape();
+}
+window.updateShape=function(){
+  document.getElementById('b0Val').textContent=parseFloat(document.getElementById('b0Slider').value).toFixed(1);
+  document.getElementById('b1Val').textContent=parseFloat(document.getElementById('b1Slider').value).toFixed(1);
+  drawShape();
+};
+function drawShape(){
+  var b0=parseFloat(document.getElementById('b0Slider').value);
+  var b1=parseFloat(document.getElementById('b1Slider').value);
+  var dpr=window.devicePixelRatio||1;var W=shapeCanvas.width/dpr,H=shapeCanvas.height/dpr;
+  var ctx=shapeCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+
+  // Simple stick figure with shape morphing
+  var cx=W/2;var baseH=H*0.82;
+  var scale=0.6+b0*0.06;// height from b0
+  var width=0.7+b1*0.08;// width from b1
+  var h=H*0.68*scale;
+
+  // Body proportions
+  var headR=h*0.08;var headY=baseH-h;var neckY=headY+headR*2.2;
+  var shoulderY=neckY+h*0.06;var shoulderW=h*0.22*width;
+  var hipY=shoulderY+h*0.38;var hipW=h*0.18*width;
+  var kneeY=hipY+h*0.28;var ankleY=kneeY+h*0.24;
+  var elbowY=shoulderY+h*0.18;var wristY=elbowY+h*0.18;
+
+  // Draw ghost (neutral)
+  ctx.globalAlpha=0.15;ctx.strokeStyle='#BF4A24';ctx.lineWidth=2.5;
+  var n0=0.6;var nw=0.7;var nh=H*0.68*n0;
+  drawFigure(ctx,cx,baseH,nh,nw,H);
+  ctx.globalAlpha=1.0;
+
+  // Draw current
+  ctx.strokeStyle='#BF4A24';ctx.lineWidth=3;
+  drawFigure(ctx,cx,baseH,h,width,H);
+
+  // Labels
+  ctx.fillStyle='#BF4A24';ctx.font='700 10px DM Sans,sans-serif';ctx.textAlign='left';
+  var desc='β=('+(b0>0?'+':'')+b0.toFixed(1)+', '+(b1>0?'+':'')+b1.toFixed(1)+')';
+  ctx.fillText(desc,12,20);
+  ctx.fillStyle='#8A95A2';ctx.font='500 9px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('(ghost = neutral pose β=0)',cx,H-6);
+
+  document.getElementById('shapeInfo').textContent='β₀='+(b0>0?'+':'')+b0.toFixed(1)+' scales body height by '+(scale*100).toFixed(0)+'%. β₁='+(b1>0?'+':'')+b1.toFixed(1)+' scales body width by '+(width*100).toFixed(0)+'%. These are approximations of PCA principal components over 3D scan datasets. In practice the first few β components correspond to overall size, BMI, gender, and limb proportions.';
+}
+function drawFigure(ctx,cx,base,h,wf,H){
+  var hd=h*0.08;var hdy=base-h;var ny=hdy+hd*2.2;var sy=ny+h*0.06;var sw=h*0.22*wf;
+  var hipy=sy+h*0.38;var hipw=h*0.18*wf;var kny=hipy+h*0.28;var any2=kny+h*0.24;
+  var ely=sy+h*0.18;var wy=ely+h*0.18;
+  ctx.beginPath();ctx.arc(cx,hdy+hd,hd,0,Math.PI*2);ctx.stroke();// head
+  ctx.beginPath();ctx.moveTo(cx,hdy+hd*2);ctx.lineTo(cx,ny);ctx.lineTo(cx,sy);ctx.lineTo(cx,hipy);ctx.stroke();// spine
+  ctx.beginPath();ctx.moveTo(cx-sw,sy);ctx.lineTo(cx+sw,sy);ctx.stroke();// shoulders
+  ctx.beginPath();ctx.moveTo(cx-sw,sy);ctx.lineTo(cx-sw*1.1,ely);ctx.lineTo(cx-sw*0.95,wy);ctx.stroke();// L arm
+  ctx.beginPath();ctx.moveTo(cx+sw,sy);ctx.lineTo(cx+sw*1.1,ely);ctx.lineTo(cx+sw*0.95,wy);ctx.stroke();// R arm
+  ctx.beginPath();ctx.moveTo(cx-hipw,hipy);ctx.lineTo(cx+hipw,hipy);ctx.stroke();// hips
+  ctx.beginPath();ctx.moveTo(cx-hipw,hipy);ctx.lineTo(cx-hipw*0.9,kny);ctx.lineTo(cx-hipw*0.9,any2);ctx.stroke();// L leg
+  ctx.beginPath();ctx.moveTo(cx+hipw,hipy);ctx.lineTo(cx+hipw*0.9,kny);ctx.lineTo(cx+hipw*0.9,any2);ctx.stroke();// R leg
+}
+
+/* ── Skeleton canvas ── */
+var skelCanvas=document.getElementById('skelCanvas');
+var armDeg=0;
+function resizeSkel(){
+  var dpr=window.devicePixelRatio||1;var W=skelCanvas.parentElement.getBoundingClientRect().width;
+  skelCanvas.width=Math.round(W*dpr);skelCanvas.height=Math.round(280*dpr);
+  skelCanvas.style.width=W+'px';skelCanvas.style.height='280px';drawSkel();
+}
+window.updateSkel=function(){
+  armDeg=parseFloat(document.getElementById('armSlider').value);
+  document.getElementById('armVal').textContent=armDeg.toFixed(0)+'°';
+  drawSkel();
+};
+var JNAMES=['Pelvis','L_Hip','R_Hip','Spine1','L_Knee','R_Knee','Spine2','L_Ankle','R_Ankle','Spine3','L_Foot','R_Foot','Neck','L_Collar','R_Collar','Head','L_Shoulder','R_Shoulder','L_Elbow','R_Elbow','L_Wrist','R_Wrist','L_Hand','R_Hand'];
+var selectedJoint=-1;
+function drawSkel(){
+  var dpr=window.devicePixelRatio||1;var W=skelCanvas.width/dpr,H=skelCanvas.height/dpr;
+  var ctx=skelCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var cx=W/2;var base=H*0.90;var h=H*0.72;
+  var armRad=armDeg*Math.PI/180;
+  // Joint positions (simplified)
+  var hd=h*0.07;var sy=base-h*0.55;var hipy=sy+h*0.35;var kny=hipy+h*0.26;var any2=kny+h*0.22;
+  var sw=h*0.18;var hipw=h*0.14;
+  var elbowOff=sw*0.15+sw*Math.sin(armRad)*0.7;var elbowY=sy+h*0.16+sw*Math.sin(armRad)*0.3;
+  var JOINTS=[
+    [cx,hipy],[cx-hipw,hipy],[cx+hipw,hipy],[cx,sy+h*0.12],//0-3
+    [cx-hipw*0.9,kny],[cx+hipw*0.9,kny],[cx,sy+h*0.24],//4-6
+    [cx-hipw*0.9,any2],[cx+hipw*0.9,any2],[cx,sy+h*0.36],//7-9
+    [cx-hipw*0.85,any2+h*0.05],[cx+hipw*0.85,any2+h*0.05],[cx,sy-h*0.04],//10-12
+    [cx-sw*0.3,sy],[cx+sw*0.3,sy],[cx,base-h],//13-15
+    [cx-sw-elbowOff*0.5,sy+h*0.02],[cx+sw+elbowOff*0.5,sy+h*0.02],//16-17
+    [cx-sw-elbowOff,elbowY],[cx+sw+elbowOff,elbowY],//18-19
+    [cx-sw-elbowOff*1.3,elbowY+h*0.14],[cx+sw+elbowOff*1.3,elbowY+h*0.14],//20-21
+    [cx-sw-elbowOff*1.5,elbowY+h*0.2],[cx+sw+elbowOff*1.5,elbowY+h*0.2]//22-23
+  ];
+  var BONES=[[0,1],[0,2],[0,3],[1,4],[2,5],[3,6],[4,7],[5,8],[6,9],[7,10],[8,11],[9,12],[12,13],[12,14],[12,15],[13,16],[14,17],[16,18],[17,19],[18,20],[19,21],[20,22],[21,23]];
+  BONES.forEach(function(b){
+    var isArm=(b[0]===13||b[0]===16||b[0]===18||b[0]===20);
+    ctx.strokeStyle=isArm?'rgba(26,123,107,.7)':'rgba(191,74,36,.45)';ctx.lineWidth=2.2;
+    var a=JOINTS[b[0]];var bb=JOINTS[b[1]];if(!a||!bb)return;
+    ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(bb[0],bb[1]);ctx.stroke();
+  });
+  JOINTS.forEach(function(p,i){
+    var active=i===selectedJoint;
+    ctx.beginPath();ctx.arc(p[0],p[1],active?6.5:4,0,Math.PI*2);
+    ctx.fillStyle=active?'#BF4A24':'rgba(191,74,36,.7)';ctx.fill();
+    if(active){ctx.strokeStyle='#BF4A24';ctx.lineWidth=1.5;ctx.stroke();}
+    ctx.fillStyle='#5A6878';ctx.font='500 7.5px DM Sans,sans-serif';ctx.textAlign='center';
+    if(i===0||i===12||i===15||i===3||i===9)ctx.fillText(i,p[0],p[1]-7);
+  });
+  if(selectedJoint>=0){var sj=JOINTS[selectedJoint];ctx.strokeStyle='#BF4A24';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(sj[0],sj[1],12,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
+  ctx.fillStyle='#8A95A2';ctx.font='500 9px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('L_Elbow (j=18) rotated: '+armDeg.toFixed(0)+'°',cx,H-6);
+}
+skelCanvas.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var W=skelCanvas.width/dpr,H=skelCanvas.height/dpr;
+  var armRad=armDeg*Math.PI/180;var cx=W/2;var base=H*0.90;var h=H*0.72;
+  var hd=h*0.07;var sy=base-h*0.55;var hipy=sy+h*0.35;var kny=hipy+h*0.26;var any2=kny+h*0.22;
+  var sw=h*0.18;var hipw=h*0.14;
+  var elbowOff=sw*0.15+sw*Math.sin(armRad)*0.7;var elbowY=sy+h*0.16+sw*Math.sin(armRad)*0.3;
+  var JOINTS=[[cx,hipy],[cx-hipw,hipy],[cx+hipw,hipy],[cx,sy+h*0.12],[cx-hipw*0.9,kny],[cx+hipw*0.9,kny],[cx,sy+h*0.24],[cx-hipw*0.9,any2],[cx+hipw*0.9,any2],[cx,sy+h*0.36],[cx-hipw*0.85,any2+h*0.05],[cx+hipw*0.85,any2+h*0.05],[cx,sy-h*0.04],[cx-sw*0.3,sy],[cx+sw*0.3,sy],[cx,base-h],[cx-sw-elbowOff*0.5,sy+h*0.02],[cx+sw+elbowOff*0.5,sy+h*0.02],[cx-sw-elbowOff,elbowY],[cx+sw+elbowOff,elbowY],[cx-sw-elbowOff*1.3,elbowY+h*0.14],[cx+sw+elbowOff*1.3,elbowY+h*0.14],[cx-sw-elbowOff*1.5,elbowY+h*0.2],[cx+sw+elbowOff*1.5,elbowY+h*0.2]];
+  var rect=skelCanvas.getBoundingClientRect();var mx=(e.clientX-rect.left)*(W/rect.width);var my=(e.clientY-rect.top)*(H/rect.height);
+  var best=-1;var bestD=1e9;
+  JOINTS.forEach(function(p,i){var d=Math.hypot(mx-p[0],my-p[1]);if(d<bestD){bestD=d;best=i;}});
+  if(bestD<20){selectedJoint=best;drawSkel();document.getElementById('skelInfo').textContent='Joint '+best+' — '+JNAMES[best]+': θ_'+best+' = [r_x, r_y, r_z] axis-angle rotation. Indices '+best*3+'–'+(best*3+2)+' in the θ∈ℝ⁷² vector. This joint is a child of joint '+getParent(best)+'.';} 
+});
+function getParent(j){var p=[-1,0,0,0,1,2,3,4,5,6,7,8,9,9,9,12,13,14,16,17,18,19,20,21];return p[j];}
+
+/* ── LBS canvas ── */
+var lbsCanvas=document.getElementById('lbsCanvas');
+function resizeLBS(){
+  var dpr=window.devicePixelRatio||1;var W=lbsCanvas.parentElement.getBoundingClientRect().width;
+  lbsCanvas.width=Math.round(W*dpr);lbsCanvas.height=Math.round(300*dpr);
+  lbsCanvas.style.width=W+'px';lbsCanvas.style.height='300px';drawLBS();
+}
+function drawLBS(){
+  var dpr=window.devicePixelRatio||1;var W=lbsCanvas.width/dpr,H=lbsCanvas.height/dpr;
+  var ctx=lbsCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var cx=W/2;var base=H*0.92;var h=H*0.76;
+  // Draw coloured body regions representing joint domination
+  var regions=[
+    {label:'Head',x:cx,y:base-h,rx:h*0.07,ry:h*0.07,color:'#6B52A8'},
+    {label:'Neck',x:cx,y:base-h*0.86,rx:h*0.04,ry:h*0.04,color:'#5A6878'},
+    {label:'Torso',x:cx,y:base-h*0.6,rx:h*0.16,ry:h*0.22,color:'#1A7B6B'},
+    {label:'Hips',x:cx,y:base-h*0.38,rx:h*0.15,ry:h*0.1,color:'#BF4A24'},
+    {label:'L Thigh',x:cx-h*0.13,y:base-h*0.25,rx:h*0.07,ry:h*0.1,color:'#a05c1a'},
+    {label:'R Thigh',x:cx+h*0.13,y:base-h*0.25,rx:h*0.07,ry:h*0.1,color:'#a05c1a'},
+    {label:'L Shin',x:cx-h*0.12,y:base-h*0.12,rx:h*0.06,ry:h*0.09,color:'#c0844a'},
+    {label:'R Shin',x:cx+h*0.12,y:base-h*0.12,rx:h*0.06,ry:h*0.09,color:'#c0844a'},
+    {label:'L Arm',x:cx-h*0.25,y:base-h*0.62,rx:h*0.06,ry:h*0.12,color:'#2e8b6b'},
+    {label:'R Arm',x:cx+h*0.25,y:base-h*0.62,rx:h*0.06,ry:h*0.12,color:'#2e8b6b'},
+    {label:'L Fore',x:cx-h*0.28,y:base-h*0.44,rx:h*0.05,ry:h*0.10,color:'#52a888'},
+    {label:'R Fore',x:cx+h*0.28,y:base-h*0.44,rx:h*0.05,ry:h*0.10,color:'#52a888'}
+  ];
+  regions.forEach(function(r){
+    ctx.fillStyle=r.color;ctx.globalAlpha=0.55;
+    ctx.beginPath();ctx.ellipse(r.x,r.y,r.rx,r.ry,0,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#fff';ctx.font='600 8px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText(r.label,r.x,r.y+3);
+  });
+  // Overlap blend regions at joints
+  [[cx-h*0.18,base-h*0.48,'Elbow blend'],[cx+h*0.18,base-h*0.48,'Elbow blend'],[cx-h*0.12,base-h*0.35,'Knee blend'],[cx+h*0.12,base-h*0.35,'Knee blend']].forEach(function(r){
+    var gr=ctx.createRadialGradient(r[0],r[1],0,r[0],r[1],h*0.07);
+    gr.addColorStop(0,'rgba(255,255,255,0.25)');gr.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=gr;ctx.beginPath();ctx.arc(r[0],r[1],h*0.07,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='500 7px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText(r[2],r[0],r[1]+3);
+  });
+  ctx.fillStyle='#8A95A2';ctx.font='500 9px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('Vertex colour = dominant joint (weight > 0.5)',cx,H-6);
+  document.getElementById('lbsInfo').textContent='LBS assigns each of the 6890 mesh vertices a sparse vector of skinning weights across 24 joints. Most vertices have >0.8 weight on a single dominant joint. Transition zones (elbows, knees, shoulders) have blended weights to avoid "candy-wrapper" artifacts. Pose blend shapes (B_p) further correct non-linear effects at extreme joint angles.';
+}
+
+window.addEventListener('resize',function(){resizeShape();resizeSkel();resizeLBS();});
+resizeShape();resizeSkel();resizeLBS();
+})();
+</script>
+</body>
+</html>

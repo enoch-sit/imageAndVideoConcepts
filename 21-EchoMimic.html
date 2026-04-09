@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EchoMimic — Audio-conditioned Portrait Animation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--teal)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--teal);background:var(--teal-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--teal-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--teal)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:580px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--teal);opacity:.22}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--teal);background:var(--bg)}
+.step-dot--purple{border-color:var(--purple)}.step-dot--accent{border-color:var(--accent)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--teal);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--purple{border-left-color:var(--purple)}.eq-box--accent{border-left-color:var(--accent)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--teal{background:var(--teal);color:#fff}.btn--teal:hover{filter:brightness(1.1)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">EchoMimic Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Architecture</a>
+    <a href="#ch2">02 LandmarkCtrl</a>
+    <a href="#ch3">03 Conditioning</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>EchoMimic — <em>Audio-conditioned</em><br>Portrait Animation</h1>
+  <p class="subtitle">EchoMimic (2024) animates a portrait using audio and optional facial landmark control. It extends AnimateDiff with an audio encoder branch and a landmark-conditioning adapter, enabling both audio-only and audio+landmark-guided animation modes.</p>
+  <div class="pill-row">
+    <span class="pill pill--teal">AnimateDiff base</span>
+    <span class="pill pill--accent">Audio + landmark ctrl</span>
+    <span class="pill pill--purple">Dual conditioning</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">Architecture — AnimateDiff + Audio</h2></div>
+  <p class="ch-sub">EchoMimic builds on AnimateDiff's temporal motion module architecture. It adds two adapters: an Audio Adapter that injects audio features via cross-attention, and a Facial Landmark Adapter (LandmarkCtrl) that optionally injects landmark sequences via ControlNet-style copying.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">EchoMimic Processing Pipeline</div>
+    <div class="sim-desc">Click through the pipeline stages to trace how audio and an optional reference video both condition the same U-Net.</div>
+    <div class="sim-canvas-wrap"><canvas id="pipeCanvas" style="height:220px"></canvas></div>
+    <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+      <button class="btn btn--teal" onclick="pipeNext()">Next ›</button>
+      <button class="btn btn--ghost" onclick="pipeReset()">Reset</button>
+      <span id="pipeStepLabel" style="font-size:.85rem;font-weight:600;color:var(--teal);padding:.55rem 0">Step 1 of 5</span>
+    </div>
+    <div id="pipeInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Base: AnimateDiff Motion Modules</h3>
+    <p>AnimateDiff inserts temporal self-attention modules between every spatial attention block of a U-Net. These 1D temporal attention layers operate on the T-frame axis, creating smooth frame-to-frame transitions without per-video fine-tuning. EchoMimic inherits this structure and adds conditioning adapters alongside it.</p>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--accent"></span>
+    <h3>Audio Adapter — wav2vec2 Cross-Attention</h3>
+    <p>Audio is encoded by a pre-trained wav2vec2 model (same as DAWN). EchoMimic's audio adapter projects these features and adds them via cross-attention at each temporal attention block. Only the adapter weights are trained; the AnimateDiff motion module weights are frozen during audio-specific training.</p>
+    <div class="eq-box eq-box--accent">
+      <span class="eq-label">Audio adapter injection</span>
+      <span class="mono">A = wav2vec2(audio_clip)    ∈ ℝ^(T_a×768)</span><br>
+      <span class="mono">A_proj = Linear(A)           ∈ ℝ^(T_a×C)</span><br>
+      <span class="mono">z'_t = TemporalAttn(z_t) + AudioCrossAttn(z_t, A_proj)</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">LandmarkCtrl — Optional Landmark Guidance</h2></div>
+  <p class="ch-sub">EchoMimic offers a second conditioning mode where facial landmarks (MediaPipe 478-point face mesh sampled to 68 key points) from a reference driving video are used as additional spatial guidance. This "landmark control" improves lip-sync accuracy at the cost of requiring a driving video.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Dual-Mode Conditioning</div>
+    <div class="sim-desc">Toggle between Audio-only and Audio+Landmark modes to see how the conditioning signals differ.</div>
+    <div class="sim-canvas-wrap"><canvas id="modeCanvas" style="height:250px"></canvas></div>
+    <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+      <button class="btn btn--teal" id="modeAudioBtn" onclick="setMode('audio')">Audio-only mode</button>
+      <button class="btn btn--ghost" id="modeLandBtn" onclick="setMode('landmark')">Audio + Landmark mode</button>
+    </div>
+    <div id="modeInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>ControlNet-style Landmark Adapter</h3>
+    <p>The landmark adapter is a lightweight zero-initialized ControlNet. The landmark sequence (68 key points rendered as a heatmap image, one per frame) is encoded by the ControlNet encoder and added to the U-Net encoder features via zero-convolution residuals. This allows controlled disabling at inference for audio-only mode by zeroing the ControlNet weights.</p>
+    <div class="eq-box eq-box--purple">
+      <span class="eq-label">LandmarkCtrl injection</span>
+      <span class="mono">L_img_t = renderLandmarks(lm_t)  — heatmap image</span><br>
+      <span class="mono">ctrl_feat = LandmarkEncoder(L_img_t)</span><br>
+      <span class="mono">z_enc_t += ZeroConv(ctrl_feat)  — additive residual</span><br>
+      <span class="mono">disable = set ZeroConv weight → 0 for audio-only mode</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Conditioning Comparison</h2></div>
+  <p class="ch-sub">The three audio-driven talking-head systems in this course differ in how they condition generation. This affects inference speed, output diversity, and lip-sync precision.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">SadTalker vs DAWN vs EchoMimic</div>
+    <div class="sim-desc">Click a row to see detail on that property.</div>
+    <div class="sim-canvas-wrap"><canvas id="tblCanvas" style="height:310px"></canvas></div>
+    <div id="tblInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.6">Click a row to explore that property in detail.</div>
+  </div>
+
+  <div class="callout callout--teal fade-up">
+    <div class="callout-title">Course usage of EchoMimic</div>
+    EchoMimic is used in the course demo pipeline when a reference talking video is available (e.g. a known speaker video). The audio-only mode is used for production runs. The landmark mode is demonstrated as a teacher run to show how explicit face-mesh control improves lip accuracy, before introducing the full phoneme-to-viseme pipeline (Apps 24–25) which achieves similar control without a driving video.
+  </div>
+</div>
+</section>
+
+<footer class="footer">EchoMimic Interactive Guide · Alibaba DAMO, 2024</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ─── Pipeline canvas ─── */
+var pipeCanvas=document.getElementById('pipeCanvas');
+var pipeStep=0;
+var PIPE=[
+  {label:'Step 1 — Portrait + Audio (+ opt landmarks)',info:'Inputs: portrait image I_ref, audio clip (WAV/MP3), and optionally a driving video for landmark extraction. Audio-only mode requires only the portrait + audio.'},
+  {label:'Step 2 — Reference Net (ReferenceNet)',info:'The portrait is processed by ReferenceNet — a copy of the U-Net encoder with shared weights — to extract multi-scale spatial feature maps. These are cached and injected at every scale via spatial cross-attention, preserving fine identity details without fine-tuning.'},
+  {label:'Step 3 — Audio Encoder (wav2vec2)',info:'The audio clip is processed by wav2vec2 to produce 768-dim contextual speech features at ~50Hz. A linear projection maps these to the U-Net hidden dimension. These temporal features are injected at every temporal U-Net block.'},
+  {label:'Step 4 — Optional LandmarkCtrl',info:'If a driving video is provided, MediaPipe extracts 478 face-mesh landmarks per frame. Key points are rendered as 2D Gaussian heatmaps. LandmarkCtrl (zero-initialized ControlNet) processes these and adds residuals to the U-Net encoder features.'},
+  {label:'Step 5 — AnimateDiff U-Net denoising',info:'The full AnimateDiff U-Net (with temporal motion modules) denoises the video latents conditioned on: reference features (identity), audio cross-attention (lip/expression), and optional landmark residuals. Output: H×W×T latent → VAE decode → video.'}
+];
+window.pipeNext=function(){if(pipeStep<PIPE.length-1)pipeStep++;drawPipe();};
+window.pipeReset=function(){pipeStep=0;drawPipe();};
+function drawPipe(){
+  document.getElementById('pipeStepLabel').textContent='Step '+(pipeStep+1)+' of '+PIPE.length;
+  document.getElementById('pipeInfo').textContent=PIPE[pipeStep].info;
+  var dpr=window.devicePixelRatio||1;var W=pipeCanvas.width/dpr,H=pipeCanvas.height/dpr;
+  var ctx=pipeCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var N=PIPE.length;var bw=Math.min(96,(W-30)/N-6);var bh=56;var gap=Math.max(6,(W-30-bw*N)/(N-1));
+  var sx=(W-(bw*N+gap*(N-1)))/2;var by=(H-bh)/2;
+  PIPE.forEach(function(p,i){
+    var x=sx+i*(bw+gap);var act=i===pipeStep;var done=i<pipeStep;
+    ctx.fillStyle=act?'rgba(26,123,107,.18)':done?'rgba(26,123,107,.08)':'rgba(230,221,208,.35)';
+    ctx.strokeStyle=act?'#1A7B6B':done?'rgba(26,123,107,.5)':'#E6DDD0';ctx.lineWidth=act?2.5:1.2;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,8);ctx.fill();ctx.stroke();
+    ctx.fillStyle=act?'#1A7B6B':done?'rgba(26,123,107,.55)':'#5A6878';ctx.font=(act?'700 ':'500 ')+'9px DM Sans,sans-serif';ctx.textAlign='center';
+    var short=p.label.replace('Step '+(i+1)+' — ','').split(' ').slice(0,4).join(' ');
+    ctx.fillText(short,x+bw/2,by+bh/2+4);
+    if(i<N-1){ctx.strokeStyle=done?'rgba(26,123,107,.4)':'rgba(230,221,208,.7)';ctx.lineWidth=1.5;var ax=x+bw+1;ctx.beginPath();ctx.moveTo(ax+1,by+bh/2);ctx.lineTo(ax+gap-2,by+bh/2);ctx.stroke();}
+  });
+}
+function resizePipe(){var dpr=window.devicePixelRatio||1;var W=pipeCanvas.parentElement.getBoundingClientRect().width;pipeCanvas.width=Math.round(W*dpr);pipeCanvas.height=Math.round(220*dpr);pipeCanvas.style.width=W+'px';pipeCanvas.style.height='220px';drawPipe();}
+
+/* ─── Mode canvas ─── */
+var modeCanvas=document.getElementById('modeCanvas');
+var currentMode='audio';
+window.setMode=function(m){
+  currentMode=m;
+  document.getElementById('modeAudioBtn').className='btn '+(m==='audio'?'btn--teal':'btn--ghost');
+  document.getElementById('modeLandBtn').className='btn '+(m==='landmark'?'btn--teal':'btn--ghost');
+  drawMode();
+};
+function drawMode(){
+  var dpr=window.devicePixelRatio||1;var W=modeCanvas.width/dpr,H=modeCanvas.height/dpr;
+  var ctx=modeCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var cx=W/2;var isLand=currentMode==='landmark';
+  var NODE_W=100;var NODE_H=36;var pad=12;
+  function node(x,y,label,col,active){
+    ctx.fillStyle=active?col+'33':'rgba(230,221,208,.4)';ctx.strokeStyle=active?col:'#E6DDD0';ctx.lineWidth=active?2:1;
+    ctx.beginPath();ctx.roundRect(x-NODE_W/2,y-NODE_H/2,NODE_W,NODE_H,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle=active?col:'#8A95A2';ctx.font=(active?'700 ':'500 ')+'9px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText(label,x,y+4);
+  }
+  function arrow(x1,y1,x2,y2,col){
+    ctx.strokeStyle=col||'rgba(230,221,208,.7)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+    var angle=Math.atan2(y2-y1,x2-x1);var hs=5;
+    ctx.fillStyle=col||'rgba(230,221,208,.7)';ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-hs*Math.cos(angle-0.4),y2-hs*Math.sin(angle-0.4));ctx.lineTo(x2-hs*Math.cos(angle+0.4),y2-hs*Math.sin(angle+0.4));ctx.closePath();ctx.fill();
+  }
+  var lx=cx*0.5;var rx=cx*1.5;var topY=30;var midY=100;var botY=170;var unetY=220;
+  // Inputs
+  node(lx,topY,'Portrait I_ref','#1A7B6B',true);
+  node(cx,topY,'Audio clip','#BF4A24',true);
+  node(rx,topY,'Driving video',isLand?'#6B52A8':'#E6DDD0',isLand);
+  // Encoders
+  node(lx,midY,'ReferenceNet','#1A7B6B',true);
+  node(cx,midY,'wav2vec2','#BF4A24',true);
+  node(rx,midY,'LandmarkCtrl',isLand?'#6B52A8':'#E6DDD0',isLand);
+  // Feature arrows
+  arrow(lx,topY+18,lx,midY-18,'rgba(26,123,107,.6)');
+  arrow(cx,topY+18,cx,midY-18,'rgba(191,74,36,.6)');
+  arrow(rx,topY+18,rx,midY-18,isLand?'rgba(107,82,168,.6)':'rgba(230,221,208,.4)');
+  // U-Net
+  node(cx,unetY,'AnimateDiff U-Net','#1A7B6B',true);
+  arrow(lx,midY+18,cx-50,unetY-18,'rgba(26,123,107,.45)');
+  arrow(cx,midY+18,cx,unetY-18,'rgba(191,74,36,.45)');
+  if(isLand)arrow(rx,midY+18,cx+50,unetY-18,'rgba(107,82,168,.45)');
+  // Labels
+  ctx.fillStyle='#8A95A2';ctx.font='500 9px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('spatial cross-attn',lx+48,unetY-32);ctx.fillText('audio cross-attn',cx-12,unetY-32);
+  if(isLand)ctx.fillText('zero-conv residual',rx-40,unetY-32);
+  document.getElementById('modeInfo').textContent=isLand?'Audio + Landmark mode: LandmarkCtrl (ControlNet adapter) is active. MediaPipe extracts 68+ face mesh points from the driving video per frame, rendered as heatmaps. This significantly improves lip region accuracy but requires a reference video.':'Audio-only mode: only wav2vec2 audio features and ReferenceNet portrait features condition the U-Net. Generation is fully automatic from audio; no driving video needed. Head motion comes from the AnimateDiff temporal attention priors.';
+}
+function resizeMode(){var dpr=window.devicePixelRatio||1;var W=modeCanvas.parentElement.getBoundingClientRect().width;modeCanvas.width=Math.round(W*dpr);modeCanvas.height=Math.round(250*dpr);modeCanvas.style.width=W+'px';modeCanvas.style.height='250px';drawMode();}
+
+/* ─── Comparison table canvas ─── */
+var tblCanvas=document.getElementById('tblCanvas');
+var activeTblRow=-1;
+var TBL_ROWS=[
+  {prop:'Base architecture',sad:'FaceVid2Vid warp',dawn:'Latent diffusion U-Net',echo:'AnimateDiff U-Net',info:'SadTalker uses image warping (not diffusion); DAWN and EchoMimic use diffusion-based generators. EchoMimic inherits AnimateDiff motion modules; DAWN has its own temporal blocks.'},
+  {prop:'Audio encoder',sad:'DeepSpeech2 (29D)',dawn:'wav2vec2 (768D)',echo:'wav2vec2 (768D)',info:'SadTalker uses a lightweight ASR-trained encoder best for phoneme probabilities. Both DAWN and EchoMimic use wav2vec2 for richer contextual speech representations.'},
+  {prop:'3DMM stage',sad:'Yes (BFM, 257D)',dawn:'No',echo:'No',info:'Only SadTalker uses a 3D Morphable Model intermediate. DAWN and EchoMimic work directly in pixel/latent space.'},
+  {prop:'Optional landmark ctrl',sad:'No',dawn:'No',echo:'Yes (ControlNet)',info:'EchoMimic is the only system with optional explicit facial landmark control, giving precise geometry guidance when a driving video is available.'},
+  {prop:'Identity preservation',sad:'Good (3DMM frozen)',dawn:'Good (CLIP ref)',echo:'Best (ReferenceNet)',info:'EchoMimic uses ReferenceNet (full U-Net copy with shared weights) which captures the finest identity details. DAWN uses only CLIP image tokens. SadTalker preserves identity via frozen 3DMM identity coefficients.'},
+  {prop:'Inference speed',sad:'Fastest (~2s)',dawn:'Moderate (diffusion)',echo:'Moderate (diffusion)',info:'SadTalker is fastest as it uses warping not diffusion sampling. DAWN and EchoMimic both require T diffusion steps per video segment.'}
+];
+function resizeTbl(){var dpr=window.devicePixelRatio||1;var W=tblCanvas.parentElement.getBoundingClientRect().width;tblCanvas.width=Math.round(W*dpr);tblCanvas.height=Math.round(310*dpr);tblCanvas.style.width=W+'px';tblCanvas.style.height='310px';drawTbl();}
+function drawTbl(){
+  var dpr=window.devicePixelRatio||1;var W=tblCanvas.width/dpr,H=tblCanvas.height/dpr;
+  var ctx=tblCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var headerH=28;var rowH=(H-headerH)/(TBL_ROWS.length);var cols=[0,.28,.52,.76,1.0].map(function(f){return f*W;});var pad=8;
+  ['Property','SadTalker','DAWN','EchoMimic'].forEach(function(h,i){
+    ctx.fillStyle='rgba(230,221,208,.6)';ctx.fillRect(cols[i],0,cols[i+1]-cols[i],headerH);
+    ctx.fillStyle='#5A6878';ctx.font='700 9px DM Sans,sans-serif';ctx.textAlign='left';ctx.fillText(h,cols[i]+pad,headerH-9);
+  });
+  TBL_ROWS.forEach(function(row,i){
+    var y=headerH+i*rowH;var act=i===activeTblRow;
+    [row.prop,row.sad,row.dawn,row.echo].forEach(function(val,c){
+      if(act){ctx.fillStyle='rgba(26,123,107,.1)';ctx.fillRect(cols[c],y,cols[c+1]-cols[c],rowH);}
+      else if(i%2===0){ctx.fillStyle='rgba(240,236,230,.4)';ctx.fillRect(cols[c],y,cols[c+1]-cols[c],rowH);}
+      ctx.strokeStyle='rgba(230,221,208,.5)';ctx.lineWidth=0.5;ctx.strokeRect(cols[c],y,cols[c+1]-cols[c],rowH);
+      ctx.fillStyle=act?'#1A7B6B':'#1C2A38';ctx.font=(c===0?'600 ':'400 ')+'9px DM Sans,sans-serif';ctx.textAlign='left';
+      // wrap text
+      var words=val.split(' ');var line='';var lineY=y+13;
+      words.forEach(function(w){var test=line+w+' ';if(ctx.measureText(test).width>cols[c+1]-cols[c]-pad*2&&line!==''){ctx.fillText(line.trim(),cols[c]+pad,lineY);line=w+' ';lineY+=11;}else{line=test;}});
+      if(line.trim())ctx.fillText(line.trim(),cols[c]+pad,lineY);
+    });
+  });
+}
+tblCanvas.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var W=tblCanvas.width/dpr;var headerH=28;var H=tblCanvas.height/dpr;var rowH=(H-headerH)/TBL_ROWS.length;
+  var rect=tblCanvas.getBoundingClientRect();var my=(e.clientY-rect.top)*(H/rect.height);
+  var i=Math.floor((my-headerH)/rowH);
+  if(i>=0&&i<TBL_ROWS.length){activeTblRow=i;drawTbl();document.getElementById('tblInfo').textContent=TBL_ROWS[i].info;}
+});
+
+window.addEventListener('resize',function(){resizePipe();resizeMode();resizeTbl();});
+resizePipe();resizeMode();resizeTbl();
+drawPipe();drawMode();drawTbl();
+})();
+</script>
+</body>
+</html>

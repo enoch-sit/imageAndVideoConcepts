@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SANA-Sprint — One-Step Diffusion Distillation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--accent)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--accent);background:var(--accent-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--accent-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:560px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--accent);opacity:.2}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--accent);background:var(--bg)}
+.step-dot--teal{border-color:var(--teal)}.step-dot--purple{border-color:var(--purple)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--accent);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--teal{border-left-color:var(--teal)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--accent{background:var(--accent);color:#fff}.btn--accent:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.slider-group{display:flex;align-items:center;gap:.6rem;flex:1;min-width:200px}
+.slider-group label{font-size:.82rem;font-weight:600;color:var(--text-2);white-space:nowrap}
+.slider-group input[type=range]{flex:1;height:6px;-webkit-appearance:none;appearance:none;background:var(--border);border-radius:3px;outline:none}
+.slider-group input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.slider-val{font-family:'Fira Code',monospace;font-size:.85rem;color:var(--accent);min-width:2.5ch;text-align:right}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.cmp-table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:.88rem}
+.cmp-table th{background:var(--bg-alt);font-weight:700;padding:.65rem 1rem;text-align:left;border-bottom:2px solid var(--border)}
+.cmp-table td{padding:.6rem 1rem;border-bottom:1px solid var(--border)}
+.cmp-table tr:last-child td{border-bottom:none}
+.cmp-table td:first-child{font-weight:600;color:var(--text-2)}
+.hi-accent{color:var(--accent);font-weight:700}.hi-teal{color:var(--teal);font-weight:700}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">SANA-Sprint Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Distillation</a>
+    <a href="#ch2">02 Adversarial</a>
+    <a href="#ch3">03 Comparison</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>SANA-Sprint — <em>One-Step</em><br>Diffusion Distillation</h1>
+  <p class="subtitle">How adversarial distillation compresses a 50-step diffusion model into a single forward pass without sacrificing visual quality — and why that matters for real-time generation.</p>
+  <div class="pill-row">
+    <span class="pill pill--accent">1-Step → 1024×1024</span>
+    <span class="pill pill--teal">Adversarial Training</span>
+    <span class="pill pill--purple">Teacher–Student</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1: KNOWLEDGE DISTILLATION ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">Knowledge Distillation for Diffusion</h2></div>
+  <p class="ch-sub">The standard diffusion sampling loop runs 20–50 steps to denoise from noise to image. Distillation trains a smaller/faster "student" to match the teacher's output distribution in far fewer steps.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Interactive: Step Reduction & Quality Trade-off</div>
+    <div class="sim-desc">Drag the slider to change the number of inference steps. See how each approach (DDPM baseline, DDIM, SANA-Sprint) handles quality at that step count.</div>
+    <div class="sim-canvas-wrap"><canvas id="stepsCanvas" style="height:220px"></canvas></div>
+    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-top:.5rem">
+      <div class="slider-group">
+        <label for="stepsSlider">Steps</label>
+        <input type="range" id="stepsSlider" min="1" max="50" step="1" value="20">
+        <span class="slider-val" id="stepsVal">20</span>
+      </div>
+    </div>
+    <div id="stepsInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.6"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>How Distillation Works — Progressive Approach</h3>
+    <p>Progressive distillation (Ho & Salimans 2022) trains a student to match the output of two teacher steps in a single student step. Repeat this: 50-step teacher → 25-step student → 12-step → 6-step → 1-step. At each round, the "teacher" is last round's student.</p>
+    <div class="eq-box">
+      <span class="eq-label">Distillation loss (simplified)</span>
+      <span class="mono">L_distill = E[‖ x_student(x_t) − x_teacher(x_t→x_{t-2}) ‖²]</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Consistency Models</h3>
+    <p>Consistency models (Song et al. 2023) take a different approach: the model learns that all points on the same ODE trajectory must map to the same clean image. Once trained, a single forward pass from any noisy image x_t reaches the clean x_0.</p>
+    <div class="eq-box eq-box--teal">
+      <span class="eq-label">Consistency property</span>
+      <span class="mono">f_θ(x_t, t) = f_θ(x_t', t')  for any t,t' on same ODE path</span><br>
+      <span class="mono">Inference: x_0 = f_θ(x_T, T)  in ONE step</span>
+    </div>
+  </div>
+
+  <div class="callout callout--accent fade-up">
+    <div class="callout-title">SANA-Sprint's lineage</div>
+    SANA-Sprint combines the efficient transformer backbone from SANA (linear attention, AMP layers) with adversarial consistency distillation (ADD-style) and flow-matching training. The result: 1-step generation of 1024×1024 images in ~0.1 seconds on an H100 GPU.
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2: ADVERSARIAL DISTILLATION ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Adversarial Consistency Distillation</h2></div>
+  <p class="ch-sub">SANA-Sprint uses a GAN discriminator alongside the consistency distillation objective. The discriminator forces the student to produce outputs that are perceptually indistinguishable from the teacher's 50-step results.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Training Pipeline: Teacher vs Student</div>
+    <div class="sim-desc">Click "Next" to step through the adversarial distillation training loop.</div>
+    <div class="sim-canvas-wrap"><canvas id="trainCanvas" style="height:240px"></canvas></div>
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+      <button class="btn btn--accent" id="trainNextBtn" onclick="trainNext()">Next &rsaquo;</button>
+      <button class="btn btn--ghost" onclick="trainReset()">Reset</button>
+      <span id="trainStepLabel" style="font-size:.85rem;color:var(--text-2)">Step 1 of 5</span>
+    </div>
+    <div id="trainInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Two Loss Terms</h3>
+    <p>The student is trained by two loss terms simultaneously:</p>
+    <ul>
+      <li><strong>Consistency loss</strong>: Student output f(x_t) must match teacher's multi-step output. Prevents mode collapse.</li>
+      <li><strong>Adversarial loss</strong>: A discriminator D tries to distinguish student images from teacher images. The student minimises D's ability to do so. Forces high-frequency perceptual quality.</li>
+    </ul>
+    <div class="eq-box">
+      <span class="eq-label">Combined objective</span>
+      <span class="mono">L = λ_c · L_consistency + λ_adv · L_adversarial</span><br>
+      <span class="mono">L_adversarial = -E[log D(f_θ(x_t))]  (student fools discriminator)</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3: COMPARISON ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Latency Comparison</h2></div>
+  <p class="ch-sub">How does SANA-Sprint compare to other models on generation speed? The latency race is measured at 1024×1024 on an H100 GPU.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Speed Comparison Bar Chart</div>
+    <div class="sim-desc">Relative inference time for 1024×1024 image generation. Lower is faster.</div>
+    <div class="sim-canvas-wrap"><canvas id="barCanvas" style="height:240px"></canvas></div>
+  </div>
+
+  <table class="cmp-table fade-up">
+    <thead><tr><th>Model</th><th>Steps</th><th>Latency (H100)</th><th>Params</th></tr></thead>
+    <tbody>
+      <tr><td>SD 1.5 (DDIM)</td><td>20</td><td>~1.8s</td><td>860M</td></tr>
+      <tr><td>SDXL (DDIM)</td><td>20</td><td>~4.2s</td><td>3.5B</td></tr>
+      <tr><td>SDXL-Turbo</td><td>1–4</td><td>~0.5s</td><td>3.5B</td></tr>
+      <tr><td>SANA-1.0 (Flow)</td><td>20</td><td>~0.6s</td><td>1.6B</td></tr>
+      <tr><td class="hi-accent">SANA-Sprint</td><td class="hi-accent">1</td><td class="hi-accent">~0.1s</td><td>1.6B</td></tr>
+    </tbody>
+  </table>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Why Speed Matters for This Course</h3>
+    <p>In the full animation pipeline, diffusion runs per-frame. With 30 fps video, every second of output requires 30 individual inferences. At 1.8 s/frame (SD 1.5), 10 seconds of video takes 9 minutes. At 0.1 s/frame (SANA-Sprint), the same video takes 30 seconds. This unlocks iterative creative editing in near real time.</p>
+    <div class="callout callout--teal">
+      <div class="callout-title">SANA linear attention</div>
+      The speed gain is also architectural: SANA's backbone uses linear attention (O(N) instead of O(N²) per head) so the transformer scales to 1024×1024 without the quadratic cost hitting hard. SANA-Sprint inherits this efficient architecture and adds distillation on top.
+    </div>
+  </div>
+</div>
+</section>
+
+<footer class="footer">SANA-Sprint Interactive Guide · NVlabs / ICLR 2025</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var chs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;chs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ── Steps quality canvas ── */
+var stepsCanvas=document.getElementById('stepsCanvas');
+function resizeSteps(){
+  var dpr=window.devicePixelRatio||1;
+  var W=stepsCanvas.parentElement.getBoundingClientRect().width;
+  stepsCanvas.width=Math.round(W*dpr);stepsCanvas.height=Math.round(220*dpr);
+  stepsCanvas.style.width=W+'px';stepsCanvas.style.height='220px';
+  drawSteps();
+}
+function drawSteps(){
+  var dpr=window.devicePixelRatio||1;
+  var W=stepsCanvas.width/dpr,H=stepsCanvas.height/dpr;
+  var ctx=stepsCanvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  var steps=parseInt(document.getElementById('stepsSlider').value);
+
+  var pad={l:48,r:24,t:24,b:36};
+  var gW=W-pad.l-pad.r,gH=H-pad.t-pad.b;
+
+  // Grid
+  ctx.strokeStyle='var(--border)';ctx.lineWidth=.8;
+  for(var i=0;i<=5;i++){
+    var y=pad.t+gH*(1-i/5);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+gW,y);ctx.stroke();
+    ctx.fillStyle='#8A95A2';ctx.font='10px DM Sans,sans-serif';ctx.textAlign='right';
+    ctx.fillText(Math.round(i*20)+'%',pad.l-5,y+4);
+  }
+
+  // X axis ticks
+  var ticks=[1,5,10,20,50];
+  ticks.forEach(function(t){
+    var x=pad.l+Math.log(t)/Math.log(50)*gW;
+    ctx.fillStyle='#8A95A2';ctx.font='10px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText(t,x,H-pad.b+14);
+  });
+  ctx.fillStyle='#5A6878';ctx.font='10px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('Inference Steps',W/2,H-2);
+
+  // Curves
+  function qualDDPM(s){return 1-Math.exp(-s/12);}
+  function qualDDIM(s){return 1-Math.exp(-s/7);}
+  function qualSANA(s){return s>=1?0.91:0;}
+
+  function drawCurve(qualFn,color,label,extraLabel){
+    ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2.2;ctx.lineJoin='round';
+    for(var s=1;s<=50;s++){
+      var x=pad.l+Math.log(s)/Math.log(50)*gW;
+      var y=pad.t+gH*(1-qualFn(s));
+      if(s===1)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // Endpoint label
+    var sx=pad.l+gW+4;
+    var sy=pad.t+gH*(1-qualFn(50));
+    ctx.fillStyle=color;ctx.font='600 10px DM Sans,sans-serif';ctx.textAlign='left';
+    ctx.fillText(label,sx,sy+4);
+    if(extraLabel){ctx.font='500 9px DM Sans,sans-serif';ctx.fillText(extraLabel,sx,sy+15);}
+  }
+
+  drawCurve(qualDDPM,'#8A95A2','DDPM','50 steps');
+  drawCurve(qualDDIM,'#6B52A8','DDIM','20 steps');
+  drawCurve(qualSANA,'#BF4A24','Sprint','1 step');
+
+  // Current step line
+  var sx=pad.l+Math.log(Math.max(1,steps))/Math.log(50)*gW;
+  ctx.save();
+  ctx.strokeStyle='rgba(191,74,36,.6)';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(sx,pad.t);ctx.lineTo(sx,pad.t+gH);ctx.stroke();
+  ctx.setLineDash([]);ctx.restore();
+
+  // Plot point for each curve at current step
+  [{fn:qualDDPM,col:'#8A95A2'},{fn:qualDDIM,col:'#6B52A8'},{fn:qualSANA,col:'#BF4A24'}].forEach(function(o){
+    var y=pad.t+gH*(1-o.fn(steps));
+    ctx.beginPath();ctx.arc(sx,y,5,0,Math.PI*2);
+    ctx.fillStyle=o.col;ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  });
+}
+
+document.getElementById('stepsSlider').addEventListener('input',function(){
+  var s=parseInt(this.value);
+  document.getElementById('stepsVal').textContent=s;
+  var info='';
+  var sprint_q=s>=1?.91:0;
+  var ddim_q=(1-Math.exp(-s/7)).toFixed(2);
+  if(s===1)info='At 1 step: DDIM quality ≈ '+ddim_q+' (54%). SANA-Sprint (adversarially distilled) still reaches ≈91% relative quality. This is the core result.';
+  else if(s<=5)info='At '+s+' steps: DDIM reaches ≈'+Math.round(ddim_q*100)+'%. Progressive distillation can work here but adversarial distillation still edges it out perceptually.';
+  else if(s<=20)info='At '+s+' steps: DDIM reaches acceptable quality (≈'+Math.round(ddim_q*100)+'%). Standard for SD 1.5 / SDXL inference. SANA-Sprint\'s 1-step quality is competitive with this range.';
+  else info='At '+s+' steps: Quality saturates (≈'+Math.round(ddim_q*100)+'%). Diminishing returns beyond ~20 steps. The jump from 1→20 steps in SANA-Sprint is solved by distillation.';
+  document.getElementById('stepsInfo').textContent=info;
+  drawSteps();
+});
+document.getElementById('stepsInfo').textContent='At 20 steps: DDIM reaches acceptable quality. SANA-Sprint achieves competitive quality in just 1 step via adversarial distillation.';
+
+/* ── Train loop canvas ── */
+var trainCanvas=document.getElementById('trainCanvas');
+var trainStep=0;
+var TRAIN_STEPS=[
+  {label:'1. Sample noise x_T',info:'Sample a random noise vector from the prior distribution N(0,I). Both teacher and student receive this same noise as input.'},
+  {label:'2. Teacher runs 50 steps',info:'The frozen teacher model (SANA base, flow-matching pre-trained) iteratively removes noise over 50 denoising steps to produce a high-quality output x̂_teacher(x_T).'},
+  {label:'3. Student runs 1 step',info:'The student model — same architecture, trainable weights — runs a single forward pass: x̂_student = f_θ(x_T, T). This is the candidate image.'},
+  {label:'4. Discriminator judges',info:'A discriminator network D sees both x̂_student and x̂_teacher. It tries to classify which is "real" (teacher) and which is "fake" (student). The student is trained to fool it.'},
+  {label:'5. Update student weights',info:'Gradients from L_consistency (match teacher output) + L_adversarial (fool discriminator) are backpropagated through the student. Teacher is frozen. Repeat thousands of times.'}
+];
+
+function resizeTrain(){
+  var dpr=window.devicePixelRatio||1;
+  var W=trainCanvas.parentElement.getBoundingClientRect().width;
+  trainCanvas.width=Math.round(W*dpr);trainCanvas.height=Math.round(240*dpr);
+  trainCanvas.style.width=W+'px';trainCanvas.style.height='240px';
+  drawTrain();
+}
+
+function drawTrain(){
+  var dpr=window.devicePixelRatio||1;
+  var W=trainCanvas.width/dpr,H=trainCanvas.height/dpr;
+  var ctx=trainCanvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  // Layout: 5 boxes
+  var bw=Math.min(100,(W-60)/5);
+  var bh=44;
+  var gap=(W-60-bw*5)/4;
+  var startX=(W-(bw*5+gap*4))/2;
+  var by=H/2-bh/2-20;
+
+  TRAIN_STEPS.forEach(function(s,i){
+    var x=startX+i*(bw+gap);
+    var active=i===trainStep;
+    var done=i<trainStep;
+    var fill=active?'rgba(191,74,36,.15)':done?'rgba(26,123,107,.08)':'rgba(230,221,208,.3)';
+    var stroke=active?'#BF4A24':done?'#1A7B6B':'#E6DDD0';
+    ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=active?2.5:1.5;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,6);ctx.fill();ctx.stroke();
+    var num=i+1;
+    ctx.fillStyle=active?'#BF4A24':done?'#1A7B6B':'#8A95A2';
+    ctx.font='700 13px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText(num,x+bw/2,by+18);
+    var words=['Noise','Teacher','Student','Discrim.','Update'][i];
+    ctx.fillStyle=active?'#BF4A24':done?'#1A7B6B':'#5A6878';
+    ctx.font='500 9px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText(words,x+bw/2,by+32);
+    // Arrow
+    if(i<4){
+      var ax=x+bw+4;
+      ctx.strokeStyle=(i<trainStep)?'#1A7B6B':'#E6DDD0';
+      ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(ax,by+bh/2);ctx.lineTo(ax+gap-8,by+bh/2);ctx.stroke();
+      ctx.fillStyle=(i<trainStep)?'#1A7B6B':'#E6DDD0';
+      ctx.beginPath();ctx.moveTo(ax+gap-4,by+bh/2);ctx.lineTo(ax+gap-10,by+bh/2-4);ctx.lineTo(ax+gap-10,by+bh/2+4);ctx.closePath();ctx.fill();
+    }
+  });
+  // Active step label
+  var st=TRAIN_STEPS[trainStep];
+  ctx.fillStyle='#BF4A24';ctx.font='600 11px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText(st.label,W/2,by+bh+30);
+  document.getElementById('trainInfo').textContent=st.info;
+  document.getElementById('trainStepLabel').textContent='Step '+(trainStep+1)+' of '+TRAIN_STEPS.length;
+}
+
+window.trainNext=function(){trainStep=Math.min(TRAIN_STEPS.length-1,trainStep+1);drawTrain();};
+window.trainReset=function(){trainStep=0;drawTrain();};
+
+/* ── Bar chart canvas ── */
+var barCanvas=document.getElementById('barCanvas');
+function resizeBar(){
+  var dpr=window.devicePixelRatio||1;
+  var W=barCanvas.parentElement.getBoundingClientRect().width;
+  barCanvas.width=Math.round(W*dpr);barCanvas.height=Math.round(240*dpr);
+  barCanvas.style.width=W+'px';barCanvas.style.height='240px';
+  drawBar();
+}
+function drawBar(){
+  var dpr=window.devicePixelRatio||1;
+  var W=barCanvas.width/dpr,H=barCanvas.height/dpr;
+  var ctx=barCanvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  var models=[{label:'SD 1.5',t:1.8,color:'#8A95A2'},{label:'SDXL',t:4.2,color:'#6B52A8'},{label:'SDXL-Turbo',t:.5,color:'#6B52A8'},{label:'SANA-1.0',t:.6,color:'#1A7B6B'},{label:'SANA-Sprint',t:.1,color:'#BF4A24'}];
+  var maxT=4.5;
+  var pad={l:90,r:30,t:20,b:20};
+  var barH=24,gap=10;
+  var gW=W-pad.l-pad.r;
+
+  models.forEach(function(m,i){
+    var y=pad.t+i*(barH+gap);
+    var bw=Math.max(2,m.t/maxT*gW);
+    ctx.fillStyle=m.color+'22';ctx.strokeStyle=m.color;ctx.lineWidth=1.5;
+    ctx.fillRect(pad.l,y,bw,barH);ctx.strokeRect(pad.l,y,bw,barH);
+    ctx.fillStyle=m.color;ctx.font='600 11px DM Sans,sans-serif';ctx.textAlign='right';
+    ctx.fillText(m.label,pad.l-8,y+barH/2+4);
+    ctx.fillStyle='#1C2A38';ctx.font='500 10px DM Sans,sans-serif';ctx.textAlign='left';
+    ctx.fillText(m.t+'s',pad.l+bw+6,y+barH/2+4);
+  });
+  ctx.fillStyle='#5A6878';ctx.font='10px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('← Faster                                   Slower →',pad.l+gW/2,H-4);
+}
+
+window.addEventListener('resize',function(){resizeSteps();resizeTrain();resizeBar();});
+resizeSteps();resizeTrain();resizeBar();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phoneme → Viseme Mapping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--purple)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--purple);background:var(--purple-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--purple-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--purple)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:580px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--purple);opacity:.22}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--purple);background:var(--bg)}
+.step-dot--teal{border-color:var(--teal)}.step-dot--accent{border-color:var(--accent)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--purple);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--teal{border-left-color:var(--teal)}.eq-box--accent{border-left-color:var(--accent)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--purple{background:var(--purple);color:#fff}.btn--purple:hover{filter:brightness(1.1)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">Phoneme→Viseme Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Viseme Classes</a>
+    <a href="#ch2">02 Interactive Map</a>
+    <a href="#ch3">03 Coarticulation</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1><em>Phoneme</em> →<br>Viseme Mapping</h1>
+  <p class="subtitle">A viseme is the smallest visual unit of speech — the lip shape seen during a phoneme. Many distinct phonemes share the same lip shape and thus the same viseme. The 39 ARPAbet phonemes collapse to just 15 viseme classes, dramatically reducing the blendshape complexity needed for lip sync.</p>
+  <div class="pill-row">
+    <span class="pill pill--purple">15 viseme classes</span>
+    <span class="pill pill--teal">39 ARPAbet → 15 shapes</span>
+    <span class="pill pill--accent">Coarticulation blending</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">15 English Viseme Classes</h2></div>
+  <p class="ch-sub">The 15-viseme system (Preston &amp; Yuen, standardised in ARKit/MPEG-4) groups phonemes by the lip/jaw/tongue visible configuration. Viseme 0 is the silent/rest position. Click any viseme row to see which ARPAbet phonemes it contains and a mouth-shape reference.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Viseme Class Explorer</div>
+    <div class="sim-desc">Click a viseme row to highlight its phoneme members and see the canonical mouth shape description.</div>
+    <div class="sim-canvas-wrap"><canvas id="visCanvas" style="height:300px"></canvas></div>
+    <div id="visInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65">Click a viseme row.</div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Why so few visemes?</h3>
+    <p>Human vision has low acuity for distinguishing the subtle articulatory differences between, say, /b/, /p/ and /m/ — all require bilabial closure and look identical on video. Similarly, velar stops /g/ and /k/ happen entirely at the back of the throat — invisible. This perceptual collapse means 15 viseme shapes are sufficient to generate convincing lip sync for an English speaker.</p>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Interactive Phoneme → Viseme Table</h2></div>
+  <p class="ch-sub">Click any phoneme block to see which viseme class it maps to and which blendshapes it drives. The mapping is a deterministic dictionary lookup — no ML inference needed.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Phoneme → Viseme Live Mapper</div>
+    <div class="sim-desc">Click a phoneme to see its viseme index, viseme label, and example word. Active viseme is highlighted orange.</div>
+    <div class="sim-canvas-wrap"><canvas id="mapCanvas" style="height:260px"></canvas></div>
+    <div id="mapInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65">Click a phoneme block above.</div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Lookup Table Implementation</h3>
+    <div class="eq-box eq-box--teal">
+      <span class="eq-label">Python implementation</span>
+      <span class="mono">P2V = {</span><br>
+      <span class="mono">  "B":"sil","P":"sil","M":"sil",   # viseme 0 (closed)</span><br>
+      <span class="mono">  "F":"ff", "V":"ff",               # viseme 8 (labiodental)</span><br>
+      <span class="mono">  "TH":"TH","DH":"TH",              # viseme 9 (interdental)</span><br>
+      <span class="mono">  "S":"SS", "Z":"SS",               # viseme 7 (sibilant)</span><br>
+      <span class="mono">  "SH":"CH","ZH":"CH","CH":"CH","JH":"CH",</span><br>
+      <span class="mono">  ...                               # 15 classes total</span><br>
+      <span class="mono">}</span><br>
+      <span class="mono">def phoneme_to_viseme(ph): return P2V.get(ph.upper(), "sil")</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Timing and Coarticulation</h2></div>
+  <p class="ch-sub">Direct viseme switching at phoneme boundaries looks robotic. Coarticulation is the phenomenon where the mouth begins to transition toward the <em>next</em> viseme while still producing the current phoneme. We model this with a blending window.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Coarticulation Blend Slider</div>
+    <div class="sim-desc">Drag the blend slider to see how the transitions between visemes become smooth (or abrupt) depending on the anticipatory blend window.</div>
+    <div class="sim-canvas-wrap"><canvas id="coartCanvas" style="height:200px"></canvas></div>
+    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+      <label style="font-size:.85rem;font-weight:600;color:var(--text-2)">Blend window:</label>
+      <input type="range" id="blendSlider" min="0" max="80" value="30" step="5" style="flex:1;min-width:120px;accent-color:var(--purple)" oninput="updateCoart()">
+      <span id="blendVal" style="font-size:.85rem;font-weight:700;color:var(--purple);min-width:40px">30ms</span>
+    </div>
+    <div id="coartInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--accent"></span>
+    <h3>Anticipatory and Carry-over Coarticulation</h3>
+    <p>The blend formula uses a half-cosine window centred at the phoneme boundary. Anticipatory coarticulation starts transitioning <em>before</em> the boundary (the current phoneme starts blending toward the next); carry-over coarticulation continues into the start of the next phoneme.</p>
+    <div class="eq-box eq-box--accent">
+      <span class="eq-label">Viseme blending formula</span>
+      <span class="mono">w(t) = ½ · (1 - cos(π · t / T_blend))</span><br>
+      <span class="mono">v_blend(t) = (1 - w(t)) · v_current + w(t) · v_next</span><br>
+      <span class="mono">where t ∈ [-T_blend/2, T_blend/2] around boundary</span><br>
+      <span class="mono">T_blend ≈ 30ms (default), max = 50% of shorter phoneme</span>
+    </div>
+  </div>
+
+  <div class="callout callout--purple fade-up">
+    <div class="callout-title">Output: Timed Viseme Sequence</div>
+    The final output of this stage is a time series of (viseme_id, weight, timestamp) events. This is passed directly to App 25 (Viseme→Blendshapes), which maps each viseme_id to the set of ARKit blendshape weights needed to achieve that mouth shape in the 3D avatar.
+  </div>
+</div>
+</section>
+
+<footer class="footer">Phoneme → Viseme Interactive Guide</footer>
+
+<script>
+(function(){
+'use strict';
+
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* Viseme definitions */
+var VISEMES=[
+  {id:0,label:'sil (silence/bilabial)',phones:['B','P','M'],desc:'Lips fully closed. Bilabial stops and nasal /m/. Example: "bat", "pat", "mat".'},
+  {id:1,label:'aa (open vowel)',phones:['AA','AE'],desc:'Mouth wide open, jaw dropped, tongue neutral. Example: "father", "bat".'},
+  {id:2,label:'ah (schwa/central)',phones:['AH0','AH1','AX'],desc:'Mouth slightly open, relaxed lips. The most common English vowel (unstressed "uh"). Example: "us", "about".'},
+  {id:3,label:'ee (front spread)',phones:['IH','IY','EH','EY'],desc:'Lips spread, teeth near. Front vowels — "ee", "ih", "eh". Example: "beat", "bit", "bet".'},
+  {id:4,label:'oh (rounded)',phones:['OW','OY','UH','UW','W','Y'],desc:'Lips rounded and puckered. Back vowels and rounded semi-vowels. Example: "go", "who", "wet".'},
+  {id:5,label:'R (retroflex)',phones:['R','ER1','ER0'],desc:'Lip corners slightly drawn back, upper lip raised. Retroflex or bunched tongue. Example: "red", "bird".'},
+  {id:6,label:'CH (postalveolar)',phones:['CH','JH','SH','ZH'],desc:'Teeth near, lips slightly parted and protruded. Example: "church", "shoe", "measure".'},
+  {id:7,label:'SS (sibilant)',phones:['S','Z'],desc:'Teeth nearly touching, tongue behind upper teeth. High-frequency fricative hiss. Example: "sun", "zip".'},
+  {id:8,label:'FF (labiodental)',phones:['F','V'],desc:'Upper teeth resting on lower lip. Example: "fat", "van". Very distinctive visually.'},
+  {id:9,label:'TH (interdental)',phones:['TH','DH'],desc:'Tongue tip between teeth or just behind upper teeth. Example: "thin", "that".'},
+  {id:10,label:'DD (alveolar stop)',phones:['D','T'],desc:'Tongue tip at alveolar ridge, lips slightly open. Example: "day", "top". The closure is not visible.'},
+  {id:11,label:'kk (velar)',phones:['G','K','NG'],desc:'Velar stops: no visible lip action. Mouth slightly open. Example: "go", "kite", "sing".'},
+  {id:12,label:'nn (nasal)',phones:['N','L'],desc:'Tongue up, lips open slightly. Nasal/lateral alveolars. Example: "now", "late".'},
+  {id:13,label:'HH (glottal)',phones:['HH'],desc:'Mouth slightly open, no distinctive lip shape. Glottal fricative. Example: "high".'},
+  {id:14,label:'AW (diphthong open)',phones:['AW','AY'],desc:'Starts wide open (like "aa") and closes toward rounded or spread. Example: "cow", "fly".'}
+];
+var activeVis=-1;
+var visCanvas=document.getElementById('visCanvas');
+function resizeVis(){var dpr=window.devicePixelRatio||1;var W=visCanvas.parentElement.getBoundingClientRect().width;visCanvas.width=Math.round(W*dpr);visCanvas.height=Math.round(300*dpr);visCanvas.style.width=W+'px';visCanvas.style.height='300px';drawVis();}
+function drawVis(){
+  var dpr=window.devicePixelRatio||1;var W=visCanvas.width/dpr,H=visCanvas.height/dpr;
+  var ctx=visCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var rowH=H/VISEMES.length;
+  VISEMES.forEach(function(v,i){
+    var y=i*rowH;var act=i===activeVis;var hue=Math.round(i/VISEMES.length*280);
+    var col='hsl('+hue+',50%,40%)';
+    if(act){ctx.fillStyle='rgba(107,82,168,.15)';ctx.fillRect(0,y,W,rowH);}
+    else if(i%2===0){ctx.fillStyle='rgba(243,237,226,.4)';ctx.fillRect(0,y,W,rowH);}
+    ctx.strokeStyle='rgba(230,221,208,.4)';ctx.lineWidth=0.5;ctx.strokeRect(0,y,W,rowH);
+    // ID badge
+    ctx.fillStyle=act?'#6B52A8':'rgba(107,82,168,.6)';ctx.font=(act?'700 ':'600 ')+'9px Fira Code,monospace';ctx.textAlign='left';ctx.fillText('V'+String(v.id).padStart(2,'0'),8,y+rowH*.66);
+    // Label
+    ctx.fillStyle=act?'#1C2A38':'#5A6878';ctx.font=(act?'700 ':'500 ')+'9px DM Sans,sans-serif';ctx.fillText(v.label,40,y+rowH*.66);
+    // Phonemes
+    ctx.fillStyle=act?'#BF4A24':'rgba(191,74,36,.5)';ctx.font='500 8px Fira Code,monospace';ctx.textAlign='right';
+    ctx.fillText(v.phones.join(' · '),W-8,y+rowH*.66);
+  });
+}
+visCanvas.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var H=visCanvas.height/dpr;var rowH=H/VISEMES.length;
+  var rect=visCanvas.getBoundingClientRect();var my=(e.clientY-rect.top)*(H/rect.height);
+  var i=Math.floor(my/rowH);if(i>=0&&i<VISEMES.length){activeVis=i;drawVis();document.getElementById('visInfo').textContent='Viseme V'+String(VISEMES[i].id).padStart(2,'0')+' "'+VISEMES[i].label+'" — Phonemes: '+VISEMES[i].phones.join(', ')+' — '+VISEMES[i].desc;}
+});
+
+/* Map canvas */
+var mapCanvas=document.getElementById('mapCanvas');
+var ALL_PHONES=[
+  {p:'B',v:0},{p:'P',v:0},{p:'M',v:0},{p:'AA',v:1},{p:'AE',v:1},{p:'AH0',v:2},{p:'AH1',v:2},
+  {p:'IH',v:3},{p:'IY',v:3},{p:'EH',v:3},{p:'EY',v:3},{p:'OW',v:4},{p:'UH',v:4},{p:'UW',v:4},
+  {p:'W',v:4},{p:'Y',v:4},{p:'R',v:5},{p:'ER1',v:5},{p:'CH',v:6},{p:'JH',v:6},{p:'SH',v:6},
+  {p:'ZH',v:6},{p:'S',v:7},{p:'Z',v:7},{p:'F',v:8},{p:'V',v:8},{p:'TH',v:9},{p:'DH',v:9},
+  {p:'D',v:10},{p:'T',v:10},{p:'G',v:11},{p:'K',v:11},{p:'NG',v:11},{p:'N',v:12},
+  {p:'L',v:12},{p:'HH',v:13},{p:'AW',v:14},{p:'AY',v:14},{p:'OY',v:4}
+];
+var activePhon=-1;
+var VIS_LABELS=['sil','aa','ah','ee','oh','R','CH','SS','FF','TH','DD','kk','nn','HH','AW'];
+function resizeMap(){var dpr=window.devicePixelRatio||1;var W=mapCanvas.parentElement.getBoundingClientRect().width;mapCanvas.width=Math.round(W*dpr);mapCanvas.height=Math.round(260*dpr);mapCanvas.style.width=W+'px';mapCanvas.style.height='260px';drawMap();}
+function drawMap(){
+  var dpr=window.devicePixelRatio||1;var W=mapCanvas.width/dpr,H=mapCanvas.height/dpr;
+  var ctx=mapCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  // Top row: phoneme blocks
+  var cols=8;var rows=Math.ceil(ALL_PHONES.length/cols);var bw=(W-20)/(cols);var bh=26;var sx=10;var sy=10;
+  ALL_PHONES.forEach(function(ph,i){
+    var c=i%cols;var r=Math.floor(i/cols);var x=sx+c*bw;var y=sy+r*(bh+4);
+    var act=i===activePhon;var vis=ph.v;var hue=Math.round(vis/14*280);
+    var col=act?'#6B52A8':'hsl('+hue+',45%,45%)';
+    ctx.fillStyle=act?'rgba(107,82,168,.25)':'rgba('+Math.round(107-vis*4)+','+Math.round(82+vis*3)+','+Math.round(168-vis*8)+',.12)';
+    ctx.strokeStyle=col;ctx.lineWidth=act?2:1;ctx.beginPath();ctx.roundRect(x+1,y,bw-2,bh,5);ctx.fill();ctx.stroke();
+    ctx.fillStyle=act?'#6B52A8':col;ctx.font=(act?'700 ':'500 ')+'9px Fira Code,monospace';ctx.textAlign='center';ctx.fillText(ph.p,x+bw/2,y+bh/2+4);
+  });
+  // Bottom: viseme boxes
+  var vis_bw=(W-20)/15;var vis_sy=sy+(rows)*(bh+4)+20;var vis_bh=32;
+  for(var v=0;v<15;v++){
+    var x=10+v*vis_bw;var act=activePhon>=0&&ALL_PHONES[activePhon].v===v;var hue=Math.round(v/14*280);var col='hsl('+hue+',50%,38%)';
+    ctx.fillStyle=act?col+'55':'rgba(230,221,208,.4)';ctx.strokeStyle=act?col:'rgba(230,221,208,.8)';ctx.lineWidth=act?2.5:1;
+    ctx.beginPath();ctx.roundRect(x+1,vis_sy,vis_bw-2,vis_bh,5);ctx.fill();ctx.stroke();
+    ctx.fillStyle=act?col:'#8A95A2';ctx.font=(act?'700 ':'500 ')+'8px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('V'+v,x+vis_bw/2,vis_sy+vis_bh/2-2);ctx.fillText(VIS_LABELS[v],x+vis_bw/2,vis_sy+vis_bh/2+9);
+  }
+  // Arrow from active phone to its viseme
+  if(activePhon>=0){
+    var ph=ALL_PHONES[activePhon];var c=activePhon%cols;var r=Math.floor(activePhon/cols);
+    var px=sx+c*bw+bw/2;var py=sy+r*(bh+4)+bh;
+    var vx=10+ph.v*vis_bw+vis_bw/2;var vy=sy+(rows)*(bh+4)+20;
+    ctx.strokeStyle='rgba(107,82,168,.5)';ctx.lineWidth=2;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(vx,vy);ctx.stroke();ctx.setLineDash([]);
+  }
+}
+mapCanvas.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var W=mapCanvas.width/dpr,H=mapCanvas.height/dpr;
+  var cols=8;var bw=(W-20)/cols;var bh=26;var sx=10;var sy=10;var rows=Math.ceil(ALL_PHONES.length/cols);
+  var rect=mapCanvas.getBoundingClientRect();var mx=(e.clientX-rect.left)*(W/rect.width);var my=(e.clientY-rect.top)*(H/rect.height);
+  var found=-1;
+  ALL_PHONES.forEach(function(ph,i){var c=i%cols;var r=Math.floor(i/cols);var x=sx+c*bw;var y=sy+r*(bh+4);if(mx>=x&&mx<=x+bw&&my>=y&&my<=y+bh)found=i;});
+  activePhon=found;drawMap();
+  if(found>=0){var ph=ALL_PHONES[found];document.getElementById('mapInfo').textContent='"'+ph.p+'" → Viseme V'+ph.v+' "'+VIS_LABELS[ph.v]+'": '+VISEMES[ph.v].desc;}
+});
+
+/* Coarticulation canvas */
+var coartCanvas=document.getElementById('coartCanvas');
+function resizeCoart(){var dpr=window.devicePixelRatio||1;var W=coartCanvas.parentElement.getBoundingClientRect().width;coartCanvas.width=Math.round(W*dpr);coartCanvas.height=Math.round(200*dpr);coartCanvas.style.width=W+'px';coartCanvas.style.height='200px';drawCoart();}
+window.updateCoart=function(){
+  var v=parseInt(document.getElementById('blendSlider').value);
+  document.getElementById('blendVal').textContent=v+'ms';
+  drawCoart();
+  var msg=v===0?'No blending — hard cuts between visemes. Looks robotic and unnatural.':v<20?'Short blend ('+v+'ms) — still slightly mechanical, short consonants may feel clipped.':v<50?'Natural blend ('+v+'ms) — coarticulation feels realistic for most phoneme pairs.':'Long blend ('+v+'ms) — visemes overlap significantly. Works for slow speech; fast speech may look smeared.';
+  document.getElementById('coartInfo').textContent=msg;
+};
+function drawCoart(){
+  var dpr=window.devicePixelRatio||1;var W=coartCanvas.width/dpr,H=coartCanvas.height/dpr;
+  var ctx=coartCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var blend=parseInt(document.getElementById('blendSlider').value)/1000; // seconds
+  // Simulated viseme timeline: B(0-120ms), EH(120-220ms), D(220-320ms)
+  var SEGS=[{v:0,s:0,e:.12},{v:3,s:.12,e:.22},{v:10,s:.22,e:.38},{v:4,s:.38,e:.52},{v:0,s:.52,e:.60}];
+  var total=.62;var m=14;var aw=W-m*2;
+  // Draw blended curve
+  var N=Math.round(aw);
+  var TEAL='rgba(26,123,107,.8)',ACCENT='rgba(191,74,36,.8)',PURPLE='rgba(107,82,168,.8)';
+  var VCOLS=['#6B52A8','#1A7B6B','#8A95A2','#BF4A24','#2A6A8A','#7B4F1A','#1A4A7B','#BF6A24','#6B1A7B','#2A8A6B','#8A2A4A','#4A6B8A','#8A6B2A','#1A6B4A','#4A2A8A'];
+  function getVis(t){
+    var cur=null;var nxt=null;
+    for(var i=0;i<SEGS.length;i++){if(t>=SEGS[i].s&&t<SEGS[i].e){cur=SEGS[i];nxt=SEGS[i+1]||null;break;}}
+    if(!cur)return {vis:0,w:0};
+    var tInSeg=t-cur.s;var segLen=cur.e-cur.s;var tToEnd=cur.e-t;
+    var bh=blend/2;
+    if(nxt&&tToEnd<bh&&blend>0){
+      var alpha=0.5*(1-Math.cos(Math.PI*(tToEnd/bh)));
+      return {vis:cur.v,vis2:nxt.v,alpha:alpha};
+    }
+    return {vis:cur.v,alpha:0};
+  }
+  // Draw lower waveform showing blend weights
+  var prevX_arr=[];
+  for(var xi=0;xi<N;xi++){var t=(xi/N)*total;var v=getVis(t);prevX_arr.push(v);}
+  // For each interesting viseme make a lane
+  var lane_h=28;var n_lanes=5;var lane_y=[0,1,2,3,4].map(function(i){return H-10-(i+1)*lane_h;});
+  var vis_ids=[0,3,10,4,1];
+  vis_ids.forEach(function(vid,li){
+    ctx.fillStyle='rgba(230,221,208,.3)';ctx.fillRect(m,lane_y[li],aw,lane_h-2);
+    ctx.fillStyle=VCOLS[vid];ctx.font='500 9px Fira Code,monospace';ctx.textAlign='left';ctx.fillText('V'+vid,m+3,lane_y[li]+lane_h-8);
+    ctx.beginPath();ctx.strokeStyle=VCOLS[vid];ctx.lineWidth=2;
+    for(var xi=0;xi<N;xi++){
+      var t=(xi/N)*total;var v=prevX_arr[xi];var wt=0;
+      if(v.vis===vid)wt=1-v.alpha;if(v.vis2===vid)wt=v.alpha;
+      var x=m+xi;var y=lane_y[li]+(lane_h-2)*(1-wt*.9);
+      if(xi===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  });
+  // Time markers
+  SEGS.forEach(function(seg){var tx=m+(seg.s/total)*aw;ctx.strokeStyle='rgba(107,82,168,.3)';ctx.lineWidth=1;ctx.setLineDash([3,2]);ctx.beginPath();ctx.moveTo(tx,0);ctx.lineTo(tx,H);ctx.stroke();ctx.setLineDash([]);});
+  // Labels
+  ctx.fillStyle='#8A95A2';ctx.font='500 8px DM Sans,sans-serif';ctx.textAlign='right';ctx.fillText('viseme weight →',m+65,H-8);
+}
+
+window.addEventListener('resize',function(){resizeVis();resizeMap();resizeCoart();});
+resizeVis();resizeMap();resizeCoart();
+drawVis();drawMap();drawCoart();
+document.getElementById('blendSlider').dispatchEvent(new Event('input'));
+})();
+</script>
+</body>
+</html>

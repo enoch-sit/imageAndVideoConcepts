@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDXL — Dual Encoder Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--accent)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--accent);background:var(--accent-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--accent-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:560px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--accent);opacity:.2}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--accent);background:var(--bg)}
+.step-dot--teal{border-color:var(--teal)}.step-dot--purple{border-color:var(--purple)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--accent);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--teal{border-left-color:var(--teal)}.eq-box--purple{border-left-color:var(--purple)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--accent{border-left:4px solid var(--accent)}.callout--purple{border-left:4px solid var(--purple)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--accent .callout-title{color:var(--accent)}.callout--purple .callout-title{color:var(--purple)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--accent{background:var(--accent);color:#fff}.btn--accent:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn--teal{background:var(--teal);color:#fff}.btn--teal:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+/* Encoder comparison */
+.enc-compare{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.5rem 0}
+@media(max-width:520px){.enc-compare{grid-template-columns:1fr}}
+.enc-card{background:var(--bg-alt);border:2px solid var(--border);border-radius:var(--radius-sm);padding:1.25rem;transition:all .25s}
+.enc-card:hover,.enc-card.active{border-color:var(--accent);background:var(--surface);box-shadow:var(--shadow)}
+.enc-card .enc-name{font-weight:700;font-size:.95rem;margin-bottom:.25rem}
+.enc-card .enc-detail{font-size:.8rem;color:var(--text-2);line-height:1.6}
+/* Refiner pipeline */
+.pipe-track{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:1rem 0}
+.pipe-seg{flex:1;min-width:100px;padding:.75rem;background:var(--bg-alt);border-radius:var(--radius-sm);text-align:center;font-size:.8rem;font-weight:600;border:2px solid transparent;transition:all .3s}
+.pipe-seg.active{background:var(--surface);box-shadow:var(--shadow)}
+.pipe-arrow{color:var(--text-3);font-size:1.2rem;flex-shrink:0}
+/* Token canvas */
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav" id="topnav">
+  <div class="logo">SDXL Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Dual Encoders</a>
+    <a href="#ch2">02 Base+Refiner</a>
+    <a href="#ch3">03 Upgrades</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>SDXL — <em>Dual Text Encoders</em><br>&amp; Base+Refiner Pipeline</h1>
+  <p class="subtitle">How SDXL achieves 1024×1024 generation quality by combining CLIP-L and OpenCLIP-G text encoders with a two-stage base+refiner pipeline.</p>
+  <div class="pill-row">
+    <span class="pill pill--accent">2.6B Parameter U-Net</span>
+    <span class="pill pill--teal">77+77 Token Budget</span>
+    <span class="pill pill--purple">1024×1024 Native</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1: DUAL ENCODERS ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">Dual Text Encoders</h2></div>
+  <p class="ch-sub">SD 1.5 used a single CLIP-L encoder producing 768-dim embeddings. SDXL uses two encoders in parallel and concatenates their outputs — tripling the conditioning dimensionality.</p>
+
+  <div class="enc-compare fade-up">
+    <div class="enc-card active">
+      <div class="enc-name" style="color:var(--purple)">CLIP-L (OpenAI)</div>
+      <div class="enc-detail">Same encoder as SD 1.5<br><strong>77 tokens</strong> · 768-dim per token<br>Penultimate layer features<br>Best at short, concrete prompts</div>
+    </div>
+    <div class="enc-card active">
+      <div class="enc-name" style="color:var(--teal)">OpenCLIP-G (LAION)</div>
+      <div class="enc-detail">Larger model trained on LAION-5B<br><strong>77 tokens</strong> · 1280-dim per token<br>Last layer features<br>Better at complex, long prompts</div>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Concatenated Embeddings</h3>
+    <p>Both encoders receive the same prompt text. Their token embeddings are concatenated along the feature dimension, giving the U-Net a 2048-dim representation per token position (768 + 1280). A separate pooled embedding from OpenCLIP-G is also added to the time embedding for global style conditioning.</p>
+    <div class="eq-box">
+      <span class="eq-label">Conditioning vector construction</span>
+      <span class="mono">c = concat(CLIP_L(prompt), OpenCLIP_G(prompt))   [77 × 2048]</span><br>
+      <span class="mono">c_pool = pool(OpenCLIP_G(prompt))  →  added to time embedding</span>
+    </div>
+  </div>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Interactive: Dual Encoder Token Flow</div>
+    <div class="sim-desc">See how the same prompt tokens flow through both encoders and get merged into the final conditioning tensor.</div>
+    <div class="sim-canvas-wrap"><canvas id="encCanvas" style="height:240px"></canvas></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="btn btn--accent" id="encAnimBtn">▶ Animate</button>
+      <button class="btn btn--ghost" id="encResetBtn">Reset</button>
+    </div>
+  </div>
+
+  <div class="callout callout--teal fade-up">
+    <div class="callout-title">Why two encoders?</div>
+    CLIP-L is strong at object–attribute binding ("a red car with a blue door"). OpenCLIP-G captures style and composition better. Together they reduce "semantic drop-out" — where a single encoder ignores parts of a complex prompt. SDXL also gets a larger effective context (the two encoders independently process 77 tokens each).
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2: BASE + REFINER ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Base + Refiner Pipeline</h2></div>
+  <p class="ch-sub">SDXL includes two separate U-Nets: a base model that generates the overall composition, and a refiner model that sharpens fine details in the last denoising steps.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Interactive: Two-Stage Pipeline</div>
+    <div class="sim-desc">Click "Run" to see how denoising steps are split between base and refiner models.</div>
+    <div class="pipe-track" id="pipeSdxl">
+      <div class="pipe-seg" id="ps1">Noise z_T<br><small style="color:var(--text-3)">start</small></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-seg" id="ps2" style="border-color:var(--accent)">Base U-Net<br><small style="color:var(--accent)">steps T → T·0.2</small></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-seg" id="ps3">z_{T·0.2}<br><small style="color:var(--text-3)">handoff</small></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-seg" id="ps4" style="border-color:var(--teal)">Refiner U-Net<br><small style="color:var(--teal)">steps T·0.2 → 0</small></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-seg" id="ps5">z₀ → VAE<br><small style="color:var(--text-3)">decode</small></div>
+    </div>
+    <div id="pipeInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;min-height:48px"></div>
+    <div style="display:flex;gap:.75rem;margin-top:1rem">
+      <button class="btn btn--accent" id="pipeRunBtn">▶ Run Pipeline</button>
+      <button class="btn btn--ghost"  id="pipeResetBtn">Reset</button>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>What Each Model Does</h3>
+    <ul>
+      <li><strong>Base U-Net (2.6B params)</strong>: handles the high-noise regime (t = T to t = 0.2·T). It places the large compositional elements — subjects, backgrounds, general colour palette.</li>
+      <li><strong>Refiner U-Net (2.3B params)</strong>: handles the low-noise regime (t = 0.2·T to t = 0). It adds fine-grained details: texture, hair, eyes, skin pores. The refiner was trained specifically on the LAION-aesthetic high-quality subset.</li>
+    </ul>
+    <div class="callout callout--accent" style="margin-top:1rem">
+      <div class="callout-title">Optional refiner</div>
+      The refiner is optional — the base model produces a valid output on its own. In our A16 lab environment we run base only to save VRAM. The refiner requires a second 2.3B U-Net loaded simultaneously or sequentially.
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3: SDXL UPGRADES ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Architectural Upgrades vs SD 1.5</h2></div>
+  <p class="ch-sub">SDXL is not simply a larger SD 1.5. Multiple architectural changes beyond the dual encoders and refiner separate the two.</p>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--purple"></span>
+    <h3>Size Conditioning</h3>
+    <p>SDXL conditions the U-Net on the original image resolution (h_orig, w_orig) and the current crop coordinates, in addition to the timestep. This teaches the model to synthesise images at varying aspect ratios and resolutions without artificially "seeing" only cropped 512-square patches during training.</p>
+    <div class="eq-box eq-box--purple">
+      <span class="eq-label">Size conditioning vector (added to time embedding)</span>
+      <span class="mono">c_size = [h_orig, w_orig, crop_top, crop_left, h_tgt, w_tgt]</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Transformer Blocks in All Resolutions</h3>
+    <p>SD 1.5 uses attention blocks only in the lowest (8×) resolution U-Net stage. SDXL adds transformer attention blocks at the 16× resolution stage as well, giving the model richer global structure modelling and substantially increasing parameter count.</p>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Summary: SD 1.5 → SDXL</h3>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:.84rem">
+      <thead><tr style="background:var(--bg-alt)">
+        <th style="padding:.6rem .8rem;text-align:left;border-bottom:2px solid var(--border)">Property</th>
+        <th style="padding:.6rem .8rem;text-align:left;border-bottom:2px solid var(--border);color:var(--text-2)">SD 1.5</th>
+        <th style="padding:.6rem .8rem;text-align:left;border-bottom:2px solid var(--border);color:var(--accent)">SDXL</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:.55rem .8rem;border-bottom:1px solid var(--border)">U-Net params</td><td style="padding:.55rem .8rem;border-bottom:1px solid var(--border)">860M</td><td style="padding:.55rem .8rem;border-bottom:1px solid var(--border);color:var(--accent)">2.6B + 2.3B refiner</td></tr>
+        <tr><td style="padding:.55rem .8rem;border-bottom:1px solid var(--border)">Text encoders</td><td style="padding:.55rem .8rem;border-bottom:1px solid var(--border)">CLIP-L (768d)</td><td style="padding:.55rem .8rem;border-bottom:1px solid var(--border);color:var(--accent)">CLIP-L + OpenCLIP-G (2048d)</td></tr>
+        <tr><td style="padding:.55rem .8rem;border-bottom:1px solid var(--border)">Native resolution</td><td style="padding:.55rem .8rem;border-bottom:1px solid var(--border)">512×512</td><td style="padding:.55rem .8rem;border-bottom:1px solid var(--border);color:var(--accent)">1024×1024</td></tr>
+        <tr><td style="padding:.55rem .8rem;border-bottom:1px solid var(--border)">Size conditioning</td><td style="padding:.55rem .8rem;border-bottom:1px solid var(--border)">No</td><td style="padding:.55rem .8rem;border-bottom:1px solid var(--border);color:var(--accent)">Yes (6-value vector)</td></tr>
+        <tr><td style="padding:.55rem .8rem">Attention resolutions</td><td style="padding:.55rem .8rem">8× only</td><td style="padding:.55rem .8rem;color:var(--accent)">8× and 16×</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+</section>
+
+<footer class="footer">SDXL Interactive Guide · Podell et al., ICLR 2024</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var chs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;chs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ── Dual Encoder Canvas ── */
+(function(){
+var canvas=document.getElementById('encCanvas');
+var animBtn=document.getElementById('encAnimBtn');
+var resetBtn=document.getElementById('encResetBtn');
+var phase=0; var animId=null; var animating=false;
+var PHASES=5; var tPerPhase=60;
+var tick=0;
+
+function resize(){
+  var dpr=window.devicePixelRatio||1;
+  var W=canvas.parentElement.getBoundingClientRect().width;
+  canvas.width=Math.round(W*dpr);canvas.height=Math.round(240*dpr);
+  canvas.style.width=W+'px';canvas.style.height='240px';
+  draw();
+}
+
+function easePct(t){return t<.5?2*t*t:(1-Math.pow(-2*t+2,2)/2);}
+
+function draw(){
+  var dpr=window.devicePixelRatio||1;
+  var W=canvas.width/dpr,H=canvas.height/dpr;
+  var ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  var pct=tick>=PHASES*tPerPhase?1:easePct((tick%tPerPhase)/tPerPhase);
+  var cp=Math.floor(tick/tPerPhase);
+
+  // Layout
+  var py=10, pw=W-20, col1=20, col2=pw*0.32+20, col3=pw*0.58+20, col4=pw*0.84+20;
+  var bw=(pw/4)-8, bh=36;
+
+  function box(x,y,w,h,fill,stroke,txt,sub){
+    ctx.save();
+    ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;
+    ctx.beginPath();roundRect(ctx,x,y,w,h,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#1C2A38';ctx.font='600 11px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText(txt,x+w/2,y+h/2+(sub?-4:4));
+    if(sub){ctx.fillStyle='#8A95A2';ctx.font='500 9px DM Sans,sans-serif';ctx.fillText(sub,x+w/2,y+h/2+8);}
+    ctx.restore();
+  }
+
+  function roundRect(ctx,x,y,w,h,r){ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);}
+
+  function arrow(x1,y1,x2,y2,col,alpha){
+    ctx.save();ctx.globalAlpha=alpha||1;ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+    var ang=Math.atan2(y2-y1,x2-x1);
+    ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-10*Math.cos(ang-.35),y2-10*Math.sin(ang-.35));ctx.lineTo(x2-10*Math.cos(ang+.35),y2-10*Math.sin(ang+.35));ctx.closePath();ctx.fill();
+    ctx.restore();
+  }
+
+  // Prompt box
+  var promptY=H/2-50;
+  box(col1,promptY,bw,bh,'rgba(250,246,238,1)','#E6DDD0','"a red cat"','prompt');
+
+  // CLIP-L box
+  var clipLY=H/2-82;
+  box(col2,clipLY,bw*1.15,bh,'rgba(107,82,168,.12)','#6B52A8','CLIP-L','768-dim · 77tok');
+
+  // OpenCLIP-G box
+  var clipGY=H/2+16;
+  box(col2,clipGY,bw*1.15,bh,'rgba(26,123,107,.12)','#1A7B6B','OpenCLIP-G','1280-dim · 77tok');
+
+  // Arrows from prompt to encoders (phase 1+)
+  if(cp>=1){
+    var ap=cp===1?pct:1;
+    var midX=col2+bw*1.15/2, pX=col1+bw, pY=promptY+bh/2;
+    arrow(pX,pY,midX-(midX-pX)*(1-ap),clipLY+bh/2-(clipLY+bh/2-pY)*(1-ap),'#6B52A8',ap);
+    arrow(pX,pY,midX-(midX-pX)*(1-ap),clipGY+bh/2-(clipGY+bh/2-pY)*(1-ap),'#1A7B6B',ap);
+  }
+
+  // Embedding outputs (phase 2+)
+  var out1X=col2+bw*1.15+12,out2X=col3;
+  if(cp>=2){
+    var ap=cp===2?pct:1;
+    box(col3,clipLY,'77'*0+bw,bh,'rgba(107,82,168,.07)','rgba(107,82,168,.4)','768-dim','output');
+    box(col3,clipGY,bw,bh,'rgba(26,123,107,.07)','rgba(26,123,107,.4)','1280-dim','output');
+    ctx.globalAlpha=ap;
+    arrow(col2+bw*1.15,clipLY+bh/2,col3,clipLY+bh/2,'#6B52A8');
+    arrow(col2+bw*1.15,clipGY+bh/2,col3,clipGY+bh/2,'#1A7B6B');
+    ctx.globalAlpha=1;
+  }
+
+  // Concat box (phase 3+)
+  if(cp>=3){
+    var ap=cp===3?pct:1;
+    ctx.globalAlpha=ap;
+    box(col4,H/2-40,bw+10,bh+10,'rgba(191,74,36,.1)','#BF4A24','Concat','77 × 2048-dim');
+    arrow(col3+bw,clipLY+bh/2,col4,H/2-32,'#BF4A24');
+    arrow(col3+bw,clipGY+bh/2,col4,H/2-32+bh/2,'#BF4A24');
+    ctx.globalAlpha=1;
+  }
+
+  // U-Net label (phase 4+)
+  if(cp>=4){
+    var ap=cp===4?pct:1;
+    ctx.globalAlpha=ap;
+    ctx.save();
+    ctx.font='600 11px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillStyle='#BF4A24';
+    ctx.fillText('→ U-Net',col4+bw+8+40,H/2-40+bh/2+4);
+    ctx.fillStyle='#8A95A2';ctx.font='500 9px DM Sans,sans-serif';
+    ctx.fillText('cross-attention',col4+bw+8+40,H/2-40+bh/2+18);
+    ctx.restore();
+    ctx.globalAlpha=1;
+  }
+}
+
+function startAnim(){
+  if(animating)return;
+  animating=true;animBtn.textContent='⏸ Pause';
+  if(tick>=PHASES*tPerPhase)tick=0;
+  function frame(){
+    tick=Math.min(PHASES*tPerPhase,tick+1);
+    draw();
+    if(tick<PHASES*tPerPhase&&animating)animId=requestAnimationFrame(frame);
+    else{animating=false;animBtn.textContent='▶ Animate';}
+  }
+  animId=requestAnimationFrame(frame);
+}
+
+animBtn.addEventListener('click',function(){if(animating){animating=false;animBtn.textContent='▶ Animate';}else startAnim();});
+resetBtn.addEventListener('click',function(){animating=false;tick=0;animBtn.textContent='▶ Animate';draw();});
+window.addEventListener('resize',resize);resize();
+})();
+
+/* ── Pipeline Visualiser ── */
+(function(){
+var steps=[
+  {id:'ps1',label:'Noise z_T',info:'Random Gaussian noise in the latent space: z_T ∼ N(0, I). Shape: 4×128×128 for 1024×1024 output.',col:'#8A95A2'},
+  {id:'ps2',label:'Base U-Net',info:'The 2.6B-parameter base U-Net denoises from t=T down to t=0.2·T. Handles composition, pose, and large-scale structure. Conditioned on dual-encoder c (77×2048).',col:'#BF4A24'},
+  {id:'ps3',label:'Handoff z_{T·0.2}',info:'The partially denoised latent is transferred to the refiner. This happens at the 20% timestep mark (e.g., t=200 if T=1000).',col:'#8A95A2'},
+  {id:'ps4',label:'Refiner U-Net',info:'The 2.3B-parameter refiner denoises from t=0.2·T to t=0. Adds fine detail, texture, and sharpness. Also uses OpenCLIP-G pooled embedding as aesthetic condition.',col:'#1A7B6B'},
+  {id:'ps5',label:'z₀ → VAE → 1024px',info:'The clean latent z₀ is decoded by the KL-VAE decoder to produce the final 3×1024×1024 image. Only called once.',col:'#3A7EBF'}
+];
+var si=0;
+document.getElementById('pipeRunBtn').addEventListener('click',function(){
+  if(si>=steps.length){si=0;}
+  steps.forEach(function(s,i){
+    var el=document.getElementById(s.id);
+    if(el){el.style.borderColor=i<=si?s.col:'transparent';el.style.background=i<=si?'var(--surface)':'var(--bg-alt)';}
+  });
+  document.getElementById('pipeInfo').innerHTML='<strong style="color:'+steps[si].col+'">'+steps[si].label+':</strong> '+steps[si].info;
+  si++;
+  this.textContent=si>=steps.length?'Complete ✓':'▶ Run Pipeline';
+});
+document.getElementById('pipeResetBtn').addEventListener('click',function(){
+  si=0;
+  steps.forEach(function(s){var el=document.getElementById(s.id);if(el){el.style.borderColor='transparent';el.style.background='var(--bg-alt)';}});
+  document.getElementById('pipeInfo').innerHTML='';
+  document.getElementById('pipeRunBtn').textContent='▶ Run Pipeline';
+});
+})();
+
+})();
+</script>
+</body>
+</html>

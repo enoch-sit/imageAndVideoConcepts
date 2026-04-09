@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Full Lip Sync Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--purple)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--purple);background:var(--purple-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--purple-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--purple)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:580px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--purple);opacity:.22}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--purple);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--teal{border-left-color:var(--teal)}.eq-box--accent{border-left-color:var(--accent)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--purple{background:var(--purple);color:#fff}.btn--purple:hover{filter:brightness(1.1)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">Full Lip Sync Pipeline</div>
+  <div class="links">
+    <a href="#ch1">01 8-Module Diagram</a>
+    <a href="#ch2">02 Data Contracts</a>
+    <a href="#ch3">03 Latency Budget</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>The <em>Full</em> Lip Sync<br>Pipeline</h1>
+  <p class="subtitle">From a raw audio file and portrait image to a rendered talking-head video: 8 processing modules, each with a defined input/output data contract, a measured latency, and a specific role in converting speech to facial motion.</p>
+  <div class="pill-row">
+    <span class="pill pill--purple">End-to-end pipeline</span>
+    <span class="pill pill--teal">Data contracts</span>
+    <span class="pill pill--accent">Latency analysis</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">End-to-End 8-Module Diagram</h2></div>
+  <p class="ch-sub">Click any module box to highlight its role, inputs and outputs across the full pipeline. Arrows flow left-to-right, branching to show the portrait and audio paths merging at the renderer.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Interactive Pipeline Diagram</div>
+    <div class="sim-desc">Click a module to see its description. The diagram shows audio path (top) and portrait path (bottom).</div>
+    <div class="sim-canvas-wrap"><canvas id="pipeCvs" style="height:300px"></canvas></div>
+    <div id="pipeInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65">Click a module box to learn about its role.</div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Data Contract at Each Junction</h2></div>
+  <p class="ch-sub">Every junction between two modules has a precisely defined data format. Mismatches at these boundaries are the primary cause of integration bugs in multi-model pipelines.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Junction Browser</div>
+    <div class="sim-desc">Click a junction button to see the exact format passing across it.</div>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem">
+      <button class="btn btn--ghost" onclick="showJunction(0)">A→1 Raw audio</button>
+      <button class="btn btn--ghost" onclick="showJunction(1)">1→2 Words</button>
+      <button class="btn btn--ghost" onclick="showJunction(2)">2→3 Phonemes</button>
+      <button class="btn btn--ghost" onclick="showJunction(3)">3→4 Visemes</button>
+      <button class="btn btn--ghost" onclick="showJunction(4)">4→5 Blendshapes</button>
+      <button class="btn btn--ghost" onclick="showJunction(5)">5→6 Smoothed BS</button>
+      <button class="btn btn--ghost" onclick="showJunction(6)">P→6 Portrait</button>
+      <button class="btn btn--ghost" onclick="showJunction(7)">6→Output Frames</button>
+    </div>
+    <div id="junctionInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65;min-height:80px">Click a junction above.</div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Latency Budget</h2></div>
+  <p class="ch-sub">Every module adds processing time. For a 10-second audio clip on a single RTX 3090 GPU, typical runtimes are shown below. Real-time feasibility depends on whether total latency ≤ clip duration.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Per-Module Timing Bar Chart</div>
+    <div class="sim-desc">Click a bar to see hardware details and optimisation notes. Times are for a 10 s audio clip (250 frames at 25 fps) on RTX 3090.</div>
+    <div class="sim-canvas-wrap"><canvas id="latCvs" style="height:260px"></canvas></div>
+    <div id="latInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65">Click a bar to see timing detail.</div>
+  </div>
+
+  <div class="callout callout--purple fade-up">
+    <div class="callout-title">Real-time feasibility verdict</div>
+    Total offline (non-streaming) pipeline: ~8–15 s for a 10 s clip (0.8–1.5× real-time). The bottleneck is the diffusion renderer (EchoMimic/SadTalker/DAWN): ~5–10 s/step × 20 DDPM steps. For real-time usage, reduce DDPM steps to 6–10 and use a lightweight renderer with direct blendshape-to-FLAME mapping (bypassing diffusion). Whisper + MFA + Phoneme→Viseme→Blendshape + One-Euro combined takes <300 ms, well within real-time budget.
+  </div>
+</div>
+</section>
+
+<footer class="footer">Full Lip Sync Pipeline — Interactive Guide</footer>
+
+<script>
+(function(){
+'use strict';
+
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ─── Pipeline modules ─── */
+var MODULES=[
+  {id:'Input',label:'Audio+\nPortrait',color:'#5A6878',desc:'Input: a 16kHz WAV file (speech) and a single portrait PNG/JPG. The WAV can be stereo — it is downmixed to mono before Whisper.'},
+  {id:'Whisper',label:'Whisper\nASR',color:'#BF4A24',desc:'Module 1 (Whisper): automatic speech recognition. Outputs word-level timestamps as JSON. Accepts any language with a multilingual model checkpoint.'},
+  {id:'MFA',label:'MFA\nForced\nAlign',color:'#1A7B6B',desc:'Module 2 (MFA): Montreal Forced Aligner. Aligns each word\'s phoneme sequence to the audio, producing phoneme-level start/end times in a TextGrid / JSON.'},
+  {id:'P2V',label:'Phoneme\n→Viseme',color:'#6B52A8',desc:'Module 3 (Phoneme→Viseme): instantaneous lookup table. Maps each ARPAbet phoneme to one of 15 viseme classes, with ±30 ms coarticulation blending. Negligible latency.'},
+  {id:'V2B',label:'Viseme\n→Blend\nshape',color:'#BF4A24',desc:'Module 4 (Viseme→Blendshape): sparse matrix lookup. Produces a (N_frames × 52) float array of ARKit blendshape weights. Negligible latency.'},
+  {id:'Smooth',label:'Temporal\nSmooth',color:'#1A7B6B',desc:'Module 5 (Temporal Smoothing): Gaussian σ=2–3 frames (offline) or One-Euro (real-time). Removes high-frequency jitter from the blendshape sequence. <10 ms.'},
+  {id:'Render',label:'EchoMimic/\nSadTalker/\nDAWN',color:'#6B52A8',desc:'Module 6 (Renderer): diffusion model (EchoMimic uses AnimateDiff U-Net, SadTalker uses 3D FLAME warping, DAWN uses flow-based warping). This is the pipeline bottleneck: 5–10 s for 10 s clip.'},
+  {id:'Output',label:'Output\nVideo',color:'#5A6878',desc:'Output: H.264/WebM video file. Merge with original audio using ffmpeg: ffmpeg -i out.mp4 -i audio.wav -c:v copy -c:a aac final.mp4'}
+];
+
+/* Layout: audio path top (left-to-right), portrait merges in */
+var pipeCvs=document.getElementById('pipeCvs');var activeMod=-1;
+function resizePipe(){var dpr=window.devicePixelRatio||1;var W=pipeCvs.parentElement.getBoundingClientRect().width;pipeCvs.width=Math.round(W*dpr);pipeCvs.height=Math.round(300*dpr);pipeCvs.style.width=W+'px';pipeCvs.style.height='300px';drawPipe();}
+function drawPipe(){
+  var dpr=window.devicePixelRatio||1;var W=pipeCvs.width/dpr,H=pipeCvs.height/dpr;
+  var ctx=pipeCvs.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  // Layout: 7 main boxes (Input→Output), portrait box separately
+  var N=7;var bw=Math.min(74,(W-20)/(N+1.2));var bh=54;var pad=Math.max(6,(W-20-N*bw)/(N-1));var y0=40;var sx=(W-N*bw-(N-1)*pad)/2;
+  // Portrait input box
+  var portW=bw-4;var portX=sx;var portY=H-bh-40;
+  // Compute box positions for modules 0-7
+  function bx(i){return sx+i*(bw+pad);}
+  // Render box is last main module; portrait goes to same render box
+  // Draw arrows first
+  ctx.strokeStyle='#C8C0B4';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+  // Main chain: Input → Whisper → MFA → P2V → V2B → Smooth → Render → Output
+  for(var i=0;i<N-1;i++){var ax=bx(i)+bw;var ay=y0+bh/2;var bxn=bx(i+1);ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bxn,ay);ctx.stroke();// arrowhead
+  ctx.setLineDash([]);ctx.fillStyle='#C8C0B4';ctx.beginPath();ctx.moveTo(bxn,ay);ctx.lineTo(bxn-6,ay-4);ctx.lineTo(bxn-6,ay+4);ctx.closePath();ctx.fill();ctx.setLineDash([4,3]);}
+  // Portrait arrow: portX+portW/2 down to render box
+  var renderMidX=bx(6)+bw/2;var renderTopY=y0+bh;
+  ctx.strokeStyle='rgba(107,82,168,.5)';ctx.beginPath();ctx.moveTo(portX+portW/2,portY);ctx.lineTo(renderMidX,renderTopY+5);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(107,82,168,.5)';ctx.beginPath();ctx.moveTo(renderMidX,renderTopY+5);ctx.lineTo(renderMidX-4,renderTopY-2);ctx.lineTo(renderMidX+4,renderTopY-2);ctx.closePath();ctx.fill();
+  ctx.setLineDash([]);
+  // Draw portrait box
+  var pActive=false;/* not interactive currently */
+  ctx.fillStyle='rgba(107,82,168,.1)';ctx.strokeStyle='rgba(107,82,168,.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(portX,portY,portW,bh-4,6);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#6B52A8';ctx.font='600 8px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('Portrait',portX+portW/2,portY+14);ctx.fillText('PNG/JPG',portX+portW/2,portY+26);
+  // Draw main module boxes
+  MODULES.forEach(function(m,i){
+    var x=bx(i);var act=i===activeMod;var col=m.color;
+    ctx.fillStyle=act?col+'33':col+'18';ctx.strokeStyle=act?col:col+'88';ctx.lineWidth=act?2:1;
+    ctx.beginPath();ctx.roundRect(x+1,y0,bw-2,bh,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle=act?col:'#5A6878';ctx.font=(act?'700 ':'600 ')+'8px DM Sans,sans-serif';ctx.textAlign='center';
+    var lines=m.label.split('\n');var lineH=11;var startY=y0+bh/2-(lines.length-1)*lineH/2;
+    lines.forEach(function(l,li){ctx.fillText(l,x+bw/2,startY+li*lineH);});
+  });
+  // Module numbers
+  for(var i=1;i<N-1;i++){ctx.fillStyle='#AAA';ctx.font='500 7px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('M'+i,bx(i)+bw/2,y0-6);}
+}
+pipeCvs.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var W=pipeCvs.width/dpr,H=pipeCvs.height/dpr;
+  var N=7;var bw=Math.min(74,(W-20)/(N+1.2));var bh=54;var pad=Math.max(6,(W-20-N*bw)/(N-1));var y0=40;var sx=(W-N*bw-(N-1)*pad)/2;
+  var rect=pipeCvs.getBoundingClientRect();var mx=(e.clientX-rect.left)*(W/rect.width);var my=(e.clientY-rect.top)*(H/rect.height);
+  var found=-1;for(var i=0;i<N;i++){var x=sx+i*(bw+pad);if(mx>=x&&mx<=x+bw&&my>=y0&&my<=y0+bh){found=i;break;}}
+  if(found>=0){activeMod=found;drawPipe();document.getElementById('pipeInfo').textContent=MODULES[found].desc;}
+});
+
+/* ─── Junctions data ─── */
+var JUNCTIONS=[
+  {label:'A → M1: Raw Audio',fmt:'Format: 16kHz mono WAV or FLAC (any sample rate — Whisper resamples internally).\nShape: (num_samples,) float32\nExample: audio.wav, 16000 samples/s, ~160 000 samples for 10 s.'},
+  {label:'M1 → M2: Word timestamps JSON',fmt:'Format: JSON list of word objects.\n[{"word":"Hello","start":0.12,"end":0.56,"lang":"en"},\n {"word":"world","start":0.60,"end":0.92}]\nUsed by MFA: word sequence fed to G2P then forced-aligned to audio.'},
+  {label:'M2 → M3: Phoneme timestamps JSON',fmt:'Format: JSON list of phoneme objects.\n[{"phoneme":"HH","start":0.12,"end":0.20},\n {"phoneme":"EH","start":0.20,"end":0.38},\n {"phoneme":"L","start":0.38,"end":0.50},\n {"phoneme":"OW","start":0.50,"end":0.56}]\nARPAbet symbols, seconds, float32.'},
+  {label:'M3 → M4: Viseme event list',fmt:'Format: JSON list of viseme events with coarticulation blend applied.\n[{"viseme":1,"weight":0.0,"t":0.10},\n {"viseme":1,"weight":1.0,"t":0.20},\n {"viseme":3,"weight":1.0,"t":0.40}]\nSampled at 25 fps (0.04 s steps). 15 viseme classes.'},
+  {label:'M4 → M5: Blendshape timeseries',fmt:'Format: NumPy array (N_frames × 52) float32, values in [0, 1].\nEach row is a full ARKit blendshape weight vector.\nColumn order follows Apple ARKit52 standard (jawOpen=0, jawForward=1, … tongueOut=51).\nSize: 250 rows × 52 cols for a 10 s clip at 25 fps.'},
+  {label:'M5 → M6: Smoothed blendshape array',fmt:'Same shape as M4 output: (N_frames × 52) float32, values in [0,1].\nGaussian σ=2–3 frames applied per column independently.\nThis array is used by non-diffusion renderers directly.\nFor diffusion renderers (EchoMimic), the blendshape array becomes an optional conditioning signal — the primary conditioning is audio features.'},
+  {label:'Portrait → M6',fmt:'Format: RGB PNG or JPEG, any resolution (resized to 256×256 for most models).\nMust be a frontal face with neutral expression.\nFor EchoMimic: reference image fed to ReferenceNet encoder (→ CLIP feature space, 512-d).\nFor SadTalker/DAWN: face detected via MediaPipe/dlib, mapped to 3DMM FLAME coefficients.'},
+  {label:'M6 → Output: Video frames',fmt:'Format: sequence of RGB frames (N_frames × H × W × 3) uint8.\nTypical resolution: 256×256 px (SadTalker/DAWN) or 512×512 (EchoMimic).\nMerged with original audio via ffmpeg:\n  ffmpeg -i rendered.mp4 -i audio.wav -c:v copy -c:a aac output.mp4'}
+];
+window.showJunction=function(i){document.getElementById('junctionInfo').textContent=JUNCTIONS[i].label+':\n\n'+JUNCTIONS[i].fmt;};
+
+/* ─── Latency chart ─── */
+var latCvs=document.getElementById('latCvs');
+var LATENCY=[
+  {name:'Whisper\n(RTX3090)',ms:800,color:'#BF4A24',note:'Whisper large-v3 transcribes a 10 s clip in ~0.8 s on RTX 3090 (~8× faster than real-time). whisper.cpp with CUDA achieves ~0.4 s.'},
+  {name:'MFA',ms:400,color:'#1A7B6B',note:'Montreal Forced Aligner: ~80 ms/word typically. For a 10 s clip with ~30 words, ~400 ms total. CPU-only; GPU not used.'},
+  {name:'G2P',ms:50,color:'#6B52A8',note:'Grapheme-to-Phoneme (neural): ~50 ms for a paragraph. Often run as part of MFA preprocessing.'},
+  {name:'P→V',ms:5,color:'#2A6A8A',note:'Phoneme→Viseme lookup: pure Python dict, <5 ms for any clip length. Negligible.'},
+  {name:'V→BS',ms:5,color:'#2A6A8A',note:'Viseme→Blendshape matrix multiply: NumPy matmul (250×15 dense × 15×52 sparse), <5 ms.'},
+  {name:'Smooth',ms:8,color:'#1A7B6B',note:'Temporal smoothing (Gaussian σ=3): scipy.ndimage.uniform_filter1d, ~8 ms for 250 frames × 52 channels.'},
+  {name:'EchoMimic\n(20 DDPM\nsteps)',ms:9000,color:'#6B52A8',note:'EchoMimic: AnimateDiff U-Net, 20 DDPM denoising steps for 250 frames at 512×512. ~9 s on RTX 3090. Reducible to ~4 s with 8 steps (quality trade-off).'},
+  {name:'ffmpeg\nmerge',ms:200,color:'#8A6B2A',note:'ffmpeg H.264 encode + audio mux for 10 s output: ~200 ms on modern CPU.'}
+];
+var activeBar=-1;
+function resizeLat(){var dpr=window.devicePixelRatio||1;var W=latCvs.parentElement.getBoundingClientRect().width;latCvs.width=Math.round(W*dpr);latCvs.height=Math.round(260*dpr);latCvs.style.width=W+'px';latCvs.style.height='260px';drawLat();}
+function drawLat(){
+  var dpr=window.devicePixelRatio||1;var W=latCvs.width/dpr,H=latCvs.height/dpr;
+  var ctx=latCvs.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var labelW=70;var m=10;var bH=H-m-30;var maxMs=LATENCY.reduce(function(a,b){return Math.max(a,b.ms);},0);
+  var N=LATENCY.length;var barW=(W-labelW-m*2)/N-4;var baseY=m+bH;
+  // Total
+  var total=LATENCY.reduce(function(a,b){return a+b.ms;},0);
+  ctx.fillStyle='#8A95A2';ctx.font='500 8px DM Sans,sans-serif';ctx.textAlign='right';ctx.fillText('Total: '+total.toLocaleString()+' ms ('+( total/10000).toFixed(1)+'× real-time)',W-m,m+10);
+  // Real-time line
+  var rtY=m+bH-bH*(10000/maxMs);ctx.strokeStyle='rgba(191,74,36,.5)';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(labelW,rtY);ctx.lineTo(W-m,rtY);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(191,74,36,.7)';ctx.font='600 7px DM Sans,sans-serif';ctx.textAlign='left';ctx.fillText('10 s (real-time limit)',labelW+4,rtY-3);
+  // Bars
+  LATENCY.forEach(function(d,i){
+    var x=labelW+i*(barW+4);var bh=bH*d.ms/maxMs;var y=baseY-bh;var act=i===activeBar;
+    ctx.fillStyle=act?d.color:d.color+'99';ctx.beginPath();ctx.roundRect(x,y,barW,bh,3);ctx.fill();
+    if(act){ctx.strokeStyle=d.color;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(x,y,barW,bh,3);ctx.stroke();}
+    // Label
+    ctx.fillStyle=act?d.color:'#8A95A2';ctx.font=(act?'700 ':'500 ')+'7px DM Sans,sans-serif';ctx.textAlign='center';
+    d.name.split('\n').forEach(function(l,li){ctx.fillText(l,x+barW/2,baseY+10+li*9);});
+    // Value
+    if(d.ms>=200){ctx.fillStyle='#FFF';ctx.font='600 8px DM Sans,sans-serif';ctx.fillText(d.ms>=1000?(d.ms/1000).toFixed(1)+'s':d.ms+'ms',x+barW/2,y+12);}
+    else{ctx.fillStyle=d.color;ctx.font='600 7px DM Sans,sans-serif';ctx.fillText(d.ms+'ms',x+barW/2,y-4);}
+  });
+  // Y-axis ticks
+  [0,.5,1,2,5,total/1000].forEach(function(s){var y=m+bH-bH*(s*1000/maxMs);if(y<m||y>m+bH)return;ctx.strokeStyle='rgba(230,221,208,.4)';ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(labelW,y);ctx.lineTo(W-m,y);ctx.stroke();ctx.fillStyle='#AAA';ctx.font='500 7px DM Sans,sans-serif';ctx.textAlign='right';ctx.fillText(s+'s',labelW-2,y+3);});
+}
+latCvs.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var W=latCvs.width/dpr,H=latCvs.height/dpr;
+  var labelW=70;var m=10;var bH=H-m-30;var N=LATENCY.length;var barW=(W-labelW-m*2)/N-4;
+  var rect=latCvs.getBoundingClientRect();var mx=(e.clientX-rect.left)*(W/rect.width);
+  var found=-1;for(var i=0;i<N;i++){var x=labelW+i*(barW+4);if(mx>=x&&mx<=x+barW){found=i;break;}}
+  if(found>=0){activeBar=found;drawLat();document.getElementById('latInfo').textContent=LATENCY[found].name.replace('\n',' ')+' — '+LATENCY[found].ms+' ms: '+LATENCY[found].note;}
+});
+
+window.addEventListener('resize',function(){resizePipe();resizeLat();});
+resizePipe();resizeLat();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLUX.1 — Rectified Flow & MMDiT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--purple)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--purple);background:var(--purple-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--purple-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--purple)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:560px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--purple);opacity:.2}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--purple);background:var(--bg)}
+.step-dot--teal{border-color:var(--teal)}.step-dot--accent{border-color:var(--accent)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--purple);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--teal{border-left-color:var(--teal)}.eq-box--accent{border-left-color:var(--accent)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--purple{background:var(--purple);color:#fff}.btn--purple:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.toggle-row{display:flex;gap:.5rem;flex-wrap:wrap}
+.toggle-btn{font-size:.8rem;font-weight:600;padding:.45rem .9rem;border-radius:8px;border:2px solid var(--border);background:var(--bg-alt);color:var(--text-2);cursor:pointer;transition:all .2s}
+.toggle-btn.active{border-color:var(--purple);background:var(--purple-glow);color:var(--purple)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.cmp-table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:.88rem}
+.cmp-table th{background:var(--bg-alt);font-weight:700;padding:.65rem 1rem;text-align:left;border-bottom:2px solid var(--border)}
+.cmp-table td{padding:.6rem 1rem;border-bottom:1px solid var(--border)}
+.cmp-table tr:last-child td{border-bottom:none}
+.cmp-table td:first-child{font-weight:600;color:var(--text-2)}
+.hi-purple{color:var(--purple);font-weight:700}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">FLUX.1 Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Rectified Flow</a>
+    <a href="#ch2">02 MMDiT</a>
+    <a href="#ch3">03 Key Numbers</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>FLUX.1 — <em>Rectified Flow</em><br>& MMDiT Architecture</h1>
+  <p class="subtitle">How FLUX.1 rethinks the diffusion trajectory with rectified flow (straight paths), and what the Multimodal Diffusion Transformer brings to text-image alignment at 12B parameters.</p>
+  <div class="pill-row">
+    <span class="pill pill--purple">Rectified Flow</span>
+    <span class="pill pill--teal">MMDiT — 12B Params</span>
+    <span class="pill pill--accent">Joint Image+Text Tokens</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1: RECTIFIED FLOW ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">Rectified Flow — Straight Trajectories</h2></div>
+  <p class="ch-sub">Traditional diffusion models follow curved stochastic paths from noise to data. Rectified flow trains the model to follow the straightest possible interpolation between noise and image distributions — enabling fewer steps with no quality loss.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Interactive: Curved vs Straight Paths</div>
+    <div class="sim-desc">Toggle between DDPM/DDIM curved trajectories and Rectified Flow straight paths. Animate to see how many intermediate steps are needed for each approach.</div>
+    <div class="sim-canvas-wrap"><canvas id="pathCanvas" style="height:280px"></canvas></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.5rem">
+      <div class="toggle-row">
+        <div class="toggle-btn active" id="btnDDPM" onclick="setPathMode('ddpm',this)">DDPM/DDIM (curved)</div>
+        <div class="toggle-btn" id="btnRect" onclick="setPathMode('rect',this)">Rectified Flow (straight)</div>
+      </div>
+      <button class="btn btn--purple" id="animBtn" onclick="toggleAnim()">Animate Path</button>
+    </div>
+    <div id="pathInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.6"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>The Optimal Transport Interpolation</h3>
+    <p>Rectified flow uses a simple linear interpolation path between a noise sample z and a data sample x₀:</p>
+    <div class="eq-box">
+      <span class="eq-label">Forward interpolation (Rectified Flow)</span>
+      <span class="mono">x_t = (1−t)·x₀  +  t·z      where z ~ N(0,I), t ∈ [0,1]</span><br><br>
+      <span class="eq-label">The learned velocity field</span>
+      <span class="mono">v_θ(x_t, t) ≈ z − x₀   (target velocity is constant)</span>
+    </div>
+    <p>Because the target velocity is constant along the path, numerical ODE solvers need fewer function evaluations. DDPM's curved paths require corrective steps at each point; tight linear paths can be solved in 1–4 steps.</p>
+  </div>
+
+  <div class="callout callout--purple fade-up">
+    <div class="callout-title">Flow Matching vs Score Matching</div>
+    DDPM/DDIM implicitly learn the score ∇ log p(x_t) — the gradient of the log probability. Rectified flow / flow matching learns the velocity v(x_t, t) = dx/dt of a deterministic ODE. Both are equivalent under certain conditions but flow matching gives cleaner training signal and straighter paths.
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2: MMDIT ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">MMDiT — Multimodal Diffusion Transformer</h2></div>
+  <p class="ch-sub">FLUX.1 replaces the U-Net with a Transformer that processes image tokens and text tokens jointly in every layer, using separate weights for each modality but shared attention.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Interactive: MMDiT Token Flow</div>
+    <div class="sim-desc">Click a block to see what happens to image tokens and text tokens inside an MMDiT layer.</div>
+    <div class="sim-canvas-wrap"><canvas id="mmditCanvas" style="height:260px"></canvas></div>
+    <div id="mmditInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Separate Weights, Shared Attention</h3>
+    <p>In SD 1.5's U-Net, text cross-attention is applied after image self-attention — text is secondary. In MMDiT, both modalities run through the same attention matrix simultaneously. The Q/K/V projections use different weight matrices for image tokens (W_img) and text tokens (W_txt), but they are concatenated before the softmax, letting image and text tokens attend to each other directly.</p>
+    <div class="eq-box">
+      <span class="eq-label">MMDiT attention (single head)</span>
+      <span class="mono">Q = [W_img_Q · x_img ; W_txt_Q · x_txt]   (concat)</span><br>
+      <span class="mono">K = [W_img_K · x_img ; W_txt_K · x_txt]</span><br>
+      <span class="mono">V = [W_img_V · x_img ; W_txt_V · x_txt]</span><br>
+      <span class="mono">Attn = softmax(Q·Kᵀ/√d) · V          (all tokens attend all)</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Guidance Distillation</h3>
+    <p>FLUX.1-schnell and FLUX.1-dev use guidance distillation to eliminate the need for separate conditional/unconditional forward passes (as in CFG). Instead, a guidance scale embedding g is passed directly to the model during training. At inference, a single forward pass with the desired g produces CFG-equivalent output, halving compute cost.</p>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3: KEY NUMBERS ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Key Technical Numbers</h2></div>
+  <p class="ch-sub">How FLUX.1 compares architecturally to Stable Diffusion 1.5, SDXL and current alternatives.</p>
+
+  <table class="cmp-table fade-up">
+    <thead><tr><th>Property</th><th>SD 1.5</th><th>SDXL</th><th class="hi-purple">FLUX.1-dev</th></tr></thead>
+    <tbody>
+      <tr><td>Architecture</td><td>U-Net</td><td>U-Net</td><td class="hi-purple">MMDiT (Transformer)</td></tr>
+      <tr><td>Parameters</td><td>860M</td><td>3.5B</td><td class="hi-purple">12B</td></tr>
+      <tr><td>Text Encoder(s)</td><td>CLIP-L (77×768)</td><td>CLIP-L+OpenCLIP-G</td><td class="hi-purple">T5-XXL + CLIP-L</td></tr>
+      <tr><td>Trajectory</td><td>DDPM (curved)</td><td>DDPM (curved)</td><td class="hi-purple">Rectified Flow (straight)</td></tr>
+      <tr><td>Guidance</td><td>CFG (2 fwd passes)</td><td>CFG (2 fwd passes)</td><td class="hi-purple">Guidance distillation (1 pass)</td></tr>
+      <tr><td>Native resolution</td><td>512×512</td><td>1024×1024</td><td class="hi-purple">Any ratio (1MP+)</td></tr>
+      <tr><td>Inference steps</td><td>20–50</td><td>20–50</td><td class="hi-purple">4–50 (schnell: 4)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout--teal fade-up">
+    <div class="callout-title">T5-XXL text encoder</div>
+    FLUX.1 adds T5-XXL (4.7B parameters) alongside CLIP-L for text encoding. T5 is an encoder-decoder language model pre-trained on text-to-text tasks. Its deep language understanding dramatically improves adherence to long, complex prompts — especially counting, spatial relationships and rare concepts. Text tokens from T5 are passed directly to the MMDiT attention layers.
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Why FLUX Matters for This Course</h3>
+    <ul>
+      <li>FLUX.1 sets the state-of-the-art baseline for image generation quality at the time of this course</li>
+      <li>Its trajectory framework (rectified flow) is inherited by video models including CogVideoX</li>
+      <li>Guidance distillation is the same technique used in SANA-Sprint and AnimateDiff-Lightning</li>
+      <li>The MMDiT architecture replaces U-Net in the newest stable video generation systems</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<footer class="footer">FLUX.1 Interactive Guide · Black Forest Labs, 2024</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var chs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;chs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ── Path canvas ── */
+var pathCanvas=document.getElementById('pathCanvas');
+var pathMode='ddpm';
+var animating=false;
+var animT=0;
+var animRAF=null;
+
+window.setPathMode=function(mode,btn){
+  pathMode=mode;
+  document.querySelectorAll('.toggle-btn').forEach(function(b){b.classList.remove('active');});
+  if(btn)btn.classList.add('active');
+  animT=0;
+  var info={
+    ddpm:'DDPM/DDIM path: derived from a Gaussian diffusion process, the forward path follows a curved arc through data space. Sampling requires many small corrective steps because the curvature changes the velocity direction at each point.',
+    rect:'Rectified Flow: the interpolation x_t = (1−t)·x₀ + t·z is linear. The optimal velocity field points straight from x₀ to z everywhere. A single Euler step approximates the full ODE to high accuracy, enabling 1–4 step inference.'
+  };
+  document.getElementById('pathInfo').textContent=info[mode];
+  drawPath();
+};
+
+window.toggleAnim=function(){
+  if(animating){animating=false;cancelAnimationFrame(animRAF);document.getElementById('animBtn').textContent='Animate Path';}
+  else{animating=true;document.getElementById('animBtn').textContent='Stop';doAnim();}
+};
+
+function doAnim(){if(!animating)return;animT=(animT+.008)%1;drawPath();animRAF=requestAnimationFrame(doAnim);}
+
+function resizePath(){
+  var dpr=window.devicePixelRatio||1;
+  var W=pathCanvas.parentElement.getBoundingClientRect().width;
+  pathCanvas.width=Math.round(W*dpr);pathCanvas.height=Math.round(280*dpr);
+  pathCanvas.style.width=W+'px';pathCanvas.style.height='280px';
+  drawPath();
+}
+
+function drawPath(){
+  var dpr=window.devicePixelRatio||1;
+  var W=pathCanvas.width/dpr,H=pathCanvas.height/dpr;
+  var ctx=pathCanvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  var pad=32;
+  var pts=[];
+  var N=8; // sample paths
+
+  // Define multiple start/end point pairs (noise→data)
+  var paths=[];
+  for(var i=0;i<N;i++){
+    var frac=(i+.5)/N;
+    var x0=pad+frac*(W-2*pad);          // data x (varies L→R)
+    var y0=H-pad-30+(Math.sin(frac*Math.PI)*(H*.1));  // data y (bottom)
+    var x1=pad+(1-frac)*(W-2*pad)*0.8+W*.1;    // noise x
+    var y1=pad+(Math.cos(frac*Math.PI*.5)*(H*.08));   // noise y (top)
+    paths.push({x0:x0,y0:y0,x1:x1,y1:y1});
+  }
+
+  // Axis labels
+  ctx.fillStyle='#6B52A8';ctx.font='700 11px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('Noise Distribution (x_T)',W/2,pad-6);
+  ctx.fillStyle='#1A7B6B';
+  ctx.fillText('Data Distribution (x_0)',W/2,H-6);
+
+  paths.forEach(function(p,i){
+    // Determine number of steps shown
+    var nSteps=pathMode==='ddpm'?12:3;
+    var col=pathMode==='ddpm'?'#6B52A8':'#BF4A24';
+    var alpha=0.55;
+
+    // Sample t values
+    var ts=[];
+    for(var s=0;s<=nSteps;s++) ts.push(s/nSteps);
+
+    // Compute actual points
+    function getXY(t){
+      var xL=(1-t)*p.x0+t*p.x1;
+      var yL=(1-t)*p.y0+t*p.y1;
+      if(pathMode==='ddpm'){
+        // Add curvature: sinusoidal perpendicular offset
+        var perp_x=-(p.y1-p.y0);
+        var perp_y=(p.x1-p.x0);
+        var len=Math.sqrt(perp_x*perp_x+perp_y*perp_y)||1;
+        var curve=Math.sin(t*Math.PI)*0.18*(i%2?1:-1);
+        xL+=perp_x/len*len*curve*0.5;
+        yL+=perp_y/len*len*curve*0.5;
+      }
+      return{x:xL,y:yL};
+    }
+
+    // Draw full path (faint)
+    ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.2;ctx.globalAlpha=0.18;
+    ctx.beginPath();
+    var start=getXY(0);ctx.moveTo(start.x,start.y);
+    for(var s=1;s<=40;s++){var pt=getXY(s/40);ctx.lineTo(pt.x,pt.y);}
+    ctx.stroke();ctx.globalAlpha=1;
+
+    // Draw step points
+    ts.forEach(function(t,si){
+      if(si===0||si===ts.length-1) return;
+      var pt=getXY(t);
+      ctx.beginPath();ctx.arc(pt.x,pt.y,3.5,0,Math.PI*2);
+      ctx.fillStyle=col;ctx.globalAlpha=0.45;ctx.fill();ctx.globalAlpha=1;
+    });
+
+    // Draw animation dot
+    if(animating||animT>0){
+      var animPt=getXY(animT);
+      ctx.beginPath();ctx.arc(animPt.x,animPt.y,5.5,0,Math.PI*2);
+      ctx.fillStyle=col;ctx.globalAlpha=0.85;ctx.fill();
+      ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+    ctx.restore();
+  });
+
+  // Step count annotation
+  ctx.fillStyle=pathMode==='ddpm'?'#6B52A8':'#BF4A24';
+  ctx.font='600 11px DM Sans,sans-serif';ctx.textAlign='right';
+  ctx.fillText(pathMode==='ddpm'?'12–50 steps needed':'3–4 steps sufficient',W-pad,H/2);
+}
+
+document.getElementById('pathInfo').textContent='DDPM/DDIM path: derived from a Gaussian diffusion process, the forward path follows a curved arc through data space. Sampling requires many small corrective steps because the curvature changes the velocity direction at each point.';
+window.addEventListener('resize',resizePath);
+resizePath();
+
+/* ── MMDiT canvas ── */
+var mmditCanvas=document.getElementById('mmditCanvas');
+var MMDIT_BLOCKS=[
+  {label:'Image\nTokenize',type:'img',info:'The image latent (from VAE) is split into patches (e.g. 2×2), flattened and linearly projected into token embeddings. At 1024×1024 in the latent space (128×128 at 1/8 scale), this produces ≈4096 image tokens. Positional embeddings (RoPE-2D) encode spatial location.'},
+  {label:'Text\nEncode',type:'txt',info:'Two text encoders run in parallel: CLIP-L (77×768 tokens) and T5-XXL (256×4096 tokens). Both outputs are projected to the same hidden dimension and concatenated. This gives ≈333 text tokens that capture both coarse semantic structure (CLIP) and detailed language content (T5).'},
+  {label:'MMDiT\nLayer ×N',type:'joint',info:'Each MMDiT layer applies the joint attention mechanism. Image tokens Q/K/V and text tokens Q/K/V are projected with separate weights but concatenated for the attention softmax. This means every image token can attend to every text token and vice versa in every layer — much stronger coupling than SD 1.5\'s cross-attention.'},
+  {label:'Decode\nImage',type:'out',info:'After N=19 (dev) or N=28 (schnell) MMDiT layers, only the image token sequence is passed to a linear projection head that reconstructs the latent patch embeddings. The result is unpatched and decoded by the VAE to produce the final image.'}
+];
+
+mmditCanvas.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;
+  var rect=mmditCanvas.getBoundingClientRect();
+  var mx=(e.clientX-rect.left);
+  var W=mmditCanvas.parentElement.getBoundingClientRect().width;
+  var bw=Math.min(140,(W-40)/4);
+  var gap=(W-40-bw*4)/3;
+  var startX=(W-(bw*4+gap*3))/2;
+  var H=260;var by=H/2-34;
+  MMDIT_BLOCKS.forEach(function(b,i){
+    var bx=startX+i*(bw+gap);
+    if(mx>=bx&&mx<=bx+bw){
+      document.getElementById('mmditInfo').textContent=b.info;
+      drawMMDiT(i);
+    }
+  });
+});
+
+function resizeMMDiT(){
+  var dpr=window.devicePixelRatio||1;
+  var W=mmditCanvas.parentElement.getBoundingClientRect().width;
+  mmditCanvas.width=Math.round(W*dpr);mmditCanvas.height=Math.round(260*dpr);
+  mmditCanvas.style.width=W+'px';mmditCanvas.style.height='260px';
+  drawMMDiT(-1);
+}
+
+function drawMMDiT(activeIdx){
+  var dpr=window.devicePixelRatio||1;
+  var W=mmditCanvas.width/dpr,H=mmditCanvas.height/dpr;
+  var ctx=mmditCanvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  var bw=Math.min(140,(W-40)/4);
+  var bh=68;
+  var gap=(W-40-bw*4)/3;
+  var startX=(W-(bw*4+gap*3))/2;
+  var by=H/2-bh/2-10;
+
+  var colors={img:'#1A7B6B',txt:'#6B52A8',joint:'#BF4A24',out:'#5A6878'};
+  var bgcolors={img:'rgba(26,123,107,.10)',txt:'rgba(107,82,168,.10)',joint:'rgba(191,74,36,.10)',out:'rgba(90,104,120,.08)'};
+
+  MMDIT_BLOCKS.forEach(function(b,i){
+    var x=startX+i*(bw+gap);
+    var isActive=i===activeIdx;
+    ctx.save();
+    ctx.fillStyle=bgcolors[b.type];
+    ctx.strokeStyle=isActive?colors[b.type]:'rgba(230,221,208,.8)';
+    ctx.lineWidth=isActive?2.5:1.5;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,8);ctx.fill();ctx.stroke();
+    var lines=b.label.split('\n');
+    ctx.fillStyle=colors[b.type];ctx.font='600 11px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText(lines[0],x+bw/2,by+bh/2-(lines.length>1?8:0));
+    if(lines[1]){ctx.font='500 10px DM Sans,sans-serif';ctx.fillText(lines[1],x+bw/2,by+bh/2+10);}
+    ctx.restore();
+    // Arrow
+    if(i<3){
+      var ax=x+bw+4;
+      ctx.strokeStyle='#E6DDD0';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(ax,by+bh/2);ctx.lineTo(ax+gap-8,by+bh/2);ctx.stroke();
+      ctx.fillStyle='#E6DDD0';
+      ctx.beginPath();ctx.moveTo(ax+gap-4,by+bh/2);ctx.lineTo(ax+gap-10,by+bh/2-4);ctx.lineTo(ax+gap-10,by+bh/2+4);ctx.closePath();ctx.fill();
+    }
+  });
+  // Sizes annotation below
+  var sizes=['4096 img\ntokens','333 text\ntokens','concat +\nattend','image\nlatent'];
+  MMDIT_BLOCKS.forEach(function(b,i){
+    var x=startX+i*(bw+gap);
+    var lines=sizes[i].split('\n');
+    var colors2={img:'#1A7B6B',txt:'#6B52A8',joint:'#BF4A24',out:'#5A6878'};
+    ctx.fillStyle=colors2[b.type]+'99';ctx.font='500 10px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText(lines[0],x+bw/2,by+bh+18);
+    if(lines[1])ctx.fillText(lines[1],x+bw/2,by+bh+30);
+  });
+  ctx.fillStyle='#8A95A2';ctx.font='500 10px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('← Click any block to learn more →',W/2,H-8);
+}
+
+document.getElementById('mmditInfo').textContent='Click any block to learn what happens inside each stage of the FLUX.1 MMDiT pipeline.';
+window.addEventListener('resize',function(){resizePath();resizeMMDiT();});
+resizeMMDiT();
+})();
+</script>
+</body>
+</html>

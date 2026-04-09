@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CogVideoX-2B — Video Diffusion Transformer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--purple)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--purple);background:var(--purple-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--purple-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--purple)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:560px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--purple);opacity:.2}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--purple);background:var(--bg)}
+.step-dot--teal{border-color:var(--teal)}.step-dot--accent{border-color:var(--accent)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--purple);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--teal{border-left-color:var(--teal)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--purple{background:var(--purple);color:#fff}.btn--purple:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.cmp-table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:.88rem}
+.cmp-table th{background:var(--bg-alt);font-weight:700;padding:.65rem 1rem;text-align:left;border-bottom:2px solid var(--border)}
+.cmp-table td{padding:.6rem 1rem;border-bottom:1px solid var(--border)}
+.cmp-table tr:last-child td{border-bottom:none}
+.cmp-table td:first-child{font-weight:600;color:var(--text-2)}
+.hi-purple{color:var(--purple);font-weight:700}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">CogVideoX Guide</div>
+  <div class="links">
+    <a href="#ch1">01 3D-RoPE</a>
+    <a href="#ch2">02 Expert Transformer</a>
+    <a href="#ch3">03 Video Specs</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>CogVideoX-2B — <em>Video Diffusion</em><br>with 3D-RoPE</h1>
+  <p class="subtitle">How CogVideoX generates 6-second, 49-frame videos using a 3D Rotary Position Embedding and an Expert Adaptive LayerNorm Transformer trained on text-video pairs.</p>
+  <div class="pill-row">
+    <span class="pill pill--purple">3D-RoPE Position</span>
+    <span class="pill pill--teal">Expert Transformer</span>
+    <span class="pill pill--accent">49 Frames · 6 s</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">3D Rotary Position Embedding</h2></div>
+  <p class="ch-sub">Video tokens exist in three dimensions: time (T), height (H), width (W). 3D-RoPE extends the 1D RoPE from language models to encode all three simultaneously, so the transformer understands "frame 3, row 12, column 5" without separate learned position tables.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">3D Token Space Visualiser</div>
+    <div class="sim-desc">Each cube represents a video latent token at position (t, h, w). Click animate to see how tokens are indexed and how 3D-RoPE encodes their position in the attention Q/K vectors.</div>
+    <div class="sim-canvas-wrap"><canvas id="ropeCanvas" style="height:240px"></canvas></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem">
+      <button class="btn btn--purple" id="ropeAnimBtn" onclick="ropeToggle()">Animate</button>
+      <button class="btn btn--ghost" onclick="ropeReset()">Reset</button>
+    </div>
+    <div id="ropeInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>How 3D-RoPE Works</h3>
+    <p>The Q and K vectors in each attention head are split into three equal segments. Each segment is rotated by a complex phase determined by one axis: time position, height position, or width position. Tokens at nearby (t,h,w) positions will have similar rotations and thus high dot products, encoding spatial and temporal proximity into the attention scores automatically.</p>
+    <div class="eq-box">
+      <span class="eq-label">3D-RoPE encoding (per head)</span>
+      <span class="mono">Q = [RoPE_t(Q₁) ; RoPE_h(Q₂) ; RoPE_w(Q₃)]</span><br>
+      <span class="mono">K = [RoPE_t(K₁) ; RoPE_h(K₂) ; RoPE_w(K₃)]</span><br>
+      <span class="mono">attn(i,j) ∝ exp(Qᵢᵀ·Kⱼ/√d)  encodes (Δt,Δh,Δw) via phase</span>
+    </div>
+  </div>
+
+  <div class="callout callout--purple fade-up">
+    <div class="callout-title">Why 3D-RoPE outperforms learned position tables</div>
+    Learned tables are fixed-size — a model trained on 49 frames cannot handle 97 frames. RoPE extrapolates naturally to longer sequences because it encodes relative positions via rotation angles, not lookup indices. CogVideoX can generate variable-length clips without retraining.
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Expert Adaptive LayerNorm</h2></div>
+  <p class="ch-sub">Each transformer layer in CogVideoX uses Adaptive LayerNorm (AdaLN) conditioned on both the diffusion timestep t and the text embeddings. This allows the same layer weights to adapt their normalisation for different conditions.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">AdaLN-Expert Block</div>
+    <div class="sim-desc">The conditioning signal (timestep + text) produces scale γ and shift β parameters that modulate layernorm output. Click Next to walk through one block.</div>
+    <div class="sim-canvas-wrap"><canvas id="adalCanvas" style="height:220px"></canvas></div>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <button class="btn btn--purple" onclick="adalNext()">Next &rsaquo;</button>
+      <button class="btn btn--ghost" onclick="adalReset()">Reset</button>
+      <span id="adalLabel" style="font-size:.85rem;color:var(--text-2)">Step 1 of 5</span>
+    </div>
+    <div id="adalInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Text Conditioning in CogVideoX</h3>
+    <p>CogVideoX uses T5-XXL (same as FLUX.1) to encode text. The text tokens are prepended to the sequence of video latent tokens in the transformer — they share the same 3D-RoPE time dimension (assigned t=0, placed before the actual video frames). This lets every video token attend to text tokens naturally in the same attention operation.</p>
+    <div class="eq-box eq-box--teal">
+      <span class="eq-label">Token sequence layout</span>
+      <span class="mono">[T5_text_tokens | video_latent_tokens (T×H×W)]</span><br>
+      <span class="mono">T5 tokens: ~226 tokens at t=0 position</span><br>
+      <span class="mono">Video tokens: T/4×H/8×W/8 after temporal VAE</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Video Generation Specs</h2></div>
+  <p class="ch-sub">CogVideoX-2B produces 49 frames at 480×720 resolution (portrait or landscape). The temporal VAE compresses 49 frames down in time and space before the diffusion transformer operates.</p>
+
+  <table class="cmp-table fade-up">
+    <thead><tr><th>Property</th><th>CogVideoX-2B</th><th>AnimateDiff</th></tr></thead>
+    <tbody>
+      <tr><td>Architecture</td><td class="hi-purple">Video DiT (Transformer)</td><td>SD U-Net + Motion Module</td></tr>
+      <tr><td>Parameters</td><td class="hi-purple">2B</td><td>~900M total</td></tr>
+      <tr><td>Frames</td><td class="hi-purple">49</td><td>16</td></tr>
+      <tr><td>Duration @ fps</td><td class="hi-purple">6 s @ 8 fps</td><td>2 s @ 8 fps</td></tr>
+      <tr><td>Native resolution</td><td class="hi-purple">480×720</td><td>512×512</td></tr>
+      <tr><td>Text encoder</td><td class="hi-purple">T5-XXL</td><td>CLIP-L</td></tr>
+      <tr><td>Position encoding</td><td class="hi-purple">3D-RoPE</td><td>Temporal RoPE-1D + 2D spatial</td></tr>
+      <tr><td>Latent compression</td><td class="hi-purple">Temporal VAE · (T/4,H/8,W/8)</td><td>VAE · (1,4,H/8,W/8) per frame</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout--teal fade-up">
+    <div class="callout-title">Course usage context</div>
+    CogVideoX-2B is used in this course as the primary "talking head video" generation backbone. Given a driving audio and face region latent, the model generates a 49-frame clip of the face speaking. The temporal VAE and 3D transformer ensure smooth motion while T5-XXL ensures precise caption adherence for lipsync quality.
+  </div>
+</div>
+</section>
+
+<footer class="footer">CogVideoX Interactive Guide · ZHIPU AI, 2024</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var chs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;chs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ── 3D-RoPE canvas ── */
+var ropeCanvas=document.getElementById('ropeCanvas');
+var ropeAnimating=false;var ropeT=0;var ropeRAF=null;
+var highlightFrame=0;
+
+window.ropeToggle=function(){
+  if(ropeAnimating){ropeAnimating=false;cancelAnimationFrame(ropeRAF);document.getElementById('ropeAnimBtn').textContent='Animate';}
+  else{ropeAnimating=true;document.getElementById('ropeAnimBtn').textContent='Stop';doRope();}
+};
+window.ropeReset=function(){ropeAnimating=false;cancelAnimationFrame(ropeRAF);ropeT=0;highlightFrame=0;drawRope();};
+
+function doRope(){if(!ropeAnimating)return;ropeT=(ropeT+.012)%1;highlightFrame=Math.floor(ropeT*5);drawRope();ropeRAF=requestAnimationFrame(doRope);}
+
+function resizeRope(){
+  var dpr=window.devicePixelRatio||1;
+  var W=ropeCanvas.parentElement.getBoundingClientRect().width;
+  ropeCanvas.width=Math.round(W*dpr);ropeCanvas.height=Math.round(240*dpr);
+  ropeCanvas.style.width=W+'px';ropeCanvas.style.height='240px';
+  drawRope();
+}
+function drawRope(){
+  var dpr=window.devicePixelRatio||1;
+  var W=ropeCanvas.width/dpr,H=ropeCanvas.height/dpr;
+  var ctx=ropeCanvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  // Draw a 5×3×3 grid of token cubes (T=5, H=3, W=3) as isometric-ish projection
+  var T=5,Hg=3,Wg=3;
+  var cubeW=Math.min(28,(W-40)/(Wg*T+2));
+  var cubeH=cubeW*0.7;
+  var gapT=cubeW*0.3;
+  var startX=24;var startY=H/2;
+
+  for(var t=0;t<T;t++){
+    for(var h=0;h<Hg;h++){
+      for(var w=0;w<Wg;w++){
+        var cx=startX+t*(Wg*cubeW+gapT)+w*cubeW;
+        var cy=startY+h*cubeH*0.7;
+        var isHL=t===highlightFrame;
+        var phase=(t/T+h/Hg*0.3+w/Wg*0.2);
+        var hue=isHL?200:Math.round(phase*120+200);
+        ctx.fillStyle=isHL?'rgba(107,82,168,.35)':('hsla('+hue+',50%,60%,.18)');
+        ctx.strokeStyle=isHL?'#6B52A8':('hsla('+hue+',50%,45%,.5)');
+        ctx.lineWidth=isHL?1.8:.8;
+        ctx.fillRect(cx,cy,cubeW-2,cubeH-2);
+        ctx.strokeRect(cx,cy,cubeW-2,cubeH-2);
+        // Axes indicators on first cube
+        if(t===0&&h===0&&w===0){
+          ctx.fillStyle='#BF4A24';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='left';
+          ctx.fillText('t',cx,cy-2);
+        }
+      }
+    }
+    // Frame label
+    ctx.fillStyle=t===highlightFrame?'#6B52A8':'#8A95A2';
+    ctx.font=(t===highlightFrame?'700 ':'500 ')+'9px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText('t='+t,startX+t*(Wg*cubeW+gapT)+Wg*cubeW/2-cubeW/2,startY+Hg*cubeH*0.7+12);
+  }
+  // Axis arrows
+  ctx.strokeStyle='#BF4A24';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(startX,H-18);ctx.lineTo(startX+T*(Wg*cubeW+gapT),H-18);ctx.stroke();
+  ctx.fillStyle='#BF4A24';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='center';
+  ctx.fillText('Time axis (T) →',startX+T*(Wg*cubeW+gapT)/2,H-6);
+
+  // Info
+  document.getElementById('ropeInfo').textContent='Token at (t='+highlightFrame+', h=0..2, w=0..2) is highlighted. The Q and K vectors for this token are rotated by angles θ_t='+highlightFrame+', θ_h, θ_w derived from the 3D-RoPE formula. Tokens at nearby (t,h,w) will have similar dot products in attention.';
+}
+window.addEventListener('resize',resizeRope);
+resizeRope();
+
+/* ── AdaLN canvas ── */
+var adalCanvas=document.getElementById('adalCanvas');
+var adalStep=0;
+var ADAL=[
+  {label:'Input x',info:'Input token embeddings x of shape (N, d). N = sequence length (text + video tokens), d = hidden dimension (2048 for CogVideoX-2B).'},
+  {label:'LayerNorm',info:'Standard LayerNorm normalises x to zero mean and unit variance along the d dimension. This removes per-token magnitude variation.'},
+  {label:'Condition → γ,β',info:'The conditioning vector c = concat(timestep_embed, text_pooled) passes through a linear layer to produce scale γ and shift β vectors of dimension d. Different timesteps and prompts produce different γ,β.'},
+  {label:'AdaLN: γ·x + β',info:'The normalised features are rescaled: x_out = γ ⊙ LayerNorm(x) + β. This modulates the feature distribution conditioned on the current denoising state and text prompt — without separate model weights per condition.'},
+  {label:'Attention / FFN',info:'The modulated features pass through multi-head self-attention (with 3D-RoPE Q/K) and the feed-forward network. Then the output is added back to the residual stream.'}
+];
+function resizeAdal(){
+  var dpr=window.devicePixelRatio||1;
+  var W=adalCanvas.parentElement.getBoundingClientRect().width;
+  adalCanvas.width=Math.round(W*dpr);adalCanvas.height=Math.round(220*dpr);
+  adalCanvas.style.width=W+'px';adalCanvas.style.height='220px';
+  drawAdal();
+}
+function drawAdal(){
+  var dpr=window.devicePixelRatio||1;
+  var W=adalCanvas.width/dpr,H=adalCanvas.height/dpr;
+  var ctx=adalCanvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  var N=ADAL.length;
+  var bw=Math.min(100,(W-30)/N);
+  var bh=48;var gap=(W-30-bw*N)/(N-1);var startX=15;var by=H/2-bh/2;
+  ADAL.forEach(function(s,i){
+    var x=startX+i*(bw+gap);
+    var active=i===adalStep;var done=i<adalStep;
+    ctx.fillStyle=active?'rgba(107,82,168,.15)':done?'rgba(107,82,168,.06)':'rgba(230,221,208,.3)';
+    ctx.strokeStyle=active?'#6B52A8':done?'#6B52A888':'#E6DDD0';ctx.lineWidth=active?2.5:1.2;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,6);ctx.fill();ctx.stroke();
+    var words=s.label.split(' ');
+    ctx.fillStyle=active?'#6B52A8':done?'#6B52A8':'#8A95A2';
+    ctx.font=(active?'700 ':'600 ')+'9px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText(words[0],x+bw/2,by+bh/2-(words.length>1?4:0));
+    if(words[1])ctx.fillText(words.slice(1).join(' '),x+bw/2,by+bh/2+9);
+    if(i<N-1){
+      ctx.strokeStyle=done?'#6B52A888':'#E6DDD0';ctx.lineWidth=1.2;
+      var ax=x+bw+2;ctx.beginPath();ctx.moveTo(ax,by+bh/2);ctx.lineTo(ax+gap-6,by+bh/2);ctx.stroke();
+      ctx.fillStyle=done?'#6B52A888':'#E6DDD0';ctx.beginPath();ctx.moveTo(ax+gap-2,by+bh/2);ctx.lineTo(ax+gap-8,by+bh/2-4);ctx.lineTo(ax+gap-8,by+bh/2+4);ctx.closePath();ctx.fill();
+    }
+  });
+  document.getElementById('adalInfo').textContent=ADAL[adalStep].info;
+  document.getElementById('adalLabel').textContent='Step '+(adalStep+1)+' of '+ADAL.length;
+}
+window.adalNext=function(){adalStep=Math.min(ADAL.length-1,adalStep+1);drawAdal();};
+window.adalReset=function(){adalStep=0;drawAdal();};
+window.addEventListener('resize',function(){resizeRope();resizeAdal();});
+resizeAdal();
+})();
+</script>
+</body>
+</html>

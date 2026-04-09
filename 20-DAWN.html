@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DAWN — Diffusion-based Audio-driven Talking Head</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--purple)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--purple);background:var(--purple-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--purple-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--purple)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:580px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:860px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--purple);opacity:.22}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.step{position:relative;padding-left:2.2rem;margin-bottom:2rem}
+.step::before{content:'';position:absolute;left:.45rem;top:2rem;bottom:-1.5rem;width:2px;background:var(--border)}
+.step:last-of-type::before{display:none}
+.step-dot{position:absolute;left:0;top:.35rem;width:1rem;height:1rem;border-radius:50%;border:2px solid var(--purple);background:var(--bg)}
+.step-dot--teal{border-color:var(--teal)}.step-dot--accent{border-color:var(--accent)}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;margin-bottom:.5rem}
+.step p,.step ul{margin-bottom:.75rem}.step ul{padding-left:1.2rem}.step li{margin-bottom:.3rem}
+.eq-box{background:var(--code-bg);border-left:3px solid var(--purple);padding:1rem 1.25rem;margin:1rem 0 1.25rem;border-radius:0 var(--radius-sm) var(--radius-sm) 0;overflow-x:auto;font-size:.9rem}
+.eq-box--teal{border-left-color:var(--teal)}.eq-box--accent{border-left-color:var(--accent)}
+.eq-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:.4rem}
+.mono{font-family:'Fira Code',monospace}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--teal{border-left:4px solid var(--teal)}.callout--purple{border-left:4px solid var(--purple)}.callout--accent{border-left:4px solid var(--accent)}
+.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.callout--teal .callout-title{color:var(--teal)}.callout--purple .callout-title{color:var(--purple)}.callout--accent .callout-title{color:var(--accent)}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--purple{background:var(--purple);color:#fff}.btn--purple:hover{filter:brightness(1.1)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">DAWN Guide</div>
+  <div class="links">
+    <a href="#ch1">01 Architecture</a>
+    <a href="#ch2">02 Noise Injection</a>
+    <a href="#ch3">03 vs SadTalker</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>DAWN — <em>Diffusion for</em><br>Talking-Head Animation</h1>
+  <p class="subtitle">DAWN (Diffusion-based Audio-driven talking head With motioN) removes the 3DMM stage. It directly conditions a latent diffusion model on audio embeddings and a single reference image, generating temporally consistent talking-head videos end-to-end.</p>
+  <div class="pill-row">
+    <span class="pill pill--purple">Latent diffusion</span>
+    <span class="pill pill--teal">Audio conditioning</span>
+    <span class="pill pill--accent">No 3DMM required</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">Architecture Overview</h2></div>
+  <p class="ch-sub">DAWN uses a U-Net-based latent video diffusion model. A reference encoder extracts appearance features from the portrait image. An audio encoder converts audio mel features into conditioning vectors. Both are injected into the U-Net via cross-attention at every block.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">DAWN U-Net Architecture</div>
+    <div class="sim-desc">Click through each major module to see how audio and image conditioning are combined inside the denoising U-Net.</div>
+    <div class="sim-canvas-wrap"><canvas id="archCanvas" style="height:260px"></canvas></div>
+    <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+      <button class="btn btn--purple" onclick="archNext()">Next ›</button>
+      <button class="btn btn--ghost" onclick="archReset()">Reset</button>
+      <span id="archStepLabel" style="font-size:.85rem;font-weight:600;color:var(--purple);padding:.55rem 0">Step 1 of 5</span>
+    </div>
+    <div id="archInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot"></span>
+    <h3>Reference Image Encoder</h3>
+    <p>The single portrait image is encoded by a frozen CLIP ViT-L/14 image encoder + a learnable adapter. This produces appearance tokens r ∈ ℝ^(256×C) that capture identity, hair, lighting, and background. These tokens are used in cross-attention at every U-Net decoder block, allowing the model to "copy" visual details from the reference into each generated frame.</p>
+    <div class="eq-box">
+      <span class="eq-label">Reference encoding</span>
+      <span class="mono">r = ReferenceEncoder(I_ref)  ∈ ℝ^(256×C)</span><br>
+      <span class="mono">cross_attn_out = Attention(Q=z_noisy, K=r, V=r)</span>
+    </div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--teal"></span>
+    <h3>Audio Encoder</h3>
+    <p>DAWN uses a pre-trained wav2vec2 audio encoder (not DeepSpeech2 like SadTalker). wav2vec2 produces contextual speech representations at ~50 Hz. These are projected to the U-Net's hidden dimension and injected via temporal cross-attention — each denoising step attends to the corresponding audio time window.</p>
+    <div class="eq-box eq-box--teal">
+      <span class="eq-label">Audio conditioning</span>
+      <span class="mono">a_t = AudioEncoder(mel_t)  ∈ ℝ^(T_audio×D_a)</span><br>
+      <span class="mono">a_t_proj = Linear(a_t)      ∈ ℝ^(T_audio×C)</span><br>
+      <span class="mono">temporal_attn = Attention(Q=z_t, K=a_proj, V=a_proj)</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">Temporal Noise Injection for Motion</h2></div>
+  <p class="ch-sub">A key DAWN innovation is <em>temporal noise injection</em>: instead of diffusing pure Gaussian noise, DAWN adds structured temporal noise correlated across frames. This forces the model to learn smooth inter-frame transitions and prevents flickering without explicit optical flow or 3DMM constraints.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Temporal Noise Correlation</div>
+    <div class="sim-desc">Adjust the frame correlation strength α. α=0 means independent noise per frame (flickery); α=1 means identical noise (no motion). DAWN uses α≈0.5 to balance temporal coherence and expressiveness.</div>
+    <div class="sim-canvas-wrap"><canvas id="noiseCanvas" style="height:220px"></canvas></div>
+    <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-top:.5rem">
+      <label style="font-size:.82rem;font-weight:600;color:var(--text-2)">α (temporal correlation): <span id="alphaVal">0.5</span></label>
+      <input type="range" id="alphaSlider" min="0" max="100" step="1" value="50" oninput="updateNoise()" style="flex:1;min-width:80px;accent-color:var(--purple)">
+    </div>
+    <div id="noiseInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="step fade-up">
+    <span class="step-dot step-dot--accent"></span>
+    <h3>Correlated Noise Construction</h3>
+    <p>DAWN constructs a shared noise component ε_shared drawn once at the start for all frames, and individual independent noise ε_i per frame. The final noise for frame i is interpolated:</p>
+    <div class="eq-box eq-box--accent">
+      <span class="eq-label">Temporal noise injection (DAWN)</span>
+      <span class="mono">ε_shared ~ N(0, I)  — drawn once for all T frames</span><br>
+      <span class="mono">ε_i ~ N(0, I)       — independent per frame</span><br>
+      <span class="mono">ε̃_i = α·ε_shared + √(1-α²)·ε_i</span><br>
+      <span class="mono">     — keeps same marginal distribution N(0,I)</span><br>
+      <span class="mono">     — α controls frame-to-frame correlation</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">DAWN vs SadTalker Comparison</h2></div>
+  <p class="ch-sub">Both systems animate a portrait from audio, but they take fundamentally different paths. SadTalker uses an explicit 3D intermediate representation; DAWN is fully end-to-end in pixel/latent space with no 3D geometry.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Side-by-Side Architecture](</div>
+    <div class="sim-desc">Click through steps to compare where each system diverges.</div>
+    <div class="sim-canvas-wrap"><canvas id="cmpCanvas" style="height:280px"></canvas></div>
+    <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+      <button class="btn btn--purple" onclick="cmpNext()">Next ›</button>
+      <button class="btn btn--ghost" onclick="cmpReset()">Reset</button>
+      <span id="cmpStepLabel" style="font-size:.85rem;font-weight:600;color:var(--purple);padding:.55rem 0">Step 1 of 4</span>
+    </div>
+    <div id="cmpInfo" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65"></div>
+  </div>
+
+  <div class="callout callout--purple fade-up">
+    <div class="callout-title">When to use DAWN vs SadTalker</div>
+    <strong>SadTalker</strong>: better identity preservation for lip-sync accuracy; the 3DMM stage explicitly models jaw/lip geometry so phoneme→viseme control is more precise. <strong>DAWN</strong>: more photo-realistic background and hair consistency since it stays in pixel/latent space; better for natural head motion diversity and generating from arbitrary-angle portraits. In the course pipeline, SadTalker is used for production lip-sync (App 27) because of better phoneme control.
+  </div>
+</div>
+</section>
+
+<footer class="footer">DAWN Interactive Guide · Ma et al., 2024</footer>
+
+<script>
+(function(){
+'use strict';
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ─── Architecture canvas ─── */
+var archCanvas=document.getElementById('archCanvas');
+var archStep=0;
+var ARCH=[
+  {label:'Step 1 — Input portrait + audio',
+   info:'Input: a single portrait image I_ref (any resolution, automatically resized to 512×512) and an audio clip of arbitrary length. No 3D prior, no landmark fitting required.'},
+  {label:'Step 2 — Reference encoder (CLIP ViT)',
+   info:'I_ref is encoded by CLIP ViT-L/14 + a learnable adapter network. This produces 256 spatial tokens r ∈ ℝ^(256×C) capturing appearance details (identity, hair, background, lighting).'},
+  {label:'Step 3 — Audio encoder (wav2vec2)',
+   info:'Audio is encoded by a pre-trained wav2vec2 model at ~50Hz. The contextual speech representations are projected to the U-Net hidden dimension C, giving T_audio × C audio conditioning tokens.'},
+  {label:'Step 4 — Latent diffusion U-Net',
+   info:'A 3D U-Net (with temporal self-attention blocks added after each spatial attention block) denoises a sequence of T latent frames. Conditioning: reference tokens via spatial cross-attention; audio tokens via temporal cross-attention.'},
+  {label:'Step 5 — VAE decode → video frames',
+   info:'The predicted clean latent frames are decoded by the standard SD VAE to produce 512×512 video frames. Output: T frames at 25fps, identity-consistent with the portrait, lip-sync aligned with audio.'}
+];
+window.archNext=function(){if(archStep<ARCH.length-1)archStep++;drawArch();};
+window.archReset=function(){archStep=0;drawArch();};
+function drawArch(){
+  document.getElementById('archStepLabel').textContent='Step '+(archStep+1)+' of '+ARCH.length;
+  document.getElementById('archInfo').textContent=ARCH[archStep].info;
+  var dpr=window.devicePixelRatio||1;var W=archCanvas.width/dpr,H=archCanvas.height/dpr;
+  var ctx=archCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var N=ARCH.length;var bw=Math.min(100,(W-30)/N-6);var bh=60;var gap=Math.max(6,(W-30-bw*N)/(N-1));
+  var sx=(W-(bw*N+gap*(N-1)))/2;var by=(H-bh)/2;
+  ARCH.forEach(function(a,i){
+    var x=sx+i*(bw+gap);var act=i===archStep;var done=i<archStep;
+    ctx.fillStyle=act?'rgba(107,82,168,.18)':done?'rgba(107,82,168,.08)':'rgba(230,221,208,.35)';
+    ctx.strokeStyle=act?'#6B52A8':done?'rgba(107,82,168,.5)':'#E6DDD0';ctx.lineWidth=act?2.5:1.2;
+    ctx.beginPath();ctx.roundRect(x,by,bw,bh,8);ctx.fill();ctx.stroke();
+    ctx.fillStyle=act?'#6B52A8':done?'rgba(107,82,168,.55)':'#5A6878';
+    ctx.font=(act?'700 ':'500 ')+'9px DM Sans,sans-serif';ctx.textAlign='center';
+    var words=a.label.replace('Step '+''+(i+1)+' — ','').split(' ');
+    var lines=[''];words.forEach(function(w){if((lines[lines.length-1]+' '+w).length>14){lines.push(w);}else{lines[lines.length-1]+=(lines[lines.length-1]?' ':'')+w;}});
+    lines.slice(0,3).forEach(function(l,j){ctx.fillText(l,x+bw/2,by+14+j*13+(bh-14*Math.min(lines.length,3))/2);});
+    if(i<N-1){ctx.strokeStyle=done?'rgba(107,82,168,.4)':'rgba(230,221,208,.7)';ctx.lineWidth=1.5;
+      var ax=x+bw+1;ctx.beginPath();ctx.moveTo(ax+1,by+bh/2);ctx.lineTo(ax+gap-2,by+bh/2);ctx.stroke();}
+  });
+}
+function resizeArch(){var dpr=window.devicePixelRatio||1;var W=archCanvas.parentElement.getBoundingClientRect().width;archCanvas.width=Math.round(W*dpr);archCanvas.height=Math.round(260*dpr);archCanvas.style.width=W+'px';archCanvas.style.height='260px';drawArch();}
+
+/* ─── Noise canvas ─── */
+var noiseCanvas=document.getElementById('noiseCanvas');
+var noiseRaf=null;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};}
+window.updateNoise=function(){
+  var v=parseInt(document.getElementById('alphaSlider').value)/100;
+  document.getElementById('alphaVal').textContent=v.toFixed(2);drawNoise();
+  document.getElementById('noiseInfo').textContent='α='+v.toFixed(2)+': '+
+    (v<0.15?'Near-independent noise per frame — model generates vivid motion but may produce temporal flickering between frames.'
+    :v<0.5?'Low correlation — good motion diversity with mild coherence.'
+    :v<0.85?'Moderate correlation (DAWN default ~0.5) — natural, smooth motion with good temporal consistency.'
+    :'High frame correlation — very stable output but reduced motion range; head may barely move.');
+};
+function drawNoise(){
+  var alpha=parseInt(document.getElementById('alphaSlider').value)/100;
+  var dpr=window.devicePixelRatio||1;var W=noiseCanvas.width/dpr,H=noiseCanvas.height/dpr;
+  var ctx=noiseCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var T=14;var bh=30;var bw=Math.floor((W-30)/(T));var topY=18;
+  var rngS=mulberry32(1234);var rngI=mulberry32(5678);
+  var sharedN=[];for(var d=0;d<8;d++)sharedN.push(rngS()-.5);
+  ctx.fillStyle='#8A95A2';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='left';
+  ctx.fillText('Frame noise patterns (α='+alpha.toFixed(2)+')',16,topY-4);
+  for(var i=0;i<T;i++){
+    var rngF=mulberry32(i*997+13);
+    var x=15+i*bw;
+    for(var d2=0;d2<8;d2++){
+      var eps_i=rngF()-.5;var eps_shared=sharedN[d2];
+      var combined=alpha*eps_shared+Math.sqrt(1-alpha*alpha)*eps_i;
+      var v=Math.max(0,Math.min(1,(combined+0.5)*0.9));
+      ctx.fillStyle='rgba(107,82,168,'+v.toFixed(2)+')';ctx.fillRect(x,topY+d2*(bh/8),bw-1,bh/8-0.5);
+    }
+    ctx.fillStyle='#8A95A2';ctx.font='500 8px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText(i+1,x+bw/2,topY+bh+10);
+  }
+  ctx.fillStyle='#8A95A2';ctx.font='600 9px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('frames →',W/2,topY+bh+24);
+  // Signal line showing correlation
+  ctx.strokeStyle='rgba(191,74,36,.7)';ctx.lineWidth=2;ctx.beginPath();
+  var baseY=topY+bh+45;var rngLine=mulberry32(9999);var sharedV=rngLine()-.5;
+  for(var fi=0;fi<T;fi++){var rngLF=mulberry32(fi*887);var eps_fi=rngLF()-.5;var comb=alpha*sharedV+Math.sqrt(1-alpha*alpha)*eps_fi;var lx=15+fi*bw+bw/2;var ly=baseY-comb*22;fi===0?ctx.moveTo(lx,ly):ctx.lineTo(lx,ly);}ctx.stroke();
+  ctx.strokeStyle='rgba(26,123,107,.35)';ctx.lineWidth=1;ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(15,baseY);ctx.lineTo(W-15,baseY);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#8A95A2';ctx.font='500 9px DM Sans,sans-serif';ctx.textAlign='left';ctx.fillText('sample motion signal across frames',16,baseY+H-baseY-4);
+}
+function resizeNoise(){var dpr=window.devicePixelRatio||1;var W=noiseCanvas.parentElement.getBoundingClientRect().width;noiseCanvas.width=Math.round(W*dpr);noiseCanvas.height=Math.round(220*dpr);noiseCanvas.style.width=W+'px';noiseCanvas.style.height='220px';drawNoise();}
+
+/* ─── Comparison canvas ─── */
+var cmpCanvas=document.getElementById('cmpCanvas');
+var cmpStep=0;
+var CMP=[
+  {label:'Same input for both',
+   info:'Both SadTalker and DAWN start with the same two inputs: a single portrait photograph and an audio clip. No video required.'},
+  {label:'SadTalker: 3DMM fitting stage',
+   info:'SadTalker fits a 3DMM (BFM) to the portrait image to extract identity coefficients α ∈ ℝ⁸⁰. DAWN skips this entirely — it uses CLIP features instead. The 3DMM stage takes ~2 seconds per image but enables precise geometric control.'},
+  {label:'Audio encoding approaches differ',
+   info:'SadTalker: DeepSpeech2 features (29-dim, ASR model). DAWN: wav2vec2 (768-dim contextual speech features). wav2vec2 captures more linguistic context; DeepSpeech2 is lighter and tuned to phoneme probabilities.'},
+  {label:'Generation mechanism',
+   info:'SadTalker: deterministic motion coefficients → 2D keypoint flow → FaceVid2Vid warp. DAWN: stochastic diffusion denoising × T diffusion steps in latent space → VAE decode. DAWN is slower to generate but produces more photorealistic results.'}
+];
+window.cmpNext=function(){if(cmpStep<CMP.length-1)cmpStep++;drawCmp();};
+window.cmpReset=function(){cmpStep=0;drawCmp();};
+function drawCmp(){
+  document.getElementById('cmpStepLabel').textContent='Step '+(cmpStep+1)+' of '+CMP.length;
+  document.getElementById('cmpInfo').textContent=CMP[cmpStep].info;
+  var dpr=window.devicePixelRatio||1;var W=cmpCanvas.width/dpr,H=cmpCanvas.height/dpr;
+  var ctx=cmpCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var col=W/2-12;var pad=16;var bh=48;var labels=[['Portrait+Audio','Portrait+Audio'],['3DMM fit\n(BFM α)','CLIP encode\n(r tokens)'],['DeepSpeech2\nfeatures','wav2vec2\nfeatures'],['3DMM coeff\n→ keyflow','Latent diffusion\nU-Net']];
+  var row=labels[Math.min(cmpStep,labels.length-1)];
+  var ys=[H*.15,H*.35,H*.55,H*.75];
+  for(var s=0;s<=cmpStep;s++){
+    var connected=s>0;
+    if(connected){
+      if(s===1||cmpStep===0){ctx.strokeStyle='rgba(230,221,208,.7)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(pad+col/2,ys[s-1]+32);ctx.lineTo(pad+col/2,ys[s]-4);ctx.stroke();ctx.beginPath();ctx.moveTo(pad+col*1.5+24,ys[s-1]+32);ctx.lineTo(pad+col*1.5+24,ys[s]-4);ctx.stroke();}
+      else{ctx.strokeStyle='rgba(230,221,208,.7)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(pad+col/2,ys[s-1]+32);ctx.lineTo(pad+col/2,ys[s]-4);ctx.stroke();ctx.beginPath();ctx.moveTo(pad+col*1.5+24,ys[s-1]+32);ctx.lineTo(pad+col*1.5+24,ys[s]-4);ctx.stroke();}
+    }
+    var r=labels[s];var isDiv=s>0;
+    if(isDiv){
+      // Left (SadTalker)
+      ctx.fillStyle=s===cmpStep?'rgba(191,74,36,.14)':'rgba(230,221,208,.25)';ctx.strokeStyle=s===cmpStep?'#BF4A24':'rgba(230,221,208,.7)';ctx.lineWidth=s===cmpStep?2:1;
+      ctx.beginPath();ctx.roundRect(pad,ys[s]-4,col,bh,6);ctx.fill();ctx.stroke();
+      ctx.fillStyle=s===cmpStep?'#BF4A24':'#5A6878';ctx.font=(s===cmpStep?'700':'500')+' 9px DM Sans,sans-serif';ctx.textAlign='center';
+      r[0].split('\n').forEach(function(t,j){ctx.fillText(t,pad+col/2,ys[s]+12+j*13);});
+      ctx.fillStyle='rgba(191,74,36,.7)';ctx.font='600 8px DM Sans,sans-serif';ctx.fillText('SadTalker',pad+col/2,ys[s]-8);
+      // Right (DAWN)
+      ctx.fillStyle=s===cmpStep?'rgba(107,82,168,.14)':'rgba(230,221,208,.25)';ctx.strokeStyle=s===cmpStep?'#6B52A8':'rgba(230,221,208,.7)';ctx.lineWidth=s===cmpStep?2:1;
+      ctx.beginPath();ctx.roundRect(pad+col+24,ys[s]-4,col,bh,6);ctx.fill();ctx.stroke();
+      ctx.fillStyle=s===cmpStep?'#6B52A8':'#5A6878';ctx.font=(s===cmpStep?'700':'500')+' 9px DM Sans,sans-serif';ctx.textAlign='center';
+      r[1].split('\n').forEach(function(t,j){ctx.fillText(t,pad+col+24+col/2,ys[s]+12+j*13);});
+      ctx.fillStyle='rgba(107,82,168,.7)';ctx.font='600 8px DM Sans,sans-serif';ctx.fillText('DAWN',pad+col+24+col/2,ys[s]-8);
+    } else {
+      ctx.fillStyle='rgba(26,123,107,.14)';ctx.strokeStyle='#1A7B6B';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.roundRect(pad*2,ys[s]-4,W-pad*4,bh,6);ctx.fill();ctx.stroke();
+      ctx.fillStyle='#1A7B6B';ctx.font='700 10px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText(r[0],W/2,ys[s]+20);
+    }
+  }
+}
+function resizeCmp(){var dpr=window.devicePixelRatio||1;var W=cmpCanvas.parentElement.getBoundingClientRect().width;cmpCanvas.width=Math.round(W*dpr);cmpCanvas.height=Math.round(280*dpr);cmpCanvas.style.width=W+'px';cmpCanvas.style.height='280px';drawCmp();}
+
+window.addEventListener('resize',function(){resizeArch();resizeNoise();resizeCmp();});
+resizeArch();resizeNoise();resizeCmp();
+document.getElementById('alphaVal').textContent='0.50';drawNoise();
+document.getElementById('noiseInfo').textContent='α=0.50: Moderate correlation (DAWN default ~0.5) — natural, smooth motion with good temporal consistency.';
+})();
+</script>
+</body>
+</html>

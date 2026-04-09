@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course Dependency Graph — All 28 Apps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF6EE;--bg-alt:#F3EDE2;--surface:#FFFFFF;--text:#1C2A38;--text-2:#5A6878;--text-3:#8A95A2;--accent:#BF4A24;--accent-glow:rgba(191,74,36,.12);--teal:#1A7B6B;--teal-glow:rgba(26,123,107,.12);--purple:#6B52A8;--purple-glow:rgba(107,82,168,.10);--border:#E6DDD0;--code-bg:#F5EEE3;--shadow:0 2px 20px rgba(28,42,56,.06);--shadow-lg:0 8px 40px rgba(28,42,56,.10);--radius:12px;--radius-sm:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 1.5rem;display:flex;align-items:center;height:52px;background:rgba(250,246,238,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.1rem;color:var(--accent)}
+.topnav .links{display:flex;gap:.25rem;margin-left:auto}
+.topnav .links a{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:.35rem .75rem;border-radius:6px;transition:all .2s}
+.topnav .links a:hover,.topnav .links a.active{color:var(--accent);background:var(--accent-glow)}
+.hero{padding:7rem 1.5rem 4rem;text-align:center;background:radial-gradient(ellipse 80% 50% at 50% 0%,var(--accent-glow),transparent),var(--bg)}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:700;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero .subtitle{font-size:1.05rem;color:var(--text-2);max-width:580px;margin:0 auto 1.75rem}
+.pill-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:.4rem .9rem;border-radius:20px;text-transform:uppercase}
+.pill--accent{background:var(--accent-glow);color:var(--accent)}.pill--teal{background:var(--teal-glow);color:var(--teal)}.pill--purple{background:var(--purple-glow);color:var(--purple)}
+.container{max-width:900px;margin:0 auto;padding:0 1.5rem}
+.chapter{padding:4rem 0 2rem;border-top:1px solid var(--border)}
+.chapter-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap}
+.ch-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:700;line-height:1;color:var(--accent);opacity:.22}
+.ch-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.ch-sub{font-size:.95rem;color:var(--text-2);margin-bottom:2.5rem;line-height:1.6}
+.sim-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:2rem 0;box-shadow:var(--shadow-lg)}
+.sim-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;margin-bottom:.25rem}
+.sim-desc{font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.sim-canvas-wrap{position:relative;width:100%;background:var(--bg-alt);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem}
+.sim-canvas-wrap canvas{display:block;width:100%}
+.btn{font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;font-family:'DM Sans',sans-serif}
+.btn--accent{background:var(--accent);color:#fff}.btn--accent:hover{filter:brightness(1.1)}
+.btn--ghost{background:var(--code-bg);color:var(--text-2);border:1px solid var(--border)}.btn--ghost:hover{background:var(--border)}
+.callout{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1.5rem 0;box-shadow:var(--shadow)}
+.callout--accent{border-left:4px solid var(--accent)}.callout-title{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}.callout--accent .callout-title{color:var(--accent)}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:3rem 1.5rem;color:var(--text-3);font-size:.82rem;border-top:1px solid var(--border);margin-top:2rem}
+@media(max-width:640px){.topnav{padding:0 1rem}.hero{padding:6rem 1rem 3rem}.container{padding:0 1rem}.sim-wrap{padding:1rem}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="logo">Course Dependency Graph</div>
+  <div class="links">
+    <a href="#ch1">01 Graph</a>
+    <a href="#ch2">02 Search</a>
+    <a href="#ch3">03 Legend</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>All 28 Apps —<br><em>Dependency Graph</em></h1>
+  <p class="subtitle">Every interactive app in this course builds on concepts from earlier apps. Click any node to highlight its upstream prerequisites and downstream dependents across the entire knowledge graph.</p>
+  <div class="pill-row">
+    <span class="pill pill--accent">28 concept nodes</span>
+    <span class="pill pill--teal">Prerequisite edges</span>
+    <span class="pill pill--purple">Layer topology</span>
+  </div>
+</header>
+<div style="height:4rem"></div>
+
+<!-- ═══ CH 1 ═══ -->
+<section id="ch1" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">01</span><h2 class="ch-title">Interactive Dependency Graph</h2></div>
+  <p class="ch-sub">Nodes are arranged in 6 conceptual layers: foundations → probability → diffusion → representations → faces/audio → full pipeline. Click any node to reveal its connections. Double-click to reset.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">28-Node Course Map</div>
+    <div class="sim-desc">Click a node to see prerequisites (upstream) and dependents (downstream). Double-click to reset. Drag is not available — axes are fixed by layer.</div>
+    <div class="sim-canvas-wrap"><canvas id="graphCvs" style="height:480px"></canvas></div>
+    <div id="graphInfo" style="padding:.75rem 1rem;background:var(--bg-alt);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.65;min-height:60px">Click a node above.</div>
+  </div>
+
+  <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.5rem">
+    <button class="btn btn--ghost" onclick="setLayer('all')">Show All</button>
+    <button class="btn btn--ghost" onclick="setLayer(0)">Foundation</button>
+    <button class="btn btn--ghost" onclick="setLayer(1)">Probability</button>
+    <button class="btn btn--ghost" onclick="setLayer(2)">Diffusion</button>
+    <button class="btn btn--ghost" onclick="setLayer(3)">Representation</button>
+    <button class="btn btn--ghost" onclick="setLayer(4)">Face/Audio</button>
+    <button class="btn btn--ghost" onclick="setLayer(5)">Pipeline</button>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 2 ═══ -->
+<section id="ch2" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">02</span><h2 class="ch-title">App Finder</h2></div>
+  <p class="ch-sub">Search by name or topic to jump to an app and highlight it on the graph.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Search all 28 apps</div>
+    <input id="searchIn" type="text" placeholder="e.g. DDPM, viseme, MFA, EchoMimic…"
+      style="width:100%;padding:.65rem 1rem;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.9rem;background:var(--bg-alt);color:var(--text);margin-bottom:.75rem"
+      oninput="doSearch()">
+    <div id="searchResults" style="font-size:.88rem;line-height:1.7;color:var(--text-2);min-height:40px"></div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ CH 3 ═══ -->
+<section id="ch3" class="chapter">
+<div class="container">
+  <div class="chapter-head"><span class="ch-num">03</span><h2 class="ch-title">Layer Legend</h2></div>
+  <p class="ch-sub">The six conceptual layers of the course, from mathematical foundations up to the full production pipeline.</p>
+
+  <div class="sim-wrap fade-up">
+    <div class="sim-title">Layer Definitions</div>
+    <div class="sim-canvas-wrap"><canvas id="legendCvs" style="height:200px"></canvas></div>
+  </div>
+
+  <div class="callout callout--accent fade-up">
+    <div class="callout-title">Design Philosophy</div>
+    Each app is self-contained but intellectually dependent on earlier concepts. A student who understands Apps 01-05 (foundations + diffusion mathematics) will grasp Apps 15-18 (video diffusion) much more readily. The dependency graph makes these pre-requisite chains explicit, allowing students to identify gaps in their understanding before attempting later apps.
+  </div>
+</div>
+</section>
+
+<footer class="footer">Course Dependency Graph — 28 Interactive Apps</footer>
+
+<script>
+(function(){
+'use strict';
+
+var io=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');io.unobserve(x.target);}});},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(function(el){io.observe(el);});
+var nl=document.querySelectorAll('.topnav .links a');
+var secs=['ch1','ch2','ch3'].map(function(i){return document.getElementById(i);});
+function un(){var y=window.scrollY+80;var c=0;secs.forEach(function(s,i){if(s&&s.offsetTop<=y)c=i;});nl.forEach(function(a,i){a.classList.toggle('active',i===c);});}
+window.addEventListener('scroll',un,{passive:true});un();
+
+/* ─── Node data (28 apps) ─── */
+var LAYER_NAMES=['Foundation','Probability','Diffusion','Representation','Face/Audio','Pipeline'];
+var LAYER_COLORS=['#5A6878','#BF4A24','#1A7B6B','#6B52A8','#2A6A8A','#8A6B2A'];
+var NODES=[
+  // Layer 0: Foundation (apps 01-05)
+  {id:0,n:'01 Neural\nNets Intro',layer:0,tags:'neural net deep learning',desc:'App 01: Foundations of neural networks. Dense layers, activation functions, backpropagation. Prerequisite for everything.'},
+  {id:1,n:'02 Conv\nNets',layer:0,tags:'conv cnn convolutional',desc:'App 02: CNNs, feature maps, receptive fields. Foundation for all image/video processing modules.'},
+  {id:2,n:'03 Attention\nTrans.',layer:0,tags:'attention transformer self-attention',desc:'App 03: Self-attention mechanism and Transformer architecture. Foundation for Whisper, U-Net cross-attention, and AnimateDiff.'},
+  {id:3,n:'04 VAE',layer:0,tags:'vae variational autoencoder latent',desc:'App 04: Variational Autoencoder. Encoder-decoder + KL divergence. Direct prerequisite for Temporal VAE (App 09) and LDM latent space.'},
+  {id:4,n:'05 Sampling\nBasics',layer:0,tags:'sampling rng probability basics',desc:'App 05: Probability and sampling foundations. Gaussian distributions, reparameterisation trick. Prerequisite for DDPM.'},
+  // Layer 1: Probability / score matching (apps 06-08)
+  {id:5,n:'06 DDPM',layer:1,tags:'ddpm diffusion noise score',desc:'App 06: Denoising Diffusion Probabilistic Models. Forward/reverse Markov chain, ε-prediction. Central to all generative modules.'},
+  {id:6,n:'07 Score\nMatching',layer:1,tags:'score matching denoise',desc:'App 07: Noise-conditional score matching. Langevin MCMC, NCSN. Theoretical foundation for DDPM.'},
+  {id:7,n:'08 DDIM\nSchedule',layer:1,tags:'ddim scheduler non-markov',desc:'App 08: DDIM deterministic sampling. Reduced-step inference (20→6 steps). Practical prerequisite for fast rendering in EchoMimic.'},
+  // Layer 2: Diffusion architectures (apps 09-13)
+  {id:8,n:'09 Temporal\nVAE',layer:2,tags:'temporal vae video latent',desc:'App 09: Temporal VAE for video. Causal 3D conv encoder. Foundation for AnimateDiff and EchoMimic latent video compression.'},
+  {id:9,n:'10 U-Net\nArch',layer:2,tags:'unet architecture skip connection',desc:'App 10: U-Net with skip connections. ResBlock + CrossAttention backbone. Direct parent of AnimateDiff and EchoMimic U-Net.'},
+  {id:10,n:'11 Text→\nImage LDM',layer:2,tags:'ldm latent diffusion stable diffusion text',desc:'App 11: Latent Diffusion Models (Stable Diffusion). CLIP text conditioning. Prerequisite for EchoMimic (which adds audio conditioning).'},
+  {id:11,n:'12 Control\nNet',layer:2,tags:'controlnet conditioning',desc:'App 12: ControlNet zero-convolution adapter. Prerequisite for EchoMimic landmark conditioning (App 21).'},
+  {id:12,n:'13 Anim\nDiff',layer:2,tags:'animatediff motion module temporal attention',desc:'App 13: AnimateDiff temporal motion modules. Inserts motion attention after U-Net spatial layers. Direct parent of EchoMimic.'},
+  // Layer 3: Representations / video (apps 14-17)
+  {id:13,n:'14 CLIP',layer:3,tags:'clip image text embedding',desc:'App 14: CLIP contrastive vision-language pre-training. Image encoder used in LDM + EchoMimic ReferenceNet.'},
+  {id:14,n:'15 CogVideo\nX',layer:3,tags:'cogvideo video generation',desc:'App 15: CogVideoX video diffusion with 3D causal attention. Sibling architecture to EchoMimic.'},
+  {id:15,n:'16 SMPL\nBody',layer:3,tags:'smpl body shape pose',desc:'App 16: SMPL parametric body. Shape + pose coefficients, joint regressor. Parent of SMPL-X and SadTalker FLAME.'},
+  {id:16,n:'17 SMPL-X\nFace+Body',layer:3,tags:'smplx body face hands flame',desc:'App 17: SMPL-X unified model (body + hand + face FLAME). Prerequisite for SadTalker 3DMM head model.'},
+  // Layer 4: Face/audio (apps 18-26)
+  {id:17,n:'18 MediaPipe\nFace',layer:4,tags:'mediapipe face landmark 478',desc:'App 18: MediaPipe FaceMesh 478 landmarks. Used for face crop/align in SadTalker and DAWN, and as optional conditioning in EchoMimic.'},
+  {id:18,n:'19 SadTalker',layer:4,tags:'sadtalker talking head 3dmm',desc:'App 19: SadTalker audio-to-3DMM motion generation. First speech-driven face renderer covered.'},
+  {id:19,n:'20 DAWN',layer:4,tags:'dawn flow warp talking head',desc:'App 20: DAWN flow-based talking head. Alternative to SadTalker without 3DMM stage.'},
+  {id:20,n:'21 EchoMimic',layer:4,tags:'echomimic animatediff wav2vec audio portrait',desc:'App 21: EchoMimic AnimateDiff + wav2vec2 audio conditioning. Main portrait animation model.'},
+  {id:21,n:'22 Whisper\nASR',layer:4,tags:'whisper asr speech recognition transcript',desc:'App 22: Whisper ASR. Mel spectrogram → encoder-decoder → word timestamps. Step 1 of lip-sync pipeline.'},
+  {id:22,n:'23 MFA\nAlign',layer:4,tags:'mfa montreal forced aligner phoneme textgrid',desc:'App 23: Montreal Forced Aligner. Phoneme-level timestamps from word timestamps + audio. Step 2 of pipeline.'},
+  {id:23,n:'24 Phoneme\n→Viseme',layer:4,tags:'phoneme viseme arpabet coarticulation',desc:'App 24: ARPAbet → 15 viseme classes with coarticulation blending. Step 3 of pipeline.'},
+  {id:24,n:'25 Viseme\n→BS',layer:4,tags:'viseme blendshape arkit 52 sparse matrix',desc:'App 25: Viseme → ARKit 52 blendshape sparse matrix lookup. Step 4 of pipeline.'},
+  {id:25,n:'26 Temporal\nSmooth',layer:4,tags:'temporal smoothing gaussian savitzky-golay one-euro filter',desc:'App 26: Temporal smoothing filters (Gaussian, S-G, One-Euro). Step 5 of pipeline.'},
+  // Layer 5: Pipeline (apps 27-28)
+  {id:26,n:'27 Full\nPipeline',layer:5,tags:'full pipeline end-to-end lip sync',desc:'App 27: Full 8-module end-to-end lip sync pipeline. Data contracts + latency budget.'},
+  {id:27,n:'28 Dep.\nGraph',layer:5,tags:'dependency graph all apps knowledge map',desc:'App 28: This course dependency graph. Integrates all 28 concept nodes.'}
+];
+
+/* Edges (from → to, i.e. prerequisite→dependent) */
+var EDGES=[
+  [0,1],[0,2],[0,3],[0,4],[0,5],[0,9],
+  [1,9],[1,10],[1,13],
+  [2,10],[2,12],[2,20],[2,21],
+  [3,8],[3,10],
+  [4,5],[4,6],
+  [5,7],[5,8],[5,9],[5,10],[5,11],[5,12],
+  [6,5],
+  [7,12],[7,20],
+  [8,12],[8,20],
+  [9,10],[9,11],[9,12],[9,20],
+  [10,11],[10,12],[10,14],[10,20],
+  [11,12],[11,20],
+  [12,20],
+  [13,10],[13,20],
+  [14,26],
+  [15,16],
+  [16,17],[16,18],
+  [17,18],[17,19],[17,20],
+  [18,26],[19,26],[20,26],
+  [21,22],
+  [22,23],
+  [23,24],
+  [24,25],
+  [25,26],
+  [26,27]
+];
+
+var activeNode=-1;var filterLayer=-1;
+var graphCvs=document.getElementById('graphCvs');
+
+/* Compute positions */
+function computeLayout(W,H){
+  var layers=[0,1,2,3,4,5];var layerNodes={};
+  layers.forEach(function(l){layerNodes[l]=NODES.filter(function(n){return n.layer===l;});});
+  var lx=function(l){return 30+(W-60)*l/5;};
+  NODES.forEach(function(n){
+    var ln=layerNodes[n.layer];var ni=ln.indexOf(n);var total=ln.length;
+    var colW=Math.min(60,(H-40)/(total+1));
+    n.x=lx(n.layer);n.y=40+(H-80)*(ni+.5)/total;
+  });
+}
+
+function resizeGraph(){var dpr=window.devicePixelRatio||1;var W=graphCvs.parentElement.getBoundingClientRect().width;graphCvs.width=Math.round(W*dpr);graphCvs.height=Math.round(480*dpr);graphCvs.style.width=W+'px';graphCvs.style.height='480px';computeLayout(W,480);drawGraph();}
+
+function drawGraph(){
+  var dpr=window.devicePixelRatio||1;var W=graphCvs.width/dpr,H=graphCvs.height/dpr;
+  var ctx=graphCvs.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  // Build adjacency
+  var upstream={};var downstream={};NODES.forEach(function(n){upstream[n.id]=[];downstream[n.id]=[];});
+  EDGES.forEach(function(e){downstream[e[0]].push(e[1]);upstream[e[1]].push(e[0]);});
+  var allUp=[],allDown=[];
+  if(activeNode>=0){
+    // BFS up
+    var q=[activeNode];var visited={};visited[activeNode]=1;
+    while(q.length){var cur=q.shift();upstream[cur].forEach(function(u){if(!visited[u]){visited[u]=1;allUp.push(u);q.push(u);}});}
+    // BFS down
+    q=[activeNode];visited={};visited[activeNode]=1;
+    while(q.length){var cur=q.shift();downstream[cur].forEach(function(d){if(!visited[d]){visited[d]=1;allDown.push(d);q.push(d);}});}
+  }
+  // Draw layer columns
+  var LCOLS=LAYER_COLORS;
+  var lx=function(l){return 30+(W-60)*l/5;};
+  for(var l=0;l<6;l++){var x=lx(l);ctx.strokeStyle=LCOLS[l]+'28';ctx.lineWidth=1;ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(x,20);ctx.lineTo(x,H-20);ctx.stroke();ctx.fillStyle=LCOLS[l];ctx.font='600 8px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText(LAYER_NAMES[l],x,14);}
+  // Draw edges
+  EDGES.forEach(function(e){
+    if(filterLayer>=0){var src=NODES[e[0]];var dst=NODES[e[1]];if(src.layer!==filterLayer&&dst.layer!==filterLayer)return;}
+    var src=NODES[e[0]];var dst=NODES[e[1]];
+    var isActive=false;if(activeNode>=0){isActive=(e[0]===activeNode||e[1]===activeNode)||(allUp.indexOf(e[0])>=0&&(e[1]===activeNode||allDown.indexOf(e[1])>=0))||(allDown.indexOf(e[1])>=0&&(e[0]===activeNode||allUp.indexOf(e[0])>=0));}
+    ctx.strokeStyle=isActive?LCOLS[src.layer]:'rgba(200,192,180,.3)';ctx.lineWidth=isActive?1.8:.7;ctx.setLineDash(isActive?[]:[2,3]);
+    ctx.beginPath();ctx.moveTo(src.x,src.y);
+    var cx=(src.x+dst.x)/2;ctx.bezierCurveTo(cx,src.y,cx,dst.y,dst.x,dst.y);ctx.stroke();ctx.setLineDash([]);
+    // Arrowhead
+    if(isActive){var dx2=dst.x-cx,dy2=dst.y-dst.y;var ang=Math.atan2(dst.y-(src.y+dst.y)/2,dst.x-cx);ctx.fillStyle=LCOLS[src.layer];ctx.save();ctx.translate(dst.x-4,dst.y);ctx.rotate(ang);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-6,-3);ctx.lineTo(-6,3);ctx.closePath();ctx.fill();ctx.restore();}
+  });
+  // Draw nodes
+  NODES.forEach(function(n){
+    if(filterLayer>=0&&n.layer!==filterLayer)return;
+    var r=18;var isActive=n.id===activeNode;var isUp=allUp.indexOf(n.id)>=0;var isDn=allDown.indexOf(n.id)>=0;var col=LAYER_COLORS[n.layer];
+    var alpha=activeNode>=0?(isActive||isUp||isDn?1:.2):1;
+    ctx.globalAlpha=alpha;
+    ctx.fillStyle=isActive?col:isUp?col+'44':isDn?col+'44':col+'22';
+    ctx.strokeStyle=isActive?col:isUp?col:isDn?col+'88':col+'44';
+    ctx.lineWidth=isActive?2.5:1.2;
+    ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.fillStyle=isActive?'#FFF':(isUp||isDn)?col:col+'99';ctx.font=(isActive?'700 ':'600 ')+'7px DM Sans,sans-serif';ctx.textAlign='center';
+    var lines=n.n.split('\n');lines.forEach(function(l,li){ctx.fillText(l,n.x,n.y+(li-(lines.length-1)/2)*9.5);});
+    ctx.globalAlpha=1;
+  });
+}
+
+graphCvs.addEventListener('click',function(e){
+  var dpr=window.devicePixelRatio||1;var W=graphCvs.width/dpr,H=graphCvs.height/dpr;
+  var rect=graphCvs.getBoundingClientRect();var mx=(e.clientX-rect.left)*(W/rect.width);var my=(e.clientY-rect.top)*(H/rect.height);
+  var found=-1;NODES.forEach(function(n){if(Math.hypot(mx-n.x,my-n.y)<20)found=n.id;});
+  if(found>=0){activeNode=found;drawGraph();document.getElementById('graphInfo').textContent=NODES[found].desc;}
+});
+graphCvs.addEventListener('dblclick',function(){activeNode=-1;drawGraph();document.getElementById('graphInfo').textContent='Double-click anywhere to reset selection.';});
+
+window.setLayer=function(l){filterLayer=l==='all'?-1:l;drawGraph();};
+
+/* ─── Search ─── */
+window.doSearch=function(){
+  var q=document.getElementById('searchIn').value.toLowerCase().trim();
+  var res=document.getElementById('searchResults');if(!q){res.textContent='';return;}
+  var matches=NODES.filter(function(n){return(n.n+' '+n.tags+' '+n.desc).toLowerCase().indexOf(q)>=0;});
+  if(!matches.length){res.textContent='No results.';return;}
+  res.innerHTML=matches.map(function(m){return'<div style="margin-bottom:.3rem"><strong style="color:'+LAYER_COLORS[m.layer]+'">'+m.n.replace('\n',' ')+'</strong> — '+m.desc+'</div>';}).join('');
+  activeNode=matches[0].id;drawGraph();
+};
+
+/* ─── Legend canvas ─── */
+var legendCvs=document.getElementById('legendCvs');
+function resizeLegend(){var dpr=window.devicePixelRatio||1;var W=legendCvs.parentElement.getBoundingClientRect().width;legendCvs.width=Math.round(W*dpr);legendCvs.height=Math.round(200*dpr);legendCvs.style.width=W+'px';legendCvs.style.height='200px';drawLegend();}
+function drawLegend(){
+  var dpr=window.devicePixelRatio||1;var W=legendCvs.width/dpr,H=legendCvs.height/dpr;
+  var ctx=legendCvs.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var items=[
+    {l:0,apps:'01–05',title:'Foundations',desc:'Neural nets, CNNs, Transformers, VAE, probability basics'},
+    {l:1,apps:'06–08',title:'Probability/Diffusion Math',desc:'DDPM, score matching, DDIM sampling schedules'},
+    {l:2,apps:'09–13',title:'Diffusion Architectures',desc:'Temporal VAE, U-Net, LDM, ControlNet, AnimateDiff'},
+    {l:3,apps:'14–17',title:'Representations',desc:'CLIP, CogVideoX, SMPL body, SMPL-X face'},
+    {l:4,apps:'18–26',title:'Face/Audio Modules',desc:'MediaPipe, SadTalker/DAWN/EchoMimic, Whisper, MFA, Viseme, Blendshapes, Smoothing'},
+    {l:5,apps:'27–28',title:'Full Pipeline',desc:'End-to-end lip sync + this dependency graph'}
+  ];
+  var rh=(H-8)/items.length;items.forEach(function(it,i){
+    var y=4+i*rh;var col=LAYER_COLORS[it.l];
+    ctx.fillStyle=col+'22';ctx.beginPath();ctx.roundRect(4,y+1,W-8,rh-2,4);ctx.fill();
+    ctx.fillStyle=col;ctx.beginPath();ctx.arc(18,y+rh/2,7,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=col;ctx.font='700 9px DM Sans,sans-serif';ctx.textAlign='left';ctx.fillText(it.apps+' '+it.title,32,y+rh/2-4);
+    ctx.fillStyle='#5A6878';ctx.font='500 8px DM Sans,sans-serif';ctx.fillText(it.desc,32,y+rh/2+7);
+  });
+}
+
+window.addEventListener('resize',function(){resizeGraph();resizeLegend();});
+resizeGraph();resizeLegend();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,2065 @@
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KL Divergence — A Visual Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;family=DM+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0c0a14;
+    --bg-card: #14111f;
+    --bg-surface: #1c1830;
+    --accent: #f0a500;
+    --accent-dim: #c48800;
+    --accent-glow: rgba(240, 165, 0, 0.15);
+    --text-primary: #e8e4f0;
+    --text-secondary: #9b95a8;
+    --text-muted: #6b6578;
+    --dist-p: #4fc3f7;
+    --dist-q: #ff7043;
+    --dist-p-dim: rgba(79, 195, 247, 0.3);
+    --dist-q-dim: rgba(255, 112, 67, 0.3);
+    --success: #66bb6a;
+    --border: rgba(255,255,255,0.06);
+    --radius: 16px;
+  }
+
+  .dark {
+    /* already dark by default */
+  }
+
+  html:not(.dark) {
+    --bg-deep: #f5f2eb;
+    --bg-card: #ffffff;
+    --bg-surface: #ece8df;
+    --accent: #c47800;
+    --accent-dim: #a06200;
+    --accent-glow: rgba(196, 120, 0, 0.1);
+    --text-primary: #1a1520;
+    --text-secondary: #5a5468;
+    --text-muted: #8a8498;
+    --dist-p: #0288d1;
+    --dist-q: #d84315;
+    --dist-p-dim: rgba(2, 136, 209, 0.15);
+    --dist-q-dim: rgba(216, 67, 21, 0.15);
+    --success: #388e3c;
+    --border: rgba(0,0,0,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(240,165,0,0.04), transparent),
+      radial-gradient(ellipse 60% 50% at 80% 90%, rgba(79,195,247,0.03), transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app-container {
+    position: relative;
+    z-index: 1;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 24px 16px 100px;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    padding: 40px 0 32px;
+    animation: fadeInDown 0.8s ease-out;
+  }
+  .header .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 6vw, 44px);
+    font-weight: 700;
+    line-height: 1.15;
+    background: linear-gradient(135deg, var(--text-primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header .subtitle {
+    margin-top: 14px;
+    font-size: 15px;
+    color: var(--text-secondary);
+    max-width: 500px;
+    margin-inline: auto;
+    line-height: 1.6;
+  }
+
+  /* ── Progress bar ── */
+  .progress-track {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 28px auto 36px;
+    max-width: 420px;
+  }
+  .progress-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    border: 2px solid var(--text-muted);
+    transition: all 0.4s ease;
+    cursor: pointer;
+  }
+  .progress-dot.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
+    transform: scale(1.3);
+  }
+  .progress-dot.completed {
+    background: var(--success);
+    border-color: var(--success);
+  }
+  .progress-line {
+    width: 22px; height: 2px;
+    background: var(--border);
+    transition: background 0.4s;
+  }
+  .progress-line.filled { background: var(--success); }
+
+  /* ── Step container ── */
+  .step {
+    display: none;
+    animation: fadeInUp 0.6s ease-out;
+  }
+  .step.active { display: block; }
+
+  .step-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .step h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(22px, 4.5vw, 32px);
+    font-weight: 700;
+    margin-bottom: 16px;
+    line-height: 1.25;
+  }
+  .step .description {
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+  }
+  .step .description strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  /* ── Canvas visual ── */
+  .visual-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .visual-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--dist-p), var(--accent), var(--dist-q));
+  }
+  .visual-card canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+  }
+  .visual-card .card-caption {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 12px 0 4px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .legend-swatch {
+    width: 14px; height: 14px;
+    border-radius: 4px;
+  }
+
+  /* ── Interactive slider ── */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 16px 0;
+    padding: 14px 18px;
+    background: var(--bg-surface);
+    border-radius: 12px;
+  }
+  .slider-row label {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    min-width: 80px;
+  }
+  .slider-row input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+  }
+  .slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(240,165,0,0.3);
+  }
+  .slider-row .value-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    min-width: 48px;
+    text-align: right;
+  }
+
+  /* ── Info callout ── */
+  .callout {
+    background: var(--accent-glow);
+    border-left: 3px solid var(--accent);
+    padding: 14px 18px;
+    border-radius: 0 12px 12px 0;
+    margin: 18px 0;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-secondary);
+  }
+  .callout .callout-icon {
+    display: inline-block;
+    margin-right: 6px;
+    font-size: 15px;
+  }
+
+  /* ── Equation block ── */
+  .equation-block {
+    text-align: center;
+    padding: 20px;
+    margin: 18px 0;
+    background: var(--bg-surface);
+    border-radius: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(13px, 2.8vw, 16px);
+    color: var(--text-primary);
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+  .eq-highlight {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* ── Surprise breakdown cards ── */
+  .surprise-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin: 18px 0;
+  }
+  @media (max-width: 580px) {
+    .surprise-grid { grid-template-columns: 1fr; }
+  }
+  .surprise-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+  }
+  .surprise-card .s-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .surprise-card .s-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 6px 0;
+  }
+  .surprise-card .s-desc {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .surprise-card.s-entropy { border-top: 3px solid var(--dist-p); }
+  .surprise-card.s-entropy .s-label { color: var(--dist-p); }
+  .surprise-card.s-entropy .s-val { color: var(--dist-p); }
+  .surprise-card.s-crossent { border-top: 3px solid var(--dist-q); }
+  .surprise-card.s-crossent .s-label { color: var(--dist-q); }
+  .surprise-card.s-crossent .s-val { color: var(--dist-q); }
+  .surprise-card.s-kl { border-top: 3px solid var(--accent); }
+  .surprise-card.s-kl .s-label { color: var(--accent); }
+  .surprise-card.s-kl .s-val { color: var(--accent); }
+
+  .surprise-equation {
+    text-align: center;
+    margin: 14px 0 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(12px, 2.5vw, 15px);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+  .surprise-equation .arr { color: var(--text-muted); margin: 0 4px; }
+
+  /* ── Derivation steps ── */
+  .derivation {
+    margin: 20px 0;
+    counter-reset: deriv-step;
+  }
+  .deriv-step {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    animation: fadeInUp 0.4s ease-out both;
+  }
+  .deriv-step:last-child { border-bottom: none; }
+  .deriv-step .deriv-num {
+    counter-increment: deriv-step;
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--accent-glow);
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .deriv-body { flex: 1; min-width: 0; }
+  .deriv-body .deriv-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  .deriv-body .deriv-eq {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(12px, 2.5vw, 14px);
+    color: var(--text-secondary);
+    line-height: 1.8;
+    overflow-x: auto;
+    padding: 8px 12px;
+    background: var(--bg-surface);
+    border-radius: 8px;
+  }
+  .deriv-body .deriv-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 5px;
+    line-height: 1.5;
+    font-style: italic;
+  }
+  .deriv-highlight { color: var(--accent); font-weight: 600; }
+  .deriv-p { color: var(--dist-p); }
+  .deriv-q { color: var(--dist-q); }
+
+  /* ── Asymmetry comparison cards ── */
+  .asym-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 18px 0;
+  }
+  @media (max-width: 520px) {
+    .asym-grid { grid-template-columns: 1fr; }
+  }
+  .asym-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .asym-card h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .asym-card .asym-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    margin: 8px 0;
+  }
+  .asym-card p {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+  .asym-card.forward { border-top: 3px solid var(--dist-p); }
+  .asym-card.forward h4 { color: var(--dist-p); }
+  .asym-card.forward .asym-val { color: var(--dist-p); }
+  .asym-card.reverse { border-top: 3px solid var(--dist-q); }
+  .asym-card.reverse h4 { color: var(--dist-q); }
+  .asym-card.reverse .asym-val { color: var(--dist-q); }
+
+  /* ── Over/Under-confidence anatomy ── */
+  .contrib-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 14px 0;
+  }
+  @media (max-width: 520px) {
+    .contrib-grid { grid-template-columns: 1fr; }
+  }
+  .contrib-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+  }
+  .contrib-region {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .contrib-dir {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .contrib-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 6px 0;
+  }
+  .contrib-desc {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    text-align: left;
+  }
+  .contrib-card.oc-fwd { border-top: 3px solid var(--dist-p); }
+  .contrib-card.oc-fwd .contrib-dir { color: var(--dist-p); }
+  .contrib-card.oc-fwd .contrib-val { color: var(--text-secondary); }
+  .contrib-card.oc-rev { border-top: 3px solid var(--dist-q); }
+  .contrib-card.oc-rev .contrib-dir { color: var(--dist-q); }
+  .contrib-card.oc-rev .contrib-val { color: var(--accent); }
+  .contrib-card.uc-fwd { border-top: 3px solid var(--dist-p); }
+  .contrib-card.uc-fwd .contrib-dir { color: var(--dist-p); }
+  .contrib-card.uc-fwd .contrib-val { color: var(--accent); }
+  .contrib-card.uc-rev { border-top: 3px solid var(--dist-q); }
+  .contrib-card.uc-rev .contrib-dir { color: var(--dist-q); }
+  .contrib-card.uc-rev .contrib-val { color: var(--text-secondary); }
+  .contrib-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: clamp(11px, 2vw, 13px);
+  }
+  .contrib-table th {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+  }
+  .contrib-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(128,128,128,0.1);
+    line-height: 1.45;
+  }
+  .contrib-table tr:last-child td { border-bottom: none; }
+
+  /* ── Model cards ── */
+  .model-grid {
+    display: grid;
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .model-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeInUp 0.5s ease-out both;
+  }
+  .model-card:nth-child(1) { animation-delay: 0.1s; }
+  .model-card:nth-child(2) { animation-delay: 0.25s; }
+  .model-card:nth-child(3) { animation-delay: 0.4s; }
+  .model-card .model-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+  }
+  .model-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+  .model-card p {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+  }
+  .model-card .model-tag {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: var(--accent-glow);
+    color: var(--accent);
+    border: 1px solid rgba(240,165,0,0.2);
+  }
+
+  /* ── Navigation ── */
+  .nav-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .nav-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px 24px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s;
+    min-width: 100px;
+  }
+  .nav-btn:active { transform: scale(0.96); }
+  .nav-btn.secondary {
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  .nav-btn.secondary:hover { color: var(--text-primary); }
+  .nav-btn.primary {
+    background: var(--accent);
+    color: #0c0a14;
+  }
+  .nav-btn.primary:hover { background: var(--accent-dim); }
+  .nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .nav-step-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .app-container { padding: 16px 12px 90px; }
+    .header { padding: 28px 0 24px; }
+    .slider-row { flex-wrap: wrap; gap: 8px; }
+    .slider-row label { min-width: unset; }
+    .nav-btn { padding: 10px 16px; font-size: 14px; min-width: 80px; }
+  }
+</style>
+</head>
+<body>
+<div class="app-container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="kicker">Visual Guide</div>
+    <h1>Understanding KL Divergence</h1>
+    <p class="subtitle">From probability basics to the unified loss behind modern generative models.</p>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-track" id="progressTrack"></div>
+
+  <!-- ══════════ STEP 1 ══════════ -->
+  <div class="step active" id="step-0">
+    <div class="step-label">Step 1 of 5</div>
+    <h2>Probability Distributions</h2>
+    <p class="description">
+      A <strong>probability distribution</strong> tells us how likely each outcome is.
+      Below, imagine measuring a trait (like height) from a population.
+      The curve shows how common each measurement is — tall peaks mean many data points cluster there.
+    </p>
+
+    <div class="visual-card">
+      <canvas id="canvas1" width="760" height="340"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--dist-p)"></div> <strong>P(x)</strong> — True data distribution</div>
+      </div>
+      <div class="card-caption">P(x): the real-world distribution we want to model</div>
+    </div>
+
+    <div class="callout" style="margin-bottom:12px;">
+      <span class="callout-icon">📘</span>
+      <strong>Two key players throughout this guide:</strong><br>
+      <span style="color:var(--dist-p); font-weight:600;">P(x)</span> = the <strong>true data distribution</strong> — the real world, ground truth, what actually happens.<br>
+      <span style="color:var(--dist-q); font-weight:600;">Q(x)</span> = the <strong>model distribution</strong> — our approximation, what our neural network has learned so far.
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <strong>Key idea:</strong> Every generative model tries to make its learned distribution
+      <span style="color:var(--dist-q); font-weight:600;">Q(x)</span> match the true data distribution
+      <span style="color:var(--dist-p); font-weight:600;">P(x)</span> as closely as possible, so it can produce new, realistic samples.
+    </div>
+  </div>
+
+  <!-- ══════════ STEP 2 ══════════ -->
+  <div class="step" id="step-1">
+    <div class="step-label">Step 2 of 5</div>
+    <h2>Measuring the Gap: KL Divergence</h2>
+    <p class="description">
+      <strong>Kullback-Leibler divergence</strong> measures the "statistical distance" between
+      two distributions. Drag the slider to shift the model distribution Q and watch how the
+      divergence changes — the more Q deviates from P, the higher D<sub>KL</sub>.
+    </p>
+
+    <div class="visual-card">
+      <canvas id="canvas2" width="760" height="340"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--dist-p)"></div> P(x) — Real data</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--dist-q)"></div> Q(x) — Model</div>
+      </div>
+    </div>
+
+    <div class="slider-row">
+      <label>Shift Q →</label>
+      <input type="range" id="shiftSlider" min="-3" max="3" step="0.1" value="1.5">
+      <div class="value-display" id="shiftValue">+1.5</div>
+    </div>
+
+    <div class="equation-block">
+      D<sub>KL</sub>(P ‖ Q) = <span class="eq-highlight" id="klValueDisplay">0.56</span>
+    </div>
+
+    <div class="equation-block" style="font-size:clamp(12px,2.5vw,14px); color:var(--text-secondary);">
+      D<sub>KL</sub>(P ‖ Q) = Σ P(x) · log( P(x) / Q(x) )
+    </div>
+
+    <!-- ── Surprise interpretation ── -->
+    <h3 style="font-family:'Playfair Display',serif; font-size:20px; margin:28px 0 10px; color:var(--text-primary);">
+      The "Surprise" Intuition
+    </h3>
+    <p class="description" style="margin-bottom:18px;">
+      There's a more intuitive way to read the KL formula using the concept of <strong>surprise</strong>.
+      When a rare event occurs, you're more surprised: surprise = <strong>−log(p)</strong>.
+      Follow the derivation below to see how KL divergence is simply the
+      <strong>extra average surprise</strong> from using the wrong model.
+    </p>
+
+    <div class="derivation">
+
+      <div class="deriv-step" style="animation-delay:0s">
+        <div class="deriv-num">1</div>
+        <div class="deriv-body">
+          <div class="deriv-label">Define "surprise" at a single event</div>
+          <div class="deriv-eq">
+            surprise(x) = <span class="deriv-highlight">−log( p(x) )</span>
+          </div>
+          <div class="deriv-note">An event with probability 0.01 gives surprise = 4.6 — very surprising!
+            An event with probability 0.9 gives surprise = 0.1 — barely surprising.</div>
+        </div>
+      </div>
+
+      <div class="deriv-step" style="animation-delay:0.08s">
+        <div class="deriv-num">2</div>
+        <div class="deriv-body">
+          <div class="deriv-label">Entropy = average surprise under the <span class="deriv-p">true distribution P</span></div>
+          <div class="deriv-eq">
+            <span class="deriv-p">H(P)</span> = 𝔼<sub>P</sub>[ −log P(x) ]
+            = Σ <span class="deriv-p">P(x)</span> · ( −log <span class="deriv-p">P(x)</span> )
+          </div>
+          <div class="deriv-note">"On average, how surprised am I when events follow P and I know it's P?"
+            This is the baseline — the irreducible uncertainty in the data itself.</div>
+        </div>
+      </div>
+
+      <div class="deriv-step" style="animation-delay:0.16s">
+        <div class="deriv-num">3</div>
+        <div class="deriv-body">
+          <div class="deriv-label">Cross-entropy = average surprise using <span class="deriv-q">model Q</span> on data from <span class="deriv-p">P</span></div>
+          <div class="deriv-eq">
+            <span class="deriv-q">H(P, Q)</span> = 𝔼<sub>P</sub>[ −log Q(x) ]
+            = Σ <span class="deriv-p">P(x)</span> · ( −log <span class="deriv-q">Q(x)</span> )
+          </div>
+          <div class="deriv-note">"On average, how surprised am I when events follow P but I mistakenly use Q to predict them?"
+            This is always ≥ entropy, because the wrong model adds extra surprise.</div>
+        </div>
+      </div>
+
+      <div class="deriv-step" style="animation-delay:0.24s">
+        <div class="deriv-num">4</div>
+        <div class="deriv-body">
+          <div class="deriv-label">KL divergence = <span class="deriv-highlight">extra</span> surprise</div>
+          <div class="deriv-eq">
+            <span class="deriv-highlight">D<sub>KL</sub>(P ‖ Q)</span>
+            = <span class="deriv-q">H(P, Q)</span> − <span class="deriv-p">H(P)</span>
+          </div>
+          <div class="deriv-note">Subtract the baseline (entropy) from the cross-entropy.
+            What remains is purely the penalty for using Q instead of P.</div>
+        </div>
+      </div>
+
+      <div class="deriv-step" style="animation-delay:0.32s">
+        <div class="deriv-num">5</div>
+        <div class="deriv-body">
+          <div class="deriv-label">Expand and simplify</div>
+          <div class="deriv-eq">
+            = Σ <span class="deriv-p">P(x)</span> · ( −log <span class="deriv-q">Q(x)</span> )
+            − Σ <span class="deriv-p">P(x)</span> · ( −log <span class="deriv-p">P(x)</span> )<br>
+            = Σ <span class="deriv-p">P(x)</span> · [ −log <span class="deriv-q">Q(x)</span> + log <span class="deriv-p">P(x)</span> ]<br>
+            = Σ <span class="deriv-p">P(x)</span> · log( <span class="deriv-p">P(x)</span> / <span class="deriv-q">Q(x)</span> )
+          </div>
+          <div class="deriv-note">Factor out P(x), combine the logs → and we arrive at the standard KL formula.
+            The log ratio P/Q quantifies how much more "surprising" each event is under Q than under P.</div>
+        </div>
+      </div>
+
+      <div class="deriv-step" style="animation-delay:0.4s">
+        <div class="deriv-num">✓</div>
+        <div class="deriv-body">
+          <div class="deriv-label" style="color:var(--accent);">Final result</div>
+          <div class="deriv-eq" style="background:var(--accent-glow); border:1px solid rgba(240,165,0,0.2);">
+            <span class="deriv-highlight">D<sub>KL</sub>(P ‖ Q)
+            = Σ P(x) · log( P(x) / Q(x) )
+            = Extra average surprise</span>
+          </div>
+          <div class="deriv-note">When Q = P, log(P/Q) = log(1) = 0 everywhere → zero extra surprise. Perfect model!</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="visual-card">
+      <canvas id="canvasSurprise" width="760" height="320"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--dist-p)"></div> −log P(x) surprise under P</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--dist-q)"></div> −log Q(x) surprise under Q</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent)"></div> Extra surprise (gap)</div>
+      </div>
+      <div class="card-caption">Where Q under-represents data, −log Q shoots up — that's the extra surprise</div>
+    </div>
+
+    <div class="callout" style="margin-top:0.6rem">
+      <span class="callout-icon">🤔</span>
+      <strong>Why shade only the <em>gap</em> — not the full area under −log Q?</strong><br>
+      The full area under −log Q (weighted by P) is <strong>cross-entropy H(P,Q)</strong> — the total surprise when your
+      model is Q. But even if Q were <em>perfect</em> (Q&nbsp;=&nbsp;P), the area under −log P would still be there:
+      that's the <strong>entropy H(P)</strong>, the irreducible floor set by the data itself — no model can push it lower.
+      <br><br>
+      Subtracting the floor leaves only the <em>extra</em> surprise caused by Q being wrong:
+      <div style="text-align:center; margin:0.5rem 0; font-weight:600;">
+        <span style="color:var(--accent)">KL(P‖Q)</span>
+        &nbsp;=&nbsp;
+        <span style="color:var(--dist-q)">H(P,Q)</span>
+        &nbsp;−&nbsp;
+        <span style="color:var(--dist-p)">H(P)</span>
+        &nbsp;=&nbsp; area under −log Q &nbsp;−&nbsp; area under −log P &nbsp;=&nbsp; the gap
+      </div>
+      When Q slides to match P, the gap closes to zero → KL = 0. ✓
+      If you shaded all of −log Q, the area would be large even for a perfect model — that can't be right for a measure of "how wrong is Q".
+    </div>
+
+    <div class="surprise-grid">
+      <div class="surprise-card s-entropy">
+        <div class="s-label">Entropy H(P)</div>
+        <div class="s-val" id="sEntropy">—</div>
+        <div class="s-desc">Avg surprise under the true distribution</div>
+      </div>
+      <div class="surprise-card s-crossent">
+        <div class="s-label">Cross-Entropy H(P,Q)</div>
+        <div class="s-val" id="sCrossEnt">—</div>
+        <div class="s-desc">Avg surprise when assuming Q but reality is P</div>
+      </div>
+      <div class="surprise-card s-kl">
+        <div class="s-label">KL = Extra Surprise</div>
+        <div class="s-val" id="sKL">—</div>
+        <div class="s-desc">The additional surprise from using the wrong model</div>
+      </div>
+    </div>
+
+    <div class="surprise-equation">
+      <span style="color:var(--accent)">D<sub>KL</sub>(P‖Q)</span>
+      <span class="arr">=</span>
+      <span style="color:var(--dist-q)">H(P, Q)</span>
+      <span class="arr">−</span>
+      <span style="color:var(--dist-p)">H(P)</span>
+      <span class="arr">=</span>
+      Extra surprise
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <strong>Read it this way:</strong> "If the real world is P but I built my model assuming Q,
+      how much <em>more</em> surprised will I be on average?" That extra surprise is the KL divergence.
+      When Q = P perfectly, there's zero extra surprise.
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">⚠️</span>
+      <strong>Note:</strong> KL divergence is <em>not</em> symmetric — D<sub>KL</sub>(P‖Q) ≠ D<sub>KL</sub>(Q‖P).
+      It equals <strong>zero</strong> only when P and Q are identical. We explore <em>why</em> in the next step.
+    </div>
+  </div>
+
+  <!-- ══════════ STEP 3 — NEW: ASYMMETRY ══════════ -->
+  <div class="step" id="step-2">
+    <div class="step-label">Step 3 of 5</div>
+    <h2>Why KL Is Not Symmetric</h2>
+    <p class="description">
+      Unlike a true "distance," swapping P and Q gives a <strong>different value</strong>.
+      The reason lies in the formula: each direction <em>weighs regions differently</em>.
+      Use the sliders to give P and Q different shapes and watch the two directions diverge.
+    </p>
+
+    <div class="visual-card">
+      <canvas id="canvasAsym" width="760" height="420"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--dist-p)"></div> P(x) — Reference</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--dist-q)"></div> Q(x) — Model</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent)"></div> Penalty region</div>
+      </div>
+    </div>
+
+    <div class="slider-row">
+      <label>Q mean</label>
+      <input type="range" id="asymMuSlider" min="-3" max="3" step="0.1" value="1.5">
+      <div class="value-display" id="asymMuValue">+1.5</div>
+    </div>
+    <div class="slider-row">
+      <label>Q width (σ)</label>
+      <input type="range" id="asymSigSlider" min="0.4" max="3" step="0.05" value="0.6">
+      <div class="value-display" id="asymSigValue">0.60</div>
+    </div>
+
+    <div class="asym-grid">
+      <div class="asym-card forward">
+        <h4>D<sub>KL</sub>( P ‖ Q )</h4>
+        <div class="asym-val" id="asymForwardVal">—</div>
+        <p><strong>Forward KL</strong> — penalises where P has mass but Q does not. The model must <em>cover all the data</em> (mode-covering).</p>
+      </div>
+      <div class="asym-card reverse">
+        <h4>D<sub>KL</sub>( Q ‖ P )</h4>
+        <div class="asym-val" id="asymReverseVal">—</div>
+        <p><strong>Reverse KL</strong> — penalises where Q has mass but P does not. The model avoids <em>generating implausible samples</em> (mode-seeking).</p>
+      </div>
+    </div>
+
+    <div class="equation-block" style="font-size:clamp(12px,2.5vw,14px); color:var(--text-secondary);">
+      Forward: Σ <span style="color:var(--dist-p)">P(x)</span> · log( P/Q ) &nbsp;←&nbsp; weighted by <span style="color:var(--dist-p)">P</span><br>
+      Reverse: Σ <span style="color:var(--dist-q)">Q(x)</span> · log( Q/P ) &nbsp;←&nbsp; weighted by <span style="color:var(--dist-q)">Q</span>
+    </div>
+
+    <!-- ── Over/Under-confidence anatomy ── -->
+    <div style="margin-top:1.6rem;">
+      <h3 style="font-size:clamp(14px,2.5vw,17px); font-weight:700; margin-bottom:0.35rem; color:var(--text-primary);">Over-confidence vs Under-confidence — who gets punished?</h3>
+      <p style="font-size:clamp(12px,2vw,14px); color:var(--text-secondary); margin-bottom:0.8rem;">
+        Move the sliders above. <span style="color:var(--dist-p); font-weight:600;">Blue tint</span> = regions where Q(x) &gt; P(x)
+        (Q <em>over-estimates</em> — it was very confident about x, but P rarely sends that x).
+        <span style="color:var(--dist-q); font-weight:600;">Orange tint</span> = regions where Q(x) &lt; P(x)
+        (Q <em>under-estimates</em> — Q wasn't prepared, but P keeps sending those x values).
+        Each KL direction penalises only one of the two.
+      </p>
+      <div class="visual-card">
+        <canvas id="canvasOverConf" data-orig-w="760" data-orig-h="220" width="760" height="220"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-swatch" style="background:var(--dist-p);"></div> Blue tint — Q over-estimates (Q &gt; P)</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:var(--dist-q);"></div> Orange tint — Q under-estimates (Q &lt; P)</div>
+        </div>
+      </div>
+
+      <div class="contrib-grid">
+        <div class="contrib-card oc-fwd">
+          <div class="contrib-region">Q over-estimates (Q &gt; P)</div>
+          <div class="contrib-dir">Forward KL D(P‖Q) contribution</div>
+          <div class="contrib-val" id="contribOF">—</div>
+          <div class="contrib-desc">Small credit (often negative). P sends these x values <em>rarely</em>, so the P-weighted sum barely accumulates. <strong>Forward KL largely ignores over-confidence.</strong></div>
+        </div>
+        <div class="contrib-card oc-rev">
+          <div class="contrib-region">Q over-estimates (Q &gt; P)</div>
+          <div class="contrib-dir">Reverse KL D(Q‖P) contribution</div>
+          <div class="contrib-val" id="contribOR">—</div>
+          <div class="contrib-desc">Positive penalty. Q assigns high mass here so the Q-weighted sum is large — Q wasted probability on things P rarely produces. <strong>Reverse KL punishes over-confidence.</strong></div>
+        </div>
+        <div class="contrib-card uc-fwd">
+          <div class="contrib-region">Q under-estimates (Q &lt; P)</div>
+          <div class="contrib-dir">Forward KL D(P‖Q) contribution</div>
+          <div class="contrib-val" id="contribUF">—</div>
+          <div class="contrib-desc">Large penalty. P keeps sending these x values and Q wasn't ready — the P-weighted log(P/Q) stacks up. <strong>Forward KL heavily punishes under-confidence.</strong></div>
+        </div>
+        <div class="contrib-card uc-rev">
+          <div class="contrib-region">Q under-estimates (Q &lt; P)</div>
+          <div class="contrib-dir">Reverse KL D(Q‖P) contribution</div>
+          <div class="contrib-val" id="contribUR">—</div>
+          <div class="contrib-desc">Near-zero credit. Q assigns little mass here so the Q-weighted sum barely grows. <strong>Reverse KL largely ignores under-confidence.</strong></div>
+        </div>
+      </div>
+
+      <div class="equation-block" style="padding:14px 18px;">
+        <table class="contrib-table">
+          <thead>
+            <tr>
+              <th style="text-align:left; color:var(--text-muted);">Region</th>
+              <th style="color:var(--dist-p);">Forward KL D(P‖Q)</th>
+              <th style="color:var(--dist-q);">Reverse KL D(Q‖P)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="text-align:left; color:var(--dist-p);">Q over-estimates (Q &gt; P)</td>
+              <td style="color:var(--text-secondary);">Tiny credit — P weight low. <strong>Ignored.</strong></td>
+              <td style="color:var(--accent);">Real penalty — Q weight high. <strong>Punished.</strong></td>
+            </tr>
+            <tr>
+              <td style="text-align:left; color:var(--dist-q);">Q under-estimates (Q &lt; P)</td>
+              <td style="color:var(--accent);">Large penalty — P weight high. <strong>Punished.</strong></td>
+              <td style="color:var(--text-secondary);">Near zero — Q weight low. <strong>Ignored.</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">🔍</span>
+      <strong>Intuition:</strong> Try making Q narrow (σ ≈ 0.5) and shifted. Forward KL explodes because P covers
+      regions Q ignores. Reverse KL stays moderate because Q only places mass in a small area.
+      This asymmetry is why <strong>VAEs use forward KL</strong> (to cover the full data) while
+      <strong>GANs implicitly use reverse KL</strong> (to avoid bad samples).
+    </div>
+  </div>
+
+  <!-- ══════════ STEP 4 (was 3) ══════════ -->
+  <div class="step" id="step-3">
+    <div class="step-label">Step 4 of 5</div>
+    <h2>KL Divergence in VAEs</h2>
+    <p class="description">
+      A <strong>Variational Autoencoder</strong> encodes images into a compact <em>latent space</em>.
+      The KL term in the VAE loss forces the encoder's distribution Q(z|x) to stay close to a
+      smooth prior P(z) — usually a standard normal 𝒩(0, 1).
+    </p>
+
+    <div class="visual-card">
+      <canvas id="canvas3" width="760" height="360"></canvas>
+      <div class="card-caption">Latent space: without KL (left) vs. with KL regularisation (right)</div>
+    </div>
+
+    <div class="slider-row">
+      <label>KL weight β</label>
+      <input type="range" id="betaSlider" min="0" max="1" step="0.01" value="0">
+      <div class="value-display" id="betaValue">0.00</div>
+    </div>
+
+    <div class="equation-block">
+      ℒ<sub>VAE</sub> = <span style="color:var(--dist-q)">Reconstruction</span> + <span class="eq-highlight">β · D<sub>KL</sub>( Q(z|x) ‖ P(z) )</span>
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">✨</span>
+      <strong>Why it matters:</strong> Without the KL term, the latent space has "holes" — empty regions that
+      decode to garbage. KL regularisation fills those gaps, so you can smoothly interpolate between images.
+    </div>
+  </div>
+
+  <!-- ══════════ STEP 5 (was 4) ══════════ -->
+  <div class="step" id="step-4">
+    <div class="step-label">Step 5 of 5</div>
+    <h2>The Unifying Thread</h2>
+    <p class="description">
+      KL divergence isn't just a VAE trick — it's the <strong>unifying loss principle</strong> across
+      modern generative models. Every model in this course minimises a KL-based objective
+      to align its outputs with the true data distribution.
+    </p>
+
+    <div class="visual-card">
+      <canvas id="canvas4" width="760" height="300"></canvas>
+      <div class="card-caption">All three models converge their Q toward the true P via KL minimisation</div>
+    </div>
+
+    <div class="model-grid">
+      <div class="model-card">
+        <div class="model-icon">🖼️</div>
+        <h3>Variational Autoencoder</h3>
+        <p>Encodes data into a latent space, then decodes. The KL term keeps the latent distribution smooth and close to a chosen prior.</p>
+        <span class="model-tag">ℒ = Recon + β · D_KL</span>
+      </div>
+      <div class="model-card">
+        <div class="model-icon">🧍</div>
+        <h3>SMPL Body Model</h3>
+        <p>Parametric model of human body shape and pose. KL-based regularisation keeps generated bodies within a plausible distribution learned from scans.</p>
+        <span class="model-tag">Prior regularisation via KL</span>
+      </div>
+      <div class="model-card">
+        <div class="model-icon">🌀</div>
+        <h3>Diffusion Models</h3>
+        <p>Learn to reverse a noising process. Each denoising step minimises a KL divergence between the learned reverse and the true posterior.</p>
+        <span class="model-tag">Σ D_KL per timestep</span>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">🔑</span>
+      <strong>Take-away:</strong> Whether generating images, bodies, or denoising — the fundamental goal is
+      the same: minimise the statistical gap between what the model produces and what the real world looks like.
+    </div>
+  </div>
+</div>
+
+<!-- Navigation bar -->
+<div class="nav-bar">
+  <button class="nav-btn secondary" id="prevBtn" disabled="">← Back</button>
+  <span class="nav-step-label" id="navLabel">1 / 5</span>
+  <button class="nav-btn primary" id="nextBtn">Next →</button>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  /* ── Dark mode detection ── */
+  if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    document.documentElement.classList.add("dark");
+  }
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function(event) {
+    if (event.matches) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  });
+
+  /* ── State ── */
+  var totalSteps = 5;
+  var currentStep = 0;
+
+  /* ── DOM refs ── */
+  var prevBtn = document.getElementById("prevBtn");
+  var nextBtn = document.getElementById("nextBtn");
+  var navLabel = document.getElementById("navLabel");
+  var progressTrack = document.getElementById("progressTrack");
+
+  /* ── Build progress dots ── */
+  function buildProgress() {
+    progressTrack.innerHTML = "";
+    for (var i = 0; i < totalSteps; i++) {
+      if (i > 0) {
+        var line = document.createElement("div");
+        line.className = "progress-line";
+        line.id = "pline-" + i;
+        progressTrack.appendChild(line);
+      }
+      var dot = document.createElement("div");
+      dot.className = "progress-dot";
+      dot.id = "pdot-" + i;
+      dot.setAttribute("data-step", String(i));
+      dot.addEventListener("click", function() {
+        goToStep(parseInt(this.getAttribute("data-step"), 10));
+      });
+      progressTrack.appendChild(dot);
+    }
+    updateProgress();
+  }
+
+  function updateProgress() {
+    for (var i = 0; i < totalSteps; i++) {
+      var dot = document.getElementById("pdot-" + i);
+      dot.classList.remove("active", "completed");
+      if (i === currentStep) { dot.classList.add("active"); }
+      else if (i < currentStep) { dot.classList.add("completed"); }
+      if (i > 0) {
+        var theLine = document.getElementById("pline-" + i);
+        theLine.classList.toggle("filled", i <= currentStep);
+      }
+    }
+  }
+
+  /* ── Navigation ── */
+  function goToStep(idx) {
+    if (idx < 0 || idx >= totalSteps) { return; }
+    document.getElementById("step-" + currentStep).classList.remove("active");
+    currentStep = idx;
+    var el = document.getElementById("step-" + currentStep);
+    el.classList.add("active");
+    el.style.animation = "none";
+    void el.offsetHeight;
+    el.style.animation = "";
+    prevBtn.disabled = currentStep === 0;
+    nextBtn.textContent = currentStep === totalSteps - 1 ? "Finish ✓" : "Next →";
+    navLabel.textContent = (currentStep + 1) + " / " + totalSteps;
+    updateProgress();
+    drawCurrentStep();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  prevBtn.addEventListener("click", function() { goToStep(currentStep - 1); });
+  nextBtn.addEventListener("click", function() {
+    if (currentStep < totalSteps - 1) { goToStep(currentStep + 1); }
+  });
+
+  buildProgress();
+
+  /* ════════════════════════════════════════
+     DRAWING HELPERS
+  ════════════════════════════════════════ */
+
+  function getColor(varName) {
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  }
+
+  function gaussian(x, mu, sigma) {
+    var coeff = 1 / (sigma * Math.sqrt(2 * Math.PI));
+    return coeff * Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2));
+  }
+
+  function klGaussian(mu1, sig1, mu2, sig2) {
+    return Math.log(sig2 / sig1) + (sig1 * sig1 + (mu1 - mu2) * (mu1 - mu2)) / (2 * sig2 * sig2) - 0.5;
+  }
+
+  function setupCanvas(canvas) {
+    // Store original HTML dimensions on first call
+    if (!canvas.dataset.origW) {
+      canvas.dataset.origW = canvas.getAttribute("width") || "760";
+      canvas.dataset.origH = canvas.getAttribute("height") || "340";
+    }
+    var origW = parseInt(canvas.dataset.origW, 10);
+    var origH = parseInt(canvas.dataset.origH, 10);
+    var dpr = window.devicePixelRatio || 1;
+    var rect = canvas.getBoundingClientRect();
+    var w = rect.width > 0 ? rect.width : origW;
+    var h = origH * (w / origW);
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.height = h + "px";
+    var ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    return { ctx: ctx, w: w, h: h };
+  }
+
+  function drawAxis(ctx, w, h, pad) {
+    ctx.strokeStyle = getColor("--text-muted");
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    ctx.moveTo(pad, h - pad);
+    ctx.lineTo(w - pad, h - pad);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawOneCurve(ctx, w, h, pad, mu, sigma, col, fill, xMin, xMax, globalMax) {
+    var plotW = w - 2 * pad;
+    var plotH = h - 2 * pad;
+    var maxY = globalMax || gaussian(mu, mu, sigma);
+
+    // fill
+    ctx.beginPath();
+    ctx.moveTo(pad, h - pad);
+    for (var i = 0; i <= plotW; i++) {
+      var x = xMin + (i / plotW) * (xMax - xMin);
+      var y = gaussian(x, mu, sigma);
+      ctx.lineTo(pad + i, (h - pad) - (y / maxY) * plotH * 0.88);
+    }
+    ctx.lineTo(w - pad, h - pad);
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+
+    // stroke
+    ctx.beginPath();
+    for (var j = 0; j <= plotW; j++) {
+      var xv = xMin + (j / plotW) * (xMax - xMin);
+      var yv = gaussian(xv, mu, sigma);
+      var py = (h - pad) - (yv / maxY) * plotH * 0.88;
+      if (j === 0) { ctx.moveTo(pad + j, py); }
+      else { ctx.lineTo(pad + j, py); }
+    }
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+
+  /* ════════════════════════════════════════
+     STEP RENDERERS
+  ════════════════════════════════════════ */
+
+  /* ── Step 1: Single distribution ── */
+  function drawStep1() {
+    var c = setupCanvas(document.getElementById("canvas1"));
+    var ctx = c.ctx, w = c.w, h = c.h, pad = 40;
+    drawAxis(ctx, w, h, pad);
+
+    // Draw a faded Q far from P to foreshadow the goal
+    ctx.globalAlpha = 0.25;
+    drawOneCurve(ctx, w, h, pad, 2.2, 1.3, getColor("--dist-q"), null, -4, 4, gaussian(0, 0, 1));
+    ctx.globalAlpha = 1;
+
+    // Draw P — the true distribution
+    drawOneCurve(ctx, w, h, pad, 0, 1, getColor("--dist-p"), getColor("--dist-p-dim"), -4, 4, null);
+
+    ctx.font = '12px "JetBrains Mono", monospace';
+    ctx.fillStyle = getColor("--text-muted");
+    ctx.textAlign = "center";
+    var plotW = w - 2 * pad;
+    for (var v = -3; v <= 3; v++) {
+      ctx.fillText(String(v), pad + ((v + 4) / 8) * plotW, h - pad + 18);
+    }
+
+    // P label
+    ctx.font = '600 14px "DM Sans", sans-serif';
+    ctx.fillStyle = getColor("--dist-p");
+    ctx.fillText("P(x) — True data", pad + ((0 + 4) / 8) * plotW, 22);
+
+    // Q label (faded)
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = getColor("--dist-q");
+    ctx.fillText("Q(x) — Model (to learn)", pad + ((2.2 + 4) / 8) * plotW, 22);
+    ctx.globalAlpha = 1;
+  }
+
+  /* ── Step 2: Two distributions + shift slider ── */
+  var shiftSlider = document.getElementById("shiftSlider");
+  var shiftValue = document.getElementById("shiftValue");
+  var klValueDisplay = document.getElementById("klValueDisplay");
+
+  function drawStep2() {
+    var shift = parseFloat(shiftSlider.value);
+    var c = setupCanvas(document.getElementById("canvas2"));
+    var ctx = c.ctx, w = c.w, h = c.h, pad = 40;
+    var gMax = Math.max(gaussian(0, 0, 1), gaussian(shift, shift, 1));
+
+    drawAxis(ctx, w, h, pad);
+    drawOneCurve(ctx, w, h, pad, 0, 1, getColor("--dist-p"), getColor("--dist-p-dim"), -5, 5, gMax);
+    drawOneCurve(ctx, w, h, pad, shift, 1, getColor("--dist-q"), getColor("--dist-q-dim"), -5, 5, gMax);
+
+    // difference shade
+    var plotW = w - 2 * pad, plotH = h - 2 * pad;
+    ctx.globalAlpha = 0.12;
+    ctx.beginPath();
+    ctx.moveTo(pad, h - pad);
+    for (var i = 0; i <= plotW; i++) {
+      var x = -5 + (i / plotW) * 10;
+      var diff = Math.abs(gaussian(x, 0, 1) - gaussian(x, shift, 1));
+      ctx.lineTo(pad + i, (h - pad) - (diff / gMax) * plotH * 0.88);
+    }
+    ctx.lineTo(w - pad, h - pad);
+    ctx.closePath();
+    ctx.fillStyle = getColor("--accent");
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // labels
+    ctx.font = '600 13px "DM Sans", sans-serif';
+    ctx.textAlign = "center";
+    ctx.fillStyle = getColor("--dist-p");
+    ctx.fillText("P(x)", pad + ((0 + 5) / 10) * plotW, 24);
+    ctx.fillStyle = getColor("--dist-q");
+    ctx.fillText("Q(x)", pad + ((shift + 5) / 10) * plotW, 24);
+
+    var klVal = klGaussian(0, 1, shift, 1);
+    shiftValue.textContent = (shift >= 0 ? "+" : "") + shift.toFixed(1);
+    klValueDisplay.textContent = klVal.toFixed(2);
+  }
+
+  shiftSlider.addEventListener("input", function() {
+    drawStep2();
+    drawSurprise();
+  });
+
+  /* ── Step 2b: Surprise curves ── */
+  var sEntropy = document.getElementById("sEntropy");
+  var sCrossEnt = document.getElementById("sCrossEnt");
+  var sKL = document.getElementById("sKL");
+
+  function drawSurprise() {
+    var shift = parseFloat(shiftSlider.value);
+    var pMu = 0, pSig = 1, qMu = shift, qSig = 1;
+
+    var c = setupCanvas(document.getElementById("canvasSurprise"));
+    var ctx = c.ctx, w = c.w, h = c.h, pad = 50;
+    var padR = 30;
+    // Use narrower x-range so curves don't shoot off screen
+    var xMin = -3.5, xMax = 3.5;
+    var plotW = w - pad - padR;
+    var plotH = h - pad - 30;
+
+    // Compute entropy, cross-entropy, KL numerically over wider range for accuracy
+    var dx = 0.01;
+    var entropyVal = 0, crossEntVal = 0;
+    for (var xi = -6; xi <= 6; xi += dx) {
+      var pv = gaussian(xi, pMu, pSig);
+      var qv = gaussian(xi, qMu, qSig);
+      if (pv > 1e-12) {
+        entropyVal += pv * (-Math.log(pv)) * dx;
+      }
+      if (pv > 1e-12 && qv > 1e-12) {
+        crossEntVal += pv * (-Math.log(qv)) * dx;
+      }
+    }
+    var klVal = crossEntVal - entropyVal;
+    if (klVal < 0) { klVal = 0; }
+
+    sEntropy.textContent = entropyVal.toFixed(2);
+    sCrossEnt.textContent = crossEntVal.toFixed(2);
+    sKL.textContent = klVal.toFixed(2);
+
+    // Dynamic max surprise — compute from actual values in visible range
+    var maxSurprise = 2;
+    for (var mi = xMin; mi <= xMax; mi += 0.1) {
+      var mpv = gaussian(mi, pMu, pSig);
+      var mqv = gaussian(mi, qMu, qSig);
+      if (mpv > 1e-12) {
+        maxSurprise = Math.max(maxSurprise, -Math.log(mpv));
+      }
+      if (mqv > 1e-12) {
+        maxSurprise = Math.max(maxSurprise, -Math.log(mqv));
+      }
+    }
+    maxSurprise = Math.ceil(maxSurprise + 0.5);
+
+    // Helper: x-value to pixel
+    function xToPx(x) { return pad + ((x - xMin) / (xMax - xMin)) * plotW; }
+    // Helper: surprise-value to pixel-y (0 at bottom, maxSurprise at top)
+    function sToPy(s) { return (h - 30) - (Math.min(s, maxSurprise) / maxSurprise) * plotH; }
+
+    // ── Background grid ──
+    ctx.strokeStyle = getColor("--text-muted");
+    ctx.fillStyle = getColor("--text-muted");
+    ctx.font = '11px "JetBrains Mono", monospace';
+
+    // Horizontal axis
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    ctx.moveTo(pad, sToPy(0));
+    ctx.lineTo(pad + plotW, sToPy(0));
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Y-axis gridlines + labels
+    ctx.textAlign = "right";
+    var yStep = maxSurprise <= 6 ? 1 : 2;
+    for (var sv = 0; sv <= maxSurprise; sv += yStep) {
+      var sy = sToPy(sv);
+      ctx.globalAlpha = 0.1;
+      ctx.beginPath();
+      ctx.moveTo(pad, sy);
+      ctx.lineTo(pad + plotW, sy);
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+      ctx.globalAlpha = 0.6;
+      ctx.fillText(String(sv), pad - 6, sy + 4);
+      ctx.globalAlpha = 1;
+    }
+
+    // X-axis labels
+    ctx.textAlign = "center";
+    for (var xv = Math.ceil(xMin); xv <= Math.floor(xMax); xv++) {
+      ctx.globalAlpha = 0.5;
+      ctx.fillText(String(xv), xToPx(xv), sToPy(0) + 16);
+      ctx.globalAlpha = 1;
+    }
+
+    // ── Shade the raw gap between curves (extra surprise region) ──
+    // Shade where -logQ > -logP (the extra surprise from using Q)
+    ctx.beginPath();
+    // Trace -logQ forwards
+    for (var gi = 0; gi <= plotW; gi++) {
+      var gx = xMin + (gi / plotW) * (xMax - xMin);
+      var gSurpQ = -Math.log(Math.max(gaussian(gx, qMu, qSig), 1e-12));
+      var gSurpP = -Math.log(Math.max(gaussian(gx, pMu, pSig), 1e-12));
+      // Only shade where Q surprise > P surprise
+      var plotVal = Math.max(gSurpQ, gSurpP);
+      if (gi === 0) { ctx.moveTo(pad + gi, sToPy(plotVal)); }
+      else { ctx.lineTo(pad + gi, sToPy(plotVal)); }
+    }
+    // Trace -logP backwards to close the shape
+    for (var gi2 = plotW; gi2 >= 0; gi2--) {
+      var gx2 = xMin + (gi2 / plotW) * (xMax - xMin);
+      var gSurpP2 = -Math.log(Math.max(gaussian(gx2, pMu, pSig), 1e-12));
+      ctx.lineTo(pad + gi2, sToPy(gSurpP2));
+    }
+    ctx.closePath();
+    ctx.fillStyle = getColor("--accent");
+    ctx.globalAlpha = 0.22;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // ── Draw -log P(x) curve ──
+    ctx.beginPath();
+    for (var pi2 = 0; pi2 <= plotW; pi2++) {
+      var px2 = xMin + (pi2 / plotW) * (xMax - xMin);
+      var sP2 = -Math.log(Math.max(gaussian(px2, pMu, pSig), 1e-12));
+      if (pi2 === 0) { ctx.moveTo(pad + pi2, sToPy(sP2)); }
+      else { ctx.lineTo(pad + pi2, sToPy(sP2)); }
+    }
+    ctx.strokeStyle = getColor("--dist-p");
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // ── Draw -log Q(x) curve ──
+    ctx.beginPath();
+    for (var qi2 = 0; qi2 <= plotW; qi2++) {
+      var qx2 = xMin + (qi2 / plotW) * (xMax - xMin);
+      var sQ2 = -Math.log(Math.max(gaussian(qx2, qMu, qSig), 1e-12));
+      if (qi2 === 0) { ctx.moveTo(pad + qi2, sToPy(sQ2)); }
+      else { ctx.lineTo(pad + qi2, sToPy(sQ2)); }
+    }
+    ctx.strokeStyle = getColor("--dist-q");
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // ── Draw dashed line at P's minimum (= entropy baseline) ──
+    var minSurpriseP = -Math.log(gaussian(pMu, pMu, pSig));
+    ctx.beginPath();
+    ctx.moveTo(pad, sToPy(minSurpriseP));
+    ctx.lineTo(pad + plotW, sToPy(minSurpriseP));
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = getColor("--dist-p");
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.4;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+
+    // ── Top labels ──
+    ctx.font = '600 12px "DM Sans", sans-serif';
+    ctx.textAlign = "left";
+    ctx.fillStyle = getColor("--dist-p");
+    ctx.fillText("−log P(x)  (baseline surprise)", pad + 4, 16);
+    ctx.fillStyle = getColor("--dist-q");
+    ctx.fillText("−log Q(x)  (model's surprise)", pad + 4, 32);
+
+    // Y-axis title
+    ctx.fillStyle = getColor("--text-muted");
+    ctx.font = '11px "DM Sans", sans-serif';
+    ctx.textAlign = "center";
+    ctx.save();
+    ctx.translate(14, sToPy(maxSurprise / 2));
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("surprise ↑", 0, 0);
+    ctx.restore();
+
+    // ── Annotate the gap ──
+    if (Math.abs(shift) > 0.3) {
+      var annotateX = pMu + shift * 0.35;
+      var annSP = -Math.log(Math.max(gaussian(annotateX, pMu, pSig), 1e-12));
+      var annSQ = -Math.log(Math.max(gaussian(annotateX, qMu, qSig), 1e-12));
+      if (annSQ > annSP + 0.3) {
+        var midY = sToPy((annSP + annSQ) / 2);
+        ctx.font = '600 11px "JetBrains Mono", monospace';
+        ctx.fillStyle = getColor("--accent");
+        ctx.textAlign = "left";
+        ctx.fillText("← extra surprise", xToPx(annotateX) + 6, midY + 4);
+        // Arrow line
+        ctx.beginPath();
+        ctx.moveTo(xToPx(annotateX), sToPy(annSP + 0.15));
+        ctx.lineTo(xToPx(annotateX), sToPy(annSQ - 0.15));
+        ctx.strokeStyle = getColor("--accent");
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.7;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  /* ── Step 3: Asymmetry visualisation ── */
+  var asymMuSlider = document.getElementById("asymMuSlider");
+  var asymSigSlider = document.getElementById("asymSigSlider");
+  var asymMuValue = document.getElementById("asymMuValue");
+  var asymSigValue = document.getElementById("asymSigValue");
+  var asymForwardVal = document.getElementById("asymForwardVal");
+  var asymReverseVal = document.getElementById("asymReverseVal");
+
+  function drawStepAsym() {
+    var qMu = parseFloat(asymMuSlider.value);
+    var qSig = parseFloat(asymSigSlider.value);
+    asymMuValue.textContent = (qMu >= 0 ? "+" : "") + qMu.toFixed(1);
+    asymSigValue.textContent = qSig.toFixed(2);
+
+    var pMu = 0, pSig = 1;
+    var fwd = klGaussian(pMu, pSig, qMu, qSig); // D_KL(P || Q)
+    var rev = klGaussian(qMu, qSig, pMu, pSig); // D_KL(Q || P)
+    asymForwardVal.textContent = fwd.toFixed(2);
+    asymReverseVal.textContent = rev.toFixed(2);
+
+    var c = setupCanvas(document.getElementById("canvasAsym"));
+    var ctx = c.ctx, w = c.w, h = c.h;
+    var halfH = h / 2;
+    var pad = 40;
+    var xMin = -5, xMax = 5;
+    var plotW = w - 2 * pad;
+    var gMax = Math.max(gaussian(pMu, pMu, pSig), gaussian(qMu, qMu, qSig)) * 1.05;
+
+    /* ── TOP PANEL: Forward KL — weighted by P ── */
+    var topBase = halfH - 8;
+    var topPlotH = topBase - pad - 10;
+
+    // axis
+    ctx.strokeStyle = getColor("--text-muted");
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.25;
+    ctx.beginPath();
+    ctx.moveTo(pad, topBase);
+    ctx.lineTo(w - pad, topBase);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Shade penalty: where P > 0 and Q is small → P(x)*log(P/Q)
+    ctx.globalAlpha = 0.18;
+    ctx.beginPath();
+    ctx.moveTo(pad, topBase);
+    for (var fi = 0; fi <= plotW; fi++) {
+      var fx = xMin + (fi / plotW) * (xMax - xMin);
+      var pVal = gaussian(fx, pMu, pSig);
+      var qVal = gaussian(fx, qMu, qSig);
+      var penalty = 0;
+      if (pVal > 1e-8 && qVal > 1e-8) {
+        penalty = pVal * Math.log(pVal / qVal);
+      }
+      if (penalty < 0) { penalty = 0; }
+      var pyf = topBase - (penalty / gMax) * topPlotH;
+      ctx.lineTo(pad + fi, Math.max(pyf, pad));
+    }
+    ctx.lineTo(w - pad, topBase);
+    ctx.closePath();
+    ctx.fillStyle = getColor("--accent");
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Curves in top panel
+    function drawInPanel(mu, sigma, col, base, plotHeight) {
+      ctx.beginPath();
+      for (var ci = 0; ci <= plotW; ci++) {
+        var cx = xMin + (ci / plotW) * (xMax - xMin);
+        var cy = gaussian(cx, mu, sigma);
+        var cpy = base - (cy / gMax) * plotHeight;
+        if (ci === 0) { ctx.moveTo(pad + ci, cpy); }
+        else { ctx.lineTo(pad + ci, cpy); }
+      }
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
+
+    drawInPanel(pMu, pSig, getColor("--dist-p"), topBase, topPlotH);
+    drawInPanel(qMu, qSig, getColor("--dist-q"), topBase, topPlotH);
+
+    // Top panel title
+    ctx.font = '600 12px "DM Sans", sans-serif';
+    ctx.textAlign = "left";
+    ctx.fillStyle = getColor("--dist-p");
+    ctx.fillText("Forward KL:  D(P ‖ Q) = " + fwd.toFixed(2), pad, 18);
+    ctx.font = '11px "DM Sans", sans-serif';
+    ctx.fillStyle = getColor("--text-muted");
+    ctx.fillText("Penalty weighted by P — penalises where P has mass but Q doesn't", pad, 33);
+
+    /* ── BOTTOM PANEL: Reverse KL — weighted by Q ── */
+    var botTop = halfH + 10;
+    var botBase = h - pad;
+    var botPlotH = botBase - botTop - 10;
+
+    // axis
+    ctx.strokeStyle = getColor("--text-muted");
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.25;
+    ctx.beginPath();
+    ctx.moveTo(pad, botBase);
+    ctx.lineTo(w - pad, botBase);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Shade penalty: Q(x)*log(Q/P)
+    ctx.globalAlpha = 0.18;
+    ctx.beginPath();
+    ctx.moveTo(pad, botBase);
+    for (var ri = 0; ri <= plotW; ri++) {
+      var rx = xMin + (ri / plotW) * (xMax - xMin);
+      var pValR = gaussian(rx, pMu, pSig);
+      var qValR = gaussian(rx, qMu, qSig);
+      var penaltyR = 0;
+      if (qValR > 1e-8 && pValR > 1e-8) {
+        penaltyR = qValR * Math.log(qValR / pValR);
+      }
+      if (penaltyR < 0) { penaltyR = 0; }
+      var pyr = botBase - (penaltyR / gMax) * botPlotH;
+      ctx.lineTo(pad + ri, Math.max(pyr, botTop));
+    }
+    ctx.lineTo(w - pad, botBase);
+    ctx.closePath();
+    ctx.fillStyle = getColor("--accent");
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    drawInPanel(pMu, pSig, getColor("--dist-p"), botBase, botPlotH);
+    drawInPanel(qMu, qSig, getColor("--dist-q"), botBase, botPlotH);
+
+    // Bottom panel title
+    ctx.font = '600 12px "DM Sans", sans-serif';
+    ctx.textAlign = "left";
+    ctx.fillStyle = getColor("--dist-q");
+    ctx.fillText("Reverse KL:  D(Q ‖ P) = " + rev.toFixed(2), pad, botTop + 6);
+    ctx.font = '11px "DM Sans", sans-serif';
+    ctx.fillStyle = getColor("--text-muted");
+    ctx.fillText("Penalty weighted by Q — penalises where Q has mass but P doesn't", pad, botTop + 21);
+
+    // Divider
+    ctx.strokeStyle = getColor("--text-muted");
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.15;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(pad, halfH);
+    ctx.lineTo(w - pad, halfH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+
+    // also update the over/under-confidence panel
+    drawOverConf();
+  }
+
+  function drawOverConf() {
+    var qMu = parseFloat(asymMuSlider.value);
+    var qSig = parseFloat(asymSigSlider.value);
+    var pMu = 0, pSig = 1;
+
+    // ── Compute regional contributions numerically ──
+    var dx = 0.01;
+    var overFwd = 0, overRev = 0, underFwd = 0, underRev = 0;
+    for (var xi = -8; xi <= 8; xi += dx) {
+      var pvi = gaussian(xi, pMu, pSig);
+      var qvi = gaussian(xi, qMu, qSig);
+      var fwdT = (pvi > 1e-12 && qvi > 1e-12) ? pvi * Math.log(pvi / qvi) * dx : 0;
+      var revT = (qvi > 1e-12 && pvi > 1e-12) ? qvi * Math.log(qvi / pvi) * dx : 0;
+      if (qvi > pvi) { overFwd += fwdT; overRev += revT; }
+      else           { underFwd += fwdT; underRev += revT; }
+    }
+
+    var fmt = function(v) {
+      var s = v >= 0 ? "+" : "";
+      return s + v.toFixed(3);
+    };
+    var el = function(id) { return document.getElementById(id); };
+    el("contribOF").textContent = fmt(overFwd);
+    el("contribOR").textContent = fmt(overRev);
+    el("contribUF").textContent = fmt(underFwd);
+    el("contribUR").textContent = fmt(underRev);
+
+    // ── Draw canvas ──
+    var canv = document.getElementById("canvasOverConf");
+    if (!canv) { return; }
+    var c = setupCanvas(canv);
+    var ctx = c.ctx, w = c.w, h = c.h;
+    var pad = 44, padR = 20;
+    var xMin = -5, xMax = 5;
+    var plotW = w - pad - padR;
+    var base = h - 26;
+    var topPad = 22;
+    var plotH = base - topPad;
+    var gMax = Math.max(gaussian(pMu, pMu, pSig), gaussian(qMu, qMu, qSig)) * 1.15;
+
+    function xPx(x) { return pad + ((x - xMin) / (xMax - xMin)) * plotW; }
+    function yPy(y) { return base - Math.min(y / gMax, 1.0) * plotH; }
+
+    // Per-pixel region shading
+    var steps = plotW * 2;
+    var colW = plotW / steps + 1;
+    for (var i = 0; i <= steps; i++) {
+      var sx = xMin + (i / steps) * (xMax - xMin);
+      var spv = gaussian(sx, pMu, pSig);
+      var sqv = gaussian(sx, qMu, qSig);
+      var spx = xPx(sx);
+      if (sqv > spv) {
+        // over-confident: blue from P up to Q
+        ctx.fillStyle = getColor("--dist-p");
+        ctx.globalAlpha = 0.18;
+        ctx.fillRect(spx, yPy(sqv), colW, yPy(spv) - yPy(sqv));
+      } else {
+        // under-confident: orange from Q up to P
+        ctx.fillStyle = getColor("--dist-q");
+        ctx.globalAlpha = 0.18;
+        ctx.fillRect(spx, yPy(spv), colW, yPy(sqv) - yPy(spv));
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    // Axis
+    ctx.strokeStyle = getColor("--text-muted");
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.25;
+    ctx.beginPath();
+    ctx.moveTo(pad, base);
+    ctx.lineTo(pad + plotW, base);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // X tick labels
+    ctx.fillStyle = getColor("--text-muted");
+    ctx.font = '11px "JetBrains Mono", monospace';
+    ctx.textAlign = "center";
+    ctx.globalAlpha = 0.5;
+    for (var v2 = -4; v2 <= 4; v2 += 2) {
+      ctx.fillText(String(v2), xPx(v2), base + 15);
+    }
+    ctx.globalAlpha = 1;
+
+    // Draw P curve
+    ctx.beginPath();
+    for (var pi3 = 0; pi3 <= plotW; pi3++) {
+      var px3 = xMin + (pi3 / plotW) * (xMax - xMin);
+      var pv3 = gaussian(px3, pMu, pSig);
+      if (pi3 === 0) { ctx.moveTo(xPx(px3), yPy(pv3)); }
+      else { ctx.lineTo(xPx(px3), yPy(pv3)); }
+    }
+    ctx.strokeStyle = getColor("--dist-p");
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Draw Q curve
+    ctx.beginPath();
+    for (var qi3 = 0; qi3 <= plotW; qi3++) {
+      var qx3 = xMin + (qi3 / plotW) * (xMax - xMin);
+      var qv3 = gaussian(qx3, qMu, qSig);
+      if (qi3 === 0) { ctx.moveTo(xPx(qx3), yPy(qv3)); }
+      else { ctx.lineTo(xPx(qx3), yPy(qv3)); }
+    }
+    ctx.strokeStyle = getColor("--dist-q");
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Label over-confidence peak
+    var ocPeak = null, ocPeakVal = 0;
+    for (var ls = xMin; ls <= xMax; ls += 0.1) {
+      var gap = gaussian(ls, qMu, qSig) - gaussian(ls, pMu, pSig);
+      if (gap > ocPeakVal) { ocPeakVal = gap; ocPeak = ls; }
+    }
+    if (ocPeak !== null && ocPeakVal > 0.01) {
+      ctx.font = '600 11px "DM Sans", sans-serif';
+      ctx.fillStyle = getColor("--dist-p");
+      ctx.textAlign = "center";
+      ctx.fillText("Q over-estimates", xPx(ocPeak), yPy(gaussian(ocPeak, qMu, qSig)) - 6);
+    }
+
+    // Label under-confidence peak
+    var ucPeak = null, ucPeakVal = 0;
+    for (var ls2 = xMin; ls2 <= xMax; ls2 += 0.1) {
+      var gap2 = gaussian(ls2, pMu, pSig) - gaussian(ls2, qMu, qSig);
+      if (gap2 > ucPeakVal) { ucPeakVal = gap2; ucPeak = ls2; }
+    }
+    if (ucPeak !== null && ucPeakVal > 0.01) {
+      ctx.font = '600 11px "DM Sans", sans-serif';
+      ctx.fillStyle = getColor("--dist-q");
+      ctx.textAlign = "center";
+      ctx.fillText("Q under-estimates", xPx(ucPeak), yPy(gaussian(ucPeak, pMu, pSig)) - 6);
+    }
+
+    // Curve labels top-left
+    ctx.font = '600 12px "DM Sans", sans-serif';
+    ctx.textAlign = "left";
+    ctx.fillStyle = getColor("--dist-p");
+    ctx.fillText("P(x)", pad + 4, topPad - 4);
+    ctx.fillStyle = getColor("--dist-q");
+    ctx.fillText("Q(x)", pad + 46, topPad - 4);
+  }
+
+  asymMuSlider.addEventListener("input", drawStepAsym);
+  asymSigSlider.addEventListener("input", drawStepAsym);
+
+  /* ── Step 4: Latent space ── */
+  var betaSlider = document.getElementById("betaSlider");
+  var betaValue = document.getElementById("betaValue");
+
+  function seededRandom(seed) {
+    var s = seed;
+    return function() {
+      s = (s * 16807 + 0) % 2147483647;
+      return s / 2147483647;
+    };
+  }
+
+  function drawStep4() {
+    var beta = parseFloat(betaSlider.value);
+    betaValue.textContent = beta.toFixed(2);
+    var c = setupCanvas(document.getElementById("canvas3"));
+    var ctx = c.ctx, w = c.w, h = c.h;
+
+    var midX = w / 2;
+    var centerY = h / 2 + 10;
+    var radius = Math.min(w / 2 - 30, h - 60) * 0.42;
+
+    ctx.font = '600 13px "DM Sans", sans-serif';
+    ctx.textAlign = "center";
+    ctx.fillStyle = getColor("--text-muted");
+    ctx.fillText("Without KL (β = 0)", midX / 2, 22);
+    ctx.fillText("With KL (β = " + beta.toFixed(2) + ")", midX + midX / 2, 22);
+
+    ctx.strokeStyle = getColor("--border");
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(midX, 36);
+    ctx.lineTo(midX, h - 10);
+    ctx.stroke();
+
+    var rng1 = seededRandom(42);
+    var rng2 = seededRandom(42);
+    var numPoints = 280;
+    var numClusters = 6;
+    var clusters = [];
+    var cRng = seededRandom(99);
+    for (var ci = 0; ci < numClusters; ci++) {
+      clusters.push({
+        cx: (cRng() - 0.5) * 2 * radius * 0.75,
+        cy: (cRng() - 0.5) * 2 * radius * 0.75,
+        spread: 0.12 + cRng() * 0.15
+      });
+    }
+
+    function drawPoints(offsetX, useBeta) {
+      var t = useBeta ? beta : 0;
+      var rng = useBeta ? rng2 : rng1;
+      for (var pi = 0; pi < numPoints; pi++) {
+        var cluster = clusters[pi % numClusters];
+        var noiseCx = cluster.cx * (1 - t);
+        var noiseCy = cluster.cy * (1 - t);
+        var spread = cluster.spread * (1 - t) + (0.55 + 0.1 * t) * t;
+        if (t < 0.01) { spread = cluster.spread; }
+        if (t > 0.99) { spread = 0.6; }
+
+        var angle = rng() * Math.PI * 2;
+        var r = rng();
+        var gx = Math.sqrt(-2 * Math.log(Math.max(r, 0.001))) * Math.cos(angle);
+        var gy = Math.sqrt(-2 * Math.log(Math.max(r, 0.001))) * Math.sin(angle);
+        var px = offsetX + noiseCx + gx * radius * spread;
+        var py = centerY + noiseCy + gy * radius * spread;
+
+        var dist = Math.sqrt(Math.pow(px - offsetX, 2) + Math.pow(py - centerY, 2));
+        var norm = Math.min(dist / radius, 1);
+        var alpha = 0.25 + (1 - norm) * 0.55;
+
+        ctx.beginPath();
+        ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = useBeta
+          ? "rgba(102, 187, 106, " + alpha + ")"
+          : "rgba(255, 112, 67, " + alpha + ")";
+        ctx.fill();
+      }
+
+      ctx.beginPath();
+      ctx.arc(offsetX, centerY, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = getColor("--text-muted");
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.2;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
+
+    drawPoints(midX / 2, false);
+    drawPoints(midX + midX / 2, true);
+  }
+
+  betaSlider.addEventListener("input", drawStep4);
+
+  /* ── Step 5: Unified convergence animation ── */
+  var step5AnimFrame = null;
+  var step5StartTime = null;
+
+  function drawStep5() {
+    if (step5AnimFrame) { cancelAnimationFrame(step5AnimFrame); }
+
+    var canvas = document.getElementById("canvas4");
+    var pad = 40;
+    step5StartTime = performance.now();
+
+    var models = [
+      { name: "VAE", color: "#4fc3f7", startShift: -2.8, sigma: 1.4 },
+      { name: "SMPL", color: "#ab47bc", startShift: 2.5, sigma: 1.2 },
+      { name: "Diffusion", color: "#ff7043", startShift: 1.8, sigma: 1.6 }
+    ];
+
+    function animate(now) {
+      var elapsed = (now - step5StartTime) / 1000;
+      var progress = Math.min(elapsed / 3, 1);
+      var ease = 1 - Math.pow(1 - progress, 3);
+
+      var cc = setupCanvas(canvas);
+      var ctx = cc.ctx, w = cc.w, h = cc.h;
+      drawAxis(ctx, w, h, pad);
+
+      var plotW = w - 2 * pad;
+      var plotH = h - 2 * pad;
+      var maxY = gaussian(0, 0, 1);
+
+      // Target P
+      ctx.beginPath();
+      for (var i = 0; i <= plotW; i++) {
+        var x = -5 + (i / plotW) * 10;
+        var y = gaussian(x, 0, 1);
+        var py = (h - pad) - (y / maxY) * plotH * 0.85;
+        if (i === 0) { ctx.moveTo(pad + i, py); }
+        else { ctx.lineTo(pad + i, py); }
+      }
+      ctx.strokeStyle = getColor("--text-muted");
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.font = '600 12px "DM Sans", sans-serif';
+      ctx.fillStyle = getColor("--text-muted");
+      ctx.textAlign = "center";
+      ctx.fillText("P(x) target", w / 2, 20);
+
+      models.forEach(function(model) {
+        var curMu = model.startShift * (1 - ease);
+        var curSig = model.sigma + (1 - model.sigma) * ease;
+        var mMaxY = gaussian(curMu, curMu, curSig);
+
+        ctx.globalAlpha = 0.2;
+        ctx.beginPath();
+        ctx.moveTo(pad, h - pad);
+        for (var mi = 0; mi <= plotW; mi++) {
+          var mx = -5 + (mi / plotW) * 10;
+          var my = gaussian(mx, curMu, curSig);
+          ctx.lineTo(pad + mi, (h - pad) - (my / maxY) * plotH * 0.85);
+        }
+        ctx.lineTo(w - pad, h - pad);
+        ctx.closePath();
+        ctx.fillStyle = model.color;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        ctx.beginPath();
+        for (var mi2 = 0; mi2 <= plotW; mi2++) {
+          var mx2 = -5 + (mi2 / plotW) * 10;
+          var my2 = gaussian(mx2, curMu, curSig);
+          var py2 = (h - pad) - (my2 / maxY) * plotH * 0.85;
+          if (mi2 === 0) { ctx.moveTo(pad + mi2, py2); }
+          else { ctx.lineTo(pad + mi2, py2); }
+        }
+        ctx.strokeStyle = model.color;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        var labelX = pad + ((curMu + 5) / 10) * plotW;
+        labelX = Math.max(pad + 30, Math.min(w - pad - 30, labelX));
+        ctx.font = '600 11px "DM Sans", sans-serif';
+        ctx.fillStyle = model.color;
+        ctx.textAlign = "center";
+        ctx.fillText(model.name, labelX, (h - pad) - (mMaxY / maxY) * plotH * 0.85 - 8);
+      });
+
+      if (progress < 1) {
+        step5AnimFrame = requestAnimationFrame(animate);
+      }
+    }
+
+    step5AnimFrame = requestAnimationFrame(animate);
+  }
+
+  /* ── Master draw ── */
+  function drawCurrentStep() {
+    switch (currentStep) {
+      case 0: drawStep1(); break;
+      case 1: drawStep2(); drawSurprise(); break;
+      case 2: drawStepAsym(); break;
+      case 3: drawStep4(); break;
+      case 4: drawStep5(); break;
+    }
+  }
+
+  // Defer initial draw to ensure CSS layout is complete
+  requestAnimationFrame(function() {
+    drawCurrentStep();
+  });
+
+  var resizeTimer;
+  window.addEventListener("resize", function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() { drawCurrentStep(); }, 150);
+  });
+
+})();
+</script>
+
+
+
+</body></html>
